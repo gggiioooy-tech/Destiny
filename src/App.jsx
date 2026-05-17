@@ -53,12 +53,12 @@ const navItems = [
   { id: "members", label: "회원 관리", icon: Users, visibleTo: ["admin"] },
 ];
 
-const emptyDefense = { category: "attack", title: "", subtitle: "", power: "", heroes: "", rings: "", gears: "", pet: "", speed_order: "", team_speed: "", note: "", sort_order: 1, is_public: true };
-const emptyTotalWar = { title: "", heroes: "", rings: "", gears: "", pet: "", speed_order: "", team_speed: "", note: "", sort_order: 1, is_public: true };
-const emptyArena = { title: "", heroes: "", rings: "", gears: "", pet: "", speed_order: "", team_speed: "", note: "", sort_order: 1, is_public: true };
-const emptyAttackTeam = { enemy_type: "오공덱", title: "", power: "", heroes: "", rings: "", gears: "", pet: "", speed_order: "", team_speed: "", note: "", sort_order: 1, is_public: true };
+const emptyDefense = { category: "attack", title: "", subtitle: "", power: "", heroes: "", rings: "", gears: "", pet: "", formation: "", speed_order: "", team_speed: "", skill_order: "", note: "", sort_order: 1, is_public: true };
+const emptyTotalWar = { title: "", heroes: "", rings: "", gears: "", pet: "", formation: "", speed_order: "", team_speed: "", skill_order: "", note: "", sort_order: 1, is_public: true };
+const emptyArena = { title: "", heroes: "", rings: "", gears: "", pet: "", formation: "", speed_order: "", team_speed: "", skill_order: "", note: "", sort_order: 1, is_public: true };
+const emptyAttackTeam = { enemy_type: "오공덱", title: "", power: "", heroes: "", rings: "", gears: "", pet: "", formation: "", speed_order: "", team_speed: "", skill_order: "", note: "", sort_order: 1, is_public: true };
 const emptyEnemyDefense = { category: "enemy", title: "", heroes: "", note: "", counter_decks: "", sort_order: 1, is_public: true };
-const emptyCounterDeck = { title: "", heroes: "", rings: "", pet: "", speed_order: "", team_speed: "", gear_1: "", gear_2: "", gear_3: "", note: "" };
+const emptyCounterDeck = { title: "", heroes: "", rings: "", pet: "", formation: "", speed_order: "", team_speed: "", skill_order: "", gear_1: "", gear_2: "", gear_3: "", note: "" };
 const emptyNotice = { title: "", body: "", is_public: true };
 
 function cx(...items) {
@@ -519,7 +519,7 @@ function DefensePage({ currentUser, defenseTeams, setDefenseTeams, reloadData })
 
   return (
     <PageShell>
-      <PageHeader eyebrow="Defense" title="방어팀" desc="덱 타입별 추천 방어팀을 확인하세요." action={currentUser.role === "admin" && <Button onClick={() => setEditing({ ...emptyDefense, category: tab, sort_order: list.length + 1 })}><Plus size={16} /> 추가</Button>} />
+      <PageHeader eyebrow="Defense Team" title="방어팀" desc="덱 타입별 추천 방어팀을 확인하세요." action={currentUser.role === "admin" && <Button onClick={() => setEditing({ ...emptyDefense, category: tab, sort_order: list.length + 1 })}><Plus size={16} /> 추가</Button>} />
       <div className="mb-5 flex max-w-full overflow-x-auto rounded-xl border border-zinc-200 bg-white p-1 sm:w-fit">
         {tabs.map(([id, label]) => <button key={id} onClick={() => setTab(id)} className={cx("shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition", tab === id ? "bg-zinc-950 text-white" : "text-zinc-500 hover:text-zinc-950")}>{label}</button>)}
       </div>
@@ -541,6 +541,7 @@ function DefensePage({ currentUser, defenseTeams, setDefenseTeams, reloadData })
               <div className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-zinc-400">
                 <span>추천도 <b className="ml-1 text-zinc-800">{team.power || "0"}/10</b></span>
                 <span>펫 <b className="ml-1 text-zinc-800">{team.pet || "미입력"}</b></span>
+                <span>진형 <b className="ml-1 text-zinc-800">{team.formation || "미입력"}</b></span>
                 <span>최근 수정 <b className="ml-1 text-zinc-700">{formatUpdatedAt(team.updated_at || team.created_at)}</b></span>
               </div>
             </div>
@@ -560,7 +561,7 @@ function DefensePage({ currentUser, defenseTeams, setDefenseTeams, reloadData })
                     );
                   })}
                 </div>
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                <div className="mt-4 grid gap-2 sm:grid-cols-3">
                   <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
                     <div className="mb-1 text-xs font-semibold text-zinc-400">속공순서 추천</div>
                     <div className="whitespace-pre-wrap">{team.speed_order || "미입력"}</div>
@@ -568,6 +569,10 @@ function DefensePage({ currentUser, defenseTeams, setDefenseTeams, reloadData })
                   <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
                     <div className="mb-1 text-xs font-semibold text-zinc-400">팀속공 추천</div>
                     <div className="whitespace-pre-wrap">{team.team_speed || "미입력"}</div>
+                  </div>
+                  <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
+                    <div className="mb-1 text-xs font-semibold text-zinc-400">스킬순서</div>
+                    <div className="whitespace-pre-wrap">{team.skill_order || "미입력"}</div>
                   </div>
                 </div>
               </div>
@@ -597,8 +602,10 @@ function DefenseEditor({ item, onClose, onSaved }) {
       rings: form.rings,
       gears: form.gears,
       pet: form.pet,
+      formation: form.formation,
       speed_order: form.speed_order,
       team_speed: form.team_speed,
+      skill_order: form.skill_order,
       note: form.note,
       sort_order: Number(form.sort_order) || 1,
       is_public: form.is_public !== false && form.is_public !== "false",
@@ -621,7 +628,7 @@ function DefenseEditor({ item, onClose, onSaved }) {
     if (error) return alert(error.message);
     onSaved();
   };
-  return <Modal title={isNew ? "방어팀 추가" : "방어팀 수정"} onClose={onClose}><div className="grid gap-4"><Select label="분류" value={form.category} onChange={(v) => setForm({ ...form, category: v })} options={[["attack","공덱"],["tank","방덱"],["magic","마법"]]} /><Input label="제목" value={form.title} onChange={(v) => setForm({ ...form, title: v })} /><Input label="부제목" value={form.subtitle} onChange={(v) => setForm({ ...form, subtitle: v })} /><Input label="추천도 / 10점 만점" value={form.power} onChange={(v) => setForm({ ...form, power: v })} placeholder="예: 8.5" /><TextArea label="영웅명" value={form.heroes} onChange={(v) => setForm({ ...form, heroes: v })} placeholder="쉼표 또는 줄바꿈으로 구분" rows={3} /><TextArea label="영웅별 반지" value={form.rings} onChange={(v) => setForm({ ...form, rings: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} /><TextArea label="영웅별 장비세팅" value={form.gears} onChange={(v) => setForm({ ...form, gears: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} /><Input label="펫" value={form.pet} onChange={(v) => setForm({ ...form, pet: v })} placeholder="예: 연지" /><TextArea label="속공순서 추천" value={form.speed_order} onChange={(v) => setForm({ ...form, speed_order: v })} placeholder="예: 여포 → 칼헤론 → 란드그리드" rows={3} /><TextArea label="팀속공 추천" value={form.team_speed} onChange={(v) => setForm({ ...form, team_speed: v })} placeholder="예: 팀속공 45 이상 권장" rows={3} /><TextArea label="특징/메모" value={form.note} onChange={(v) => setForm({ ...form, note: v })} rows={3} />
+  return <Modal title={isNew ? "방어팀 추가" : "방어팀 수정"} onClose={onClose}><div className="grid gap-4"><Select label="분류" value={form.category} onChange={(v) => setForm({ ...form, category: v })} options={[["attack","공덱"],["tank","방덱"],["magic","마법"]]} /><Input label="제목" value={form.title} onChange={(v) => setForm({ ...form, title: v })} /><Input label="부제목" value={form.subtitle} onChange={(v) => setForm({ ...form, subtitle: v })} /><Input label="추천도 / 10점 만점" value={form.power} onChange={(v) => setForm({ ...form, power: v })} placeholder="예: 8.5" /><TextArea label="영웅명" value={form.heroes} onChange={(v) => setForm({ ...form, heroes: v })} placeholder="쉼표 또는 줄바꿈으로 구분" rows={3} /><TextArea label="영웅별 반지" value={form.rings} onChange={(v) => setForm({ ...form, rings: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} /><TextArea label="영웅별 장비세팅" value={form.gears} onChange={(v) => setForm({ ...form, gears: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} /><Input label="펫" value={form.pet} onChange={(v) => setForm({ ...form, pet: v })} placeholder="예: 연지" /><Input label="진형" value={form.formation} onChange={(v) => setForm({ ...form, formation: v })} placeholder="예: 공격진형 / 보호진형" /><TextArea label="속공순서 추천" value={form.speed_order} onChange={(v) => setForm({ ...form, speed_order: v })} placeholder="예: 여포 → 칼헤론 → 란드그리드" rows={3} /><TextArea label="팀속공 추천" value={form.team_speed} onChange={(v) => setForm({ ...form, team_speed: v })} placeholder="예: 팀속공 45 이상 권장" rows={3} /><TextArea label="스킬순서" value={form.skill_order} onChange={(v) => setForm({ ...form, skill_order: v })} placeholder="예: 여포1스 파이2스 여포2스" rows={3} /><TextArea label="특징/메모" value={form.note} onChange={(v) => setForm({ ...form, note: v })} rows={3} />
         <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} /><div className="flex justify-between gap-2"><Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>{!isNew && <Button onClick={remove} variant="danger"><Trash2 size={16} /> 삭제</Button>}</div></div></Modal>;
 }
 
@@ -659,8 +666,10 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
               title: "카운터덱 1",
               heroes: selectedEnemyDefense.counter_heroes || "",
               rings: selectedEnemyDefense.counter_rings || "",
+              formation: selectedEnemyDefense.counter_formation || "",
               speed_order: selectedEnemyDefense.counter_speed_order || "",
               team_speed: selectedEnemyDefense.counter_team_speed || "",
+              skill_order: selectedEnemyDefense.counter_skill_order || "",
               gear_1: selectedEnemyDefense.counter_gear_1 || "",
               gear_2: selectedEnemyDefense.counter_gear_2 || "",
               gear_3: selectedEnemyDefense.counter_gear_3 || "",
@@ -840,11 +849,12 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                           </div>
                         ))}
                       </div>
-                      <div className="mt-3 text-xs font-medium text-zinc-400">
-                        펫 <span className="ml-1 text-sm font-semibold text-zinc-800">{deck.pet || "미입력"}</span>
+                      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-zinc-400">
+                        <span>펫 <b className="ml-1 text-sm font-semibold text-zinc-800">{deck.pet || "미입력"}</b></span>
+                        <span>진형 <b className="ml-1 text-sm font-semibold text-zinc-800">{deck.formation || "미입력"}</b></span>
                       </div>
 
-                      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                      <div className="mt-4 grid gap-2 sm:grid-cols-3">
                         <div className="rounded-xl bg-white p-4 text-sm leading-6 text-zinc-600 ring-1 ring-zinc-200">
                           <div className="mb-1 text-xs font-semibold text-zinc-400">추천 카운터 속공</div>
                           <div className="whitespace-pre-wrap">{deck.speed_order || "미입력"}</div>
@@ -852,6 +862,10 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                         <div className="rounded-xl bg-white p-4 text-sm leading-6 text-zinc-600 ring-1 ring-zinc-200">
                           <div className="mb-1 text-xs font-semibold text-zinc-400">추천 카운터 팀속공</div>
                           <div className="whitespace-pre-wrap">{deck.team_speed || "미입력"}</div>
+                        </div>
+                        <div className="rounded-xl bg-white p-4 text-sm leading-6 text-zinc-600 ring-1 ring-zinc-200">
+                          <div className="mb-1 text-xs font-semibold text-zinc-400">추천 카운터 스킬순서</div>
+                          <div className="whitespace-pre-wrap">{deck.skill_order || "미입력"}</div>
                         </div>
                       </div>
 
@@ -910,6 +924,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
               <p className="mt-2 text-sm text-zinc-500">상대: {team.enemy_type || "미입력"}</p>
               {team.power && <p className="mt-2 text-sm font-semibold text-zinc-800">추천도 {team.power}/10</p>}
               <p className="mt-2 text-sm text-zinc-500">펫: <span className="font-semibold text-zinc-800">{team.pet || "미입력"}</span></p>
+              <p className="mt-1 text-sm text-zinc-500">진형: <span className="font-semibold text-zinc-800">{team.formation || "미입력"}</span></p>
               <p className="mt-2 text-xs text-zinc-400">최근 수정 {formatUpdatedAt(team.updated_at || team.created_at)}</p>
               {currentUser.role === "admin" && (
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -937,7 +952,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                   {splitList(team.heroes).length === 0 && <div className="text-sm text-zinc-400">등록된 영웅이 없습니다.</div>}
                 </div>
 
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                <div className="mt-4 grid gap-2 sm:grid-cols-3">
                   <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
                     <div className="mb-1 text-xs font-semibold text-zinc-400">속공순서 추천</div>
                     <div className="whitespace-pre-wrap">{team.speed_order || "미입력"}</div>
@@ -945,6 +960,10 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                   <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
                     <div className="mb-1 text-xs font-semibold text-zinc-400">팀속공 추천</div>
                     <div className="whitespace-pre-wrap">{team.team_speed || "미입력"}</div>
+                  </div>
+                  <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
+                    <div className="mb-1 text-xs font-semibold text-zinc-400">스킬순서</div>
+                    <div className="whitespace-pre-wrap">{team.skill_order || "미입력"}</div>
                   </div>
                 </div>
               </div>
@@ -975,8 +994,10 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
         heroes: item.counter_heroes || "",
         rings: item.counter_rings || "",
         pet: item.counter_pet || "",
+        formation: item.counter_formation || "",
         speed_order: item.counter_speed_order || "",
         team_speed: item.counter_team_speed || "",
+        skill_order: item.counter_skill_order || "",
         gear_1: item.counter_gear_1 || "",
         gear_2: item.counter_gear_2 || "",
         gear_3: item.counter_gear_3 || "",
@@ -1062,8 +1083,10 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
                     <TextArea label="추천 카운터 영웅" value={deck.heroes} onChange={(v) => updateDeck(deckIndex, { heroes: v })} rows={3} />
                     <TextArea label="추천 카운터 반지" value={deck.rings} onChange={(v) => updateDeck(deckIndex, { rings: v })} rows={3} />
                     <Input label="추천 카운터 펫" value={deck.pet} onChange={(v) => updateDeck(deckIndex, { pet: v })} placeholder="예: 연지" />
+                    <Input label="추천 카운터 진형" value={deck.formation} onChange={(v) => updateDeck(deckIndex, { formation: v })} placeholder="예: 공격진형 / 보호진형" />
                     <TextArea label="추천 카운터 속공" value={deck.speed_order} onChange={(v) => updateDeck(deckIndex, { speed_order: v })} rows={3} />
                     <Input label="추천 카운터 팀속공" value={deck.team_speed} onChange={(v) => updateDeck(deckIndex, { team_speed: v })} />
+                    <TextArea label="추천 카운터 스킬순서" value={deck.skill_order} onChange={(v) => updateDeck(deckIndex, { skill_order: v })} placeholder="예: 여포1스 파이2스 여포2스" rows={3} />
                     <div className="grid gap-4 md:grid-cols-3">
                       <TextArea label={`추천 카운터 장비세팅 ${counterHeroes[0] || "1번 영웅"}`} value={deck.gear_1} onChange={(v) => updateDeck(deckIndex, { gear_1: v })} rows={3} />
                       <TextArea label={`추천 카운터 장비세팅 ${counterHeroes[1] || "2번 영웅"}`} value={deck.gear_2} onChange={(v) => updateDeck(deckIndex, { gear_2: v })} rows={3} />
@@ -1101,8 +1124,10 @@ function AttackTeamEditor({ item, onClose, onSaved }) {
       rings: form.rings || "",
       gears: form.gears || "",
       pet: form.pet || "",
+      formation: form.formation || "",
       speed_order: form.speed_order || "",
       team_speed: form.team_speed || "",
+      skill_order: form.skill_order || "",
       note: form.note || "",
       sort_order: Number(form.sort_order) || 1,
       is_public: form.is_public !== false && form.is_public !== "false",
@@ -1135,8 +1160,10 @@ function AttackTeamEditor({ item, onClose, onSaved }) {
         <TextArea label="영웅별 반지" value={form.rings} onChange={(v) => setForm({ ...form, rings: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} />
         <TextArea label="영웅별 장비세팅" value={form.gears} onChange={(v) => setForm({ ...form, gears: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} />
         <Input label="펫" value={form.pet} onChange={(v) => setForm({ ...form, pet: v })} placeholder="예: 연지" />
+        <Input label="진형" value={form.formation} onChange={(v) => setForm({ ...form, formation: v })} placeholder="예: 공격진형 / 보호진형" />
         <TextArea label="속공순서 추천" value={form.speed_order} onChange={(v) => setForm({ ...form, speed_order: v })} placeholder="예: 여포 → 칼헤론 → 란드그리드" rows={3} />
         <TextArea label="팀속공 추천" value={form.team_speed} onChange={(v) => setForm({ ...form, team_speed: v })} placeholder="예: 팀속공 232 이상" rows={3} />
+        <TextArea label="스킬순서" value={form.skill_order} onChange={(v) => setForm({ ...form, skill_order: v })} placeholder="예: 여포1스 파이2스 여포2스" rows={3} />
         <TextArea label="공격 핵심 메모" value={form.note} onChange={(v) => setForm({ ...form, note: v })} rows={4} />
         <Input label="정렬 순서" value={form.sort_order} onChange={(v) => setForm({ ...form, sort_order: v })} />
         <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} />
@@ -1193,6 +1220,7 @@ function TotalWarPage({ currentUser, totalWarTeams, setTotalWarTeams, reloadData
               </div>
               <h3 className="mt-2 text-xl font-semibold text-zinc-950">{team.title}</h3>
               <p className="mt-2 text-sm text-zinc-500">펫: <span className="font-semibold text-zinc-800">{team.pet || "미입력"}</span></p>
+              <p className="mt-1 text-sm text-zinc-500">진형: <span className="font-semibold text-zinc-800">{team.formation || "미입력"}</span></p>
               <p className="mt-2 text-xs text-zinc-400">최근 수정 {formatUpdatedAt(team.updated_at || team.created_at)}</p>
               {currentUser.role === "admin" && (
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -1220,7 +1248,7 @@ function TotalWarPage({ currentUser, totalWarTeams, setTotalWarTeams, reloadData
                   {splitList(team.heroes).length === 0 && <div className="text-sm text-zinc-400">등록된 영웅이 없습니다.</div>}
                 </div>
 
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                <div className="mt-4 grid gap-2 sm:grid-cols-3">
                   <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
                     <div className="mb-1 text-xs font-semibold text-zinc-400">속공순서 추천</div>
                     <div className="whitespace-pre-wrap">{team.speed_order || "미입력"}</div>
@@ -1228,6 +1256,10 @@ function TotalWarPage({ currentUser, totalWarTeams, setTotalWarTeams, reloadData
                   <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
                     <div className="mb-1 text-xs font-semibold text-zinc-400">팀속공 추천</div>
                     <div className="whitespace-pre-wrap">{team.team_speed || "미입력"}</div>
+                  </div>
+                  <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
+                    <div className="mb-1 text-xs font-semibold text-zinc-400">스킬순서</div>
+                    <div className="whitespace-pre-wrap">{team.skill_order || "미입력"}</div>
                   </div>
                 </div>
               </div>
@@ -1257,8 +1289,10 @@ function TotalWarEditor({ item, onClose, onSaved }) {
       rings: form.rings || "",
       gears: form.gears || "",
       pet: form.pet || "",
+      formation: form.formation || "",
       speed_order: form.speed_order || "",
       team_speed: form.team_speed || "",
+      skill_order: form.skill_order || "",
       note: form.note || "",
       sort_order: Number(form.sort_order) || 1,
       is_public: form.is_public !== false && form.is_public !== "false",
@@ -1289,8 +1323,10 @@ function TotalWarEditor({ item, onClose, onSaved }) {
         <TextArea label="영웅별 반지" value={form.rings} onChange={(v) => setForm({ ...form, rings: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} />
         <TextArea label="영웅별 장비세팅" value={form.gears} onChange={(v) => setForm({ ...form, gears: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} />
         <Input label="펫" value={form.pet} onChange={(v) => setForm({ ...form, pet: v })} placeholder="예: 연지" />
+        <Input label="진형" value={form.formation} onChange={(v) => setForm({ ...form, formation: v })} placeholder="예: 공격진형 / 보호진형" />
         <TextArea label="속공순서 추천" value={form.speed_order} onChange={(v) => setForm({ ...form, speed_order: v })} placeholder="예: 여포 → 칼헤론 → 란드그리드" rows={3} />
         <TextArea label="팀속공 추천" value={form.team_speed} onChange={(v) => setForm({ ...form, team_speed: v })} placeholder="예: 팀속공 45 이상 권장" rows={3} />
+        <TextArea label="스킬순서" value={form.skill_order} onChange={(v) => setForm({ ...form, skill_order: v })} placeholder="예: 여포1스 파이2스 여포2스" rows={3} />
         <TextArea label="특징/메모" value={form.note} onChange={(v) => setForm({ ...form, note: v })} rows={3} />
         <Input label="정렬 순서" value={form.sort_order} onChange={(v) => setForm({ ...form, sort_order: v })} />
         <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} />
@@ -1347,6 +1383,7 @@ function ArenaPage({ currentUser, arenaTeams, setArenaTeams, reloadData }) {
               </div>
               <h3 className="mt-2 text-xl font-semibold text-zinc-950">{team.title}</h3>
               <p className="mt-2 text-sm text-zinc-500">펫: <span className="font-semibold text-zinc-800">{team.pet || "미입력"}</span></p>
+              <p className="mt-1 text-sm text-zinc-500">진형: <span className="font-semibold text-zinc-800">{team.formation || "미입력"}</span></p>
               <p className="mt-2 text-xs text-zinc-400">최근 수정 {formatUpdatedAt(team.updated_at || team.created_at)}</p>
               {currentUser.role === "admin" && (
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -1374,7 +1411,7 @@ function ArenaPage({ currentUser, arenaTeams, setArenaTeams, reloadData }) {
                   {splitList(team.heroes).length === 0 && <div className="text-sm text-zinc-400">등록된 영웅이 없습니다.</div>}
                 </div>
 
-                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                <div className="mt-4 grid gap-2 sm:grid-cols-3">
                   <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
                     <div className="mb-1 text-xs font-semibold text-zinc-400">속공순서 추천</div>
                     <div className="whitespace-pre-wrap">{team.speed_order || "미입력"}</div>
@@ -1382,6 +1419,10 @@ function ArenaPage({ currentUser, arenaTeams, setArenaTeams, reloadData }) {
                   <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
                     <div className="mb-1 text-xs font-semibold text-zinc-400">팀속공 추천</div>
                     <div className="whitespace-pre-wrap">{team.team_speed || "미입력"}</div>
+                  </div>
+                  <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
+                    <div className="mb-1 text-xs font-semibold text-zinc-400">스킬순서</div>
+                    <div className="whitespace-pre-wrap">{team.skill_order || "미입력"}</div>
                   </div>
                 </div>
               </div>
@@ -1411,8 +1452,10 @@ function ArenaEditor({ item, onClose, onSaved }) {
       rings: form.rings || "",
       gears: form.gears || "",
       pet: form.pet || "",
+      formation: form.formation || "",
       speed_order: form.speed_order || "",
       team_speed: form.team_speed || "",
+      skill_order: form.skill_order || "",
       note: form.note || "",
       sort_order: Number(form.sort_order) || 1,
       is_public: form.is_public !== false && form.is_public !== "false",
@@ -1443,8 +1486,10 @@ function ArenaEditor({ item, onClose, onSaved }) {
         <TextArea label="영웅별 반지" value={form.rings} onChange={(v) => setForm({ ...form, rings: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} />
         <TextArea label="영웅별 장비세팅" value={form.gears} onChange={(v) => setForm({ ...form, gears: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} />
         <Input label="펫" value={form.pet} onChange={(v) => setForm({ ...form, pet: v })} placeholder="예: 연지" />
+        <Input label="진형" value={form.formation} onChange={(v) => setForm({ ...form, formation: v })} placeholder="예: 공격진형 / 보호진형" />
         <TextArea label="속공순서 추천" value={form.speed_order} onChange={(v) => setForm({ ...form, speed_order: v })} rows={3} />
         <TextArea label="팀속공 추천" value={form.team_speed} onChange={(v) => setForm({ ...form, team_speed: v })} rows={3} />
+        <TextArea label="스킬순서" value={form.skill_order} onChange={(v) => setForm({ ...form, skill_order: v })} placeholder="예: 여포1스 파이2스 여포2스" rows={3} />
         <TextArea label="특징/메모" value={form.note} onChange={(v) => setForm({ ...form, note: v })} rows={3} />
         <Input label="정렬 순서" value={form.sort_order} onChange={(v) => setForm({ ...form, sort_order: v })} />
         <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} />
