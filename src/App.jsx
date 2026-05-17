@@ -547,10 +547,11 @@ function DefensePage({ currentUser, defenseTeams, setDefenseTeams, reloadData })
           <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white lg:grid-cols-[220px_1fr]">
             <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 lg:border-b-0 lg:border-r">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold text-zinc-400">#{index + 1}</p>
+                <p className="text-xs font-semibold text-zinc-400">#{team.sort_order || index + 1}</p>
                 {currentUser.role === "admin" && team.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}
               </div>
               <h3 className="mt-2 text-xl font-semibold text-zinc-950">{team.title}</h3>
+              {team.subtitle && <p className="mt-1 text-sm text-zinc-500">{team.subtitle}</p>}
               {currentUser.role === "admin" && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button onClick={() => setEditing(team)} variant="secondary"><Pencil size={14} /> 수정</Button>
@@ -610,6 +611,7 @@ function DefenseEditor({ item, onClose, onSaved }) {
   const [form, setForm] = useState({ ...emptyDefense, ...item });
   const [saving, setSaving] = useState(false);
   const isNew = !item.id;
+
   const save = async () => {
     setSaving(true);
     const payload = {
@@ -630,24 +632,58 @@ function DefenseEditor({ item, onClose, onSaved }) {
       is_public: form.is_public !== false && form.is_public !== "false",
       updated_at: new Date().toISOString(),
     };
-    const { error } = isNew ? await supabase.from("defense_teams").insert(payload) : await supabase.from("defense_teams").update(payload).eq("id", item.id);
+
+    const { error } = isNew
+      ? await supabase.from("defense_teams").insert(payload)
+      : await supabase.from("defense_teams").update(payload).eq("id", item.id);
+
     setSaving(false);
     if (error) return alert(error.message);
     onSaved();
   };
+
   const remove = async () => {
     if (!item?.id) return alert("삭제할 방어팀 ID를 찾지 못했습니다.");
-
-    const { error } = await supabase
-      .from("defense_teams")
-      .delete()
-      .eq("id", item.id);
-
+    const { error } = await supabase.from("defense_teams").delete().eq("id", item.id);
     if (error) return alert(error.message);
     onSaved();
   };
-  return <Modal title={isNew ? "방어팀 추가" : "방어팀 수정"} onClose={onClose}><div className="grid gap-4"><Select label="분류" value={form.category} onChange={(v) => setForm({ ...form, category: v })} options={[["attack","공덱"],["tank","방덱"],["magic","마법"]]} /><Input label="제목" value={form.title} onChange={(v) => setForm({ ...form, title: v })} /><Input label="부제목" value={form.subtitle} onChange={(v) => setForm({ ...form, subtitle: v })} /><Input label="추천도 / 10점 만점" value={form.power} onChange={(v) => setForm({ ...form, power: v })} placeholder="예: 8.5" /><TextArea label="영웅명" value={form.heroes} onChange={(v) => setForm({ ...form, heroes: v })} placeholder="쉼표 또는 줄바꿈으로 구분" rows={3} /><TextArea label="영웅별 반지" value={form.rings} onChange={(v) => setForm({ ...form, rings: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} /><TextArea label="영웅별 장비세팅" value={form.gears} onChange={(v) => setForm({ ...form, gears: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} /><Input label="펫" value={form.pet} onChange={(v) => setForm({ ...form, pet: v })} placeholder="예: 연지" /><Input label="진형" value={form.formation} onChange={(v) => setForm({ ...form, formation: v })} placeholder="예: 공격진형 / 보호진형" /><TextArea label="속공순서 추천" value={form.speed_order} onChange={(v) => setForm({ ...form, speed_order: v })} placeholder="예: 여포 → 칼헤론 → 란드그리드" rows={3} /><TextArea label="팀속공 추천" value={form.team_speed} onChange={(v) => setForm({ ...form, team_speed: v })} placeholder="예: 팀속공 45 이상 권장" rows={3} /><TextArea label="스킬순서" value={form.skill_order} onChange={(v) => setForm({ ...form, skill_order: v })} placeholder="예: 여포1스 파이2스 여포2스" rows={3} /><TextArea label="특징/메모" value={form.note} onChange={(v) => setForm({ ...form, note: v })} rows={3} />
-        <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} /><div className="flex justify-between gap-2"><Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>{!isNew && <DeleteButton onConfirm={remove}>삭제</DeleteButton>}</div></div></Modal>;
+
+  return (
+    <Modal title={isNew ? "방어팀 추가" : "방어팀 수정"} onClose={onClose}>
+      <div className="grid gap-4">
+        <Select
+          label="분류"
+          value={form.category}
+          onChange={(v) => setForm({ ...form, category: v })}
+          options={[["attack", "공덱"], ["tank", "방덱"], ["magic", "마법"]]}
+        />
+        <Input label="제목" value={form.title} onChange={(v) => setForm({ ...form, title: v })} />
+        <Input label="부제목" value={form.subtitle} onChange={(v) => setForm({ ...form, subtitle: v })} />
+        <Input label="추천도 / 10점 만점" value={form.power} onChange={(v) => setForm({ ...form, power: v })} placeholder="예: 8.5" />
+        <TextArea label="영웅명" value={form.heroes} onChange={(v) => setForm({ ...form, heroes: v })} placeholder="쉼표 또는 줄바꿈으로 구분" rows={3} />
+        <TextArea label="영웅별 반지" value={form.rings} onChange={(v) => setForm({ ...form, rings: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} />
+        <TextArea label="영웅별 장비세팅" value={form.gears} onChange={(v) => setForm({ ...form, gears: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} />
+        <Input label="펫" value={form.pet} onChange={(v) => setForm({ ...form, pet: v })} placeholder="예: 연지" />
+        <Input label="진형" value={form.formation} onChange={(v) => setForm({ ...form, formation: v })} placeholder="예: 공격진형 / 보호진형" />
+        <TextArea label="속공순서 추천" value={form.speed_order} onChange={(v) => setForm({ ...form, speed_order: v })} placeholder="예: 여포 → 칼헤론 → 란드그리드" rows={3} />
+        <TextArea label="팀속공 추천" value={form.team_speed} onChange={(v) => setForm({ ...form, team_speed: v })} placeholder="예: 팀속공 45 이상 권장" rows={3} />
+        <TextArea label="스킬순서" value={form.skill_order} onChange={(v) => setForm({ ...form, skill_order: v })} placeholder="예: 여포1스 파이2스 여포2스" rows={3} />
+        <TextArea label="특징/메모" value={form.note} onChange={(v) => setForm({ ...form, note: v })} rows={3} />
+        <Input label="정렬 순서" value={form.sort_order} onChange={(v) => setForm({ ...form, sort_order: v })} />
+        <Select
+          label="공개 상태"
+          value={String(form.is_public !== false)}
+          onChange={(v) => setForm({ ...form, is_public: v === "true" })}
+          options={[["true", "공개"], ["false", "비공개"]]}
+        />
+        <div className="flex justify-between gap-2">
+          <Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>
+          {!isNew && <DeleteButton onConfirm={remove}>삭제</DeleteButton>}
+        </div>
+      </div>
+    </Modal>
+  );
 }
 
 function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeams, setEnemyDefenseTeams, reloadData }) {
@@ -780,9 +816,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                 </Button>
               )}
             </div>
-            {!enemyHeroSearch.trim() && currentUser.role !== "admin" ? (
-              <div className="rounded-xl bg-zinc-50 p-4 text-sm text-zinc-400">영웅명을 입력해주세요.</div>
-            ) : searchedDefenseTeams.length === 0 ? (
+            {!enemyHeroSearch.trim() && currentUser.role !== "admin" ? null : searchedDefenseTeams.length === 0 ? (
               <div className="rounded-xl bg-zinc-50 p-4 text-sm text-zinc-400">검색된 방어팀이 없습니다.</div>
             ) : (
               <div className="grid gap-2 lg:grid-cols-2">
@@ -874,7 +908,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
 
                       <div className="mt-4 grid gap-2 sm:grid-cols-3">
                         <div className="rounded-xl bg-white p-4 text-sm leading-6 text-zinc-600 ring-1 ring-zinc-200">
-                          <div className="mb-1 text-xs font-semibold text-zinc-400">추천 카운터 속공</div>
+                          <div className="mb-1 text-xs font-semibold text-zinc-400">추천 속공순서</div>
                           <div className="whitespace-pre-wrap">{deck.speed_order || "미입력"}</div>
                         </div>
                         <div className="rounded-xl bg-white p-4 text-sm leading-6 text-zinc-600 ring-1 ring-zinc-200">
@@ -935,7 +969,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
           <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white lg:grid-cols-[220px_1fr]">
             <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 lg:border-b-0 lg:border-r">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold text-zinc-400">#{index + 1}</p>
+                <p className="text-xs font-semibold text-zinc-400">#{team.sort_order || index + 1}</p>
                 {currentUser.role === "admin" && team.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}
               </div>
               <h3 className="mt-2 text-xl font-semibold text-zinc-950">{team.title}</h3>
@@ -1103,7 +1137,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
                     <TextArea label="추천 카운터 반지" value={deck.rings} onChange={(v) => updateDeck(deckIndex, { rings: v })} rows={3} />
                     <Input label="추천 카운터 펫" value={deck.pet} onChange={(v) => updateDeck(deckIndex, { pet: v })} placeholder="예: 연지" />
                     <Input label="추천 카운터 진형" value={deck.formation} onChange={(v) => updateDeck(deckIndex, { formation: v })} placeholder="예: 공격진형 / 보호진형" />
-                    <TextArea label="추천 카운터 속공" value={deck.speed_order} onChange={(v) => updateDeck(deckIndex, { speed_order: v })} rows={3} />
+                    <TextArea label="추천 속공순서" value={deck.speed_order} onChange={(v) => updateDeck(deckIndex, { speed_order: v })} rows={3} />
                     <Input label="추천 카운터 팀속공" value={deck.team_speed} onChange={(v) => updateDeck(deckIndex, { team_speed: v })} />
                     <TextArea label="추천 카운터 스킬순서" value={deck.skill_order} onChange={(v) => updateDeck(deckIndex, { skill_order: v })} placeholder="예: 여포1스 파이2스 여포2스" rows={3} />
                     <div className="grid gap-4 md:grid-cols-3">
@@ -1234,7 +1268,7 @@ function TotalWarPage({ currentUser, totalWarTeams, setTotalWarTeams, reloadData
           <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white lg:grid-cols-[220px_1fr]">
             <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 lg:border-b-0 lg:border-r">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold text-zinc-400">#{index + 1}</p>
+                <p className="text-xs font-semibold text-zinc-400">#{team.sort_order || index + 1}</p>
                 {currentUser.role === "admin" && team.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}
               </div>
               <h3 className="mt-2 text-xl font-semibold text-zinc-950">{team.title}</h3>
@@ -1397,7 +1431,7 @@ function ArenaPage({ currentUser, arenaTeams, setArenaTeams, reloadData }) {
           <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white lg:grid-cols-[220px_1fr]">
             <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 lg:border-b-0 lg:border-r">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold text-zinc-400">#{index + 1}</p>
+                <p className="text-xs font-semibold text-zinc-400">#{team.sort_order || index + 1}</p>
                 {currentUser.role === "admin" && team.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}
               </div>
               <h3 className="mt-2 text-xl font-semibold text-zinc-950">{team.title}</h3>
