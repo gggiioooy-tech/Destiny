@@ -29,6 +29,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const OWNER_ID = "15month";
+const SESSION_KEY = "seori_guild_current_user_id";
 
 const FALLBACK_SETTINGS = {
   guild_name: "15월",
@@ -36,6 +37,7 @@ const FALLBACK_SETTINGS = {
   main_subtitle: "방어팀 배치와 방어팀별 공격법을 정리한 길드 전용 공략 센터입니다.",
   hero_notice: "승인된 길드원만 열람할 수 있습니다.",
   footer_text: "made by 15월",
+  quick_notice: "",
   dashboard_banner_title: "길드전 준비 현황",
   dashboard_banner_body: "방어팀을 확인하고, 상대 조합에 맞는 공격법을 선택하세요.",
 };
@@ -45,17 +47,19 @@ const navItems = [
   { id: "defense", label: "방어팀", icon: Shield, visibleTo: ["member", "admin"] },
   { id: "attack", label: "공격팀", icon: Swords, visibleTo: ["member", "admin"] },
   { id: "total", label: "총력전 공략", icon: ScrollText, visibleTo: ["member", "admin"] },
+  { id: "arena", label: "결투장 공략", icon: Swords, visibleTo: ["member", "admin"] },
   { id: "notices", label: "공지", icon: ScrollText, visibleTo: ["member", "admin"] },
   { id: "content", label: "콘텐츠 문구 관리", icon: Pencil, visibleTo: ["admin"] },
   { id: "members", label: "회원 관리", icon: Users, visibleTo: ["admin"] },
 ];
 
-const emptyDefense = { category: "attack", title: "", subtitle: "", power: "", heroes: "", rings: "", speed_order: "", team_speed: "", note: "", sort_order: 1 };
-const emptyTotalWar = { title: "", heroes: "", rings: "", speed_order: "", team_speed: "", note: "", sort_order: 1 };
-const emptyAttackTeam = { enemy_type: "오공덱", title: "", power: "", heroes: "", rings: "", speed_order: "", team_speed: "", note: "", sort_order: 1 };
-const emptyEnemyDefense = { category: "enemy", title: "", heroes: "", note: "", counter_decks: "", sort_order: 1 };
-const emptyCounterDeck = { title: "", heroes: "", rings: "", speed_order: "", team_speed: "", gear_1: "", gear_2: "", gear_3: "", note: "" };
-const emptyNotice = { title: "", body: "" };
+const emptyDefense = { category: "attack", title: "", subtitle: "", power: "", heroes: "", rings: "", gears: "", pet: "", speed_order: "", team_speed: "", note: "", sort_order: 1, is_public: true };
+const emptyTotalWar = { title: "", heroes: "", rings: "", gears: "", pet: "", speed_order: "", team_speed: "", note: "", sort_order: 1, is_public: true };
+const emptyArena = { title: "", heroes: "", rings: "", gears: "", pet: "", speed_order: "", team_speed: "", note: "", sort_order: 1, is_public: true };
+const emptyAttackTeam = { enemy_type: "오공덱", title: "", power: "", heroes: "", rings: "", gears: "", pet: "", speed_order: "", team_speed: "", note: "", sort_order: 1, is_public: true };
+const emptyEnemyDefense = { category: "enemy", title: "", heroes: "", note: "", counter_decks: "", sort_order: 1, is_public: true };
+const emptyCounterDeck = { title: "", heroes: "", rings: "", pet: "", speed_order: "", team_speed: "", gear_1: "", gear_2: "", gear_3: "", note: "" };
+const emptyNotice = { title: "", body: "", is_public: true };
 
 function cx(...items) {
   return items.filter(Boolean).join(" ");
@@ -85,6 +89,26 @@ function stringifyCounterDecks(decks) {
   return JSON.stringify(decks || []);
 }
 
+function getKoreanInitials(value) {
+  const initials = ["ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
+  return String(value || "")
+    .split("")
+    .map((char) => {
+      const code = char.charCodeAt(0) - 44032;
+      if (code < 0 || code > 11171) return char;
+      return initials[Math.floor(code / 588)];
+    })
+    .join("");
+}
+
+function matchesHeroSearch(hero, query) {
+  const keyword = String(query || "").trim().toLowerCase();
+  if (!keyword) return false;
+  const heroText = String(hero || "").toLowerCase();
+  const heroInitials = getKoreanInitials(hero).toLowerCase();
+  return heroText.includes(keyword) || heroInitials.includes(keyword);
+}
+
 function mapProfile(row) {
   return {
     dbId: row.id,
@@ -94,11 +118,23 @@ function mapProfile(row) {
     role: row.role,
     status: row.status,
     createdAt: row.created_at,
+    memo: row.memo || "",
   };
 }
 
 function statusLabel(status) {
   return { pending: "승인 대기", approved: "승인 완료", rejected: "거절됨", blocked: "차단됨" }[status] || status;
+}
+
+function formatUpdatedAt(value) {
+  if (!value) return "수정일 없음";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "수정일 없음";
+  return date.toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" });
+}
+
+function isVisibleItem(item, currentUser) {
+  return currentUser?.role === "admin" || item.is_public !== false;
 }
 
 function roleLabel(role) {
@@ -208,6 +244,7 @@ function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
     if (!user) return setError("아이디 또는 비밀번호가 일치하지 않습니다.");
     if (user.status === "rejected") return setError("가입 신청이 거절된 계정입니다.");
     if (user.status === "blocked") return setError("차단된 계정입니다. 관리자에게 문의하세요.");
+    localStorage.setItem(SESSION_KEY, user.id);
     setCurrentUser(user);
   };
 
@@ -248,7 +285,7 @@ function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
         <section>
           <div className="mb-8 flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-white text-zinc-950">
-              <Snowflake size={18} strokeWidth={2.2} />
+              <Snowflake size={26} strokeWidth={2.4} className="snow-sway-icon" />
             </div>
             <div>
               <p className="text-sm font-semibold text-white">{settings.guild_name}</p>
@@ -325,7 +362,7 @@ function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, se
         <div className="flex items-center justify-between border-b border-zinc-200 p-5 lg:justify-start">
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-zinc-950 text-white">
-              <Snowflake size={18} strokeWidth={2.2} />
+              <Snowflake size={26} strokeWidth={2.4} className="snow-sway-icon" />
             </div>
             <div>
               <div className="text-sm font-semibold text-zinc-950">{settings.guild_name}</div>
@@ -361,20 +398,30 @@ function MobileHeader({ setIsOpen, currentUser, settings }) {
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between border-b border-zinc-200 bg-white/90 px-3 py-3 backdrop-blur sm:px-4 lg:hidden">
       <div className="flex items-center gap-2"><div className="grid h-9 w-9 place-items-center rounded-lg bg-zinc-950 text-white">
-              <Snowflake size={16} strokeWidth={2.2} />
+              <Snowflake size={24} strokeWidth={2.4} className="snow-sway-icon" />
             </div><div><div className="text-sm font-semibold">{settings.guild_name}</div><div className="text-[11px] text-zinc-500">{currentUser.gameNickname}</div></div></div>
       <button onClick={() => setIsOpen(true)} className="rounded-lg border border-zinc-200 bg-white p-2"><Menu size={20} /></button>
     </header>
   );
 }
 
-function Dashboard({ setActive, currentUser, users, settings }) {
+function Dashboard({ setActive, currentUser, users, settings, setSettings }) {
   const pendingCount = users.filter((u) => u.status === "pending").length;
   const approvedCount = users.filter((u) => u.status === "approved").length;
+  const [quickNotice, setQuickNotice] = useState(settings.quick_notice || "");
+  useEffect(() => setQuickNotice(settings.quick_notice || ""), [settings.quick_notice]);
+
+  const saveQuickNotice = async () => {
+    const { error } = await upsertSetting("quick_notice", quickNotice);
+    if (error) return alert(`중요 공지 저장 실패: ${error.message}`);
+    setSettings((prev) => ({ ...prev, quick_notice: quickNotice }));
+  };
+
   return (
     <div>
       <section className="border-b border-zinc-200 bg-white px-4 py-8 sm:px-5 sm:py-10 md:px-8 md:py-14">
-        <div className="max-w-5xl">
+        <div className="grid gap-6 xl:grid-cols-[1fr_360px] xl:items-start">
+          <div className="max-w-5xl">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{settings.footer_text}</p>
           <h1 className="mt-4 max-w-5xl break-keep text-3xl font-semibold leading-tight tracking-[-0.04em] text-zinc-950 sm:text-4xl md:text-6xl">{settings.site_title}</h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-500">어서오세요, <b className="font-semibold text-zinc-950">{currentUser.gameNickname}</b>님. 길드전 방어팀 배치와 공격 족보를 확인하는 길드전 공략 사이트 입니다.</p>
@@ -382,8 +429,30 @@ function Dashboard({ setActive, currentUser, users, settings }) {
             <Button onClick={() => setActive("defense")}>방어팀 보기 <ChevronRight size={16} /></Button>
             <Button onClick={() => setActive("attack")}>공격팀 보기 <ChevronRight size={16} /></Button>
             <Button onClick={() => setActive("total")}>총력전 공략 보기 <ChevronRight size={16} /></Button>
+            <Button onClick={() => setActive("arena")}>결투장 공략 보기 <ChevronRight size={16} /></Button>
             {currentUser.role === "admin" && <Button onClick={() => setActive("members")} variant="secondary">가입 승인 {pendingCount}건</Button>}
           </div>
+          </div>
+
+          {(currentUser.id === OWNER_ID || settings.quick_notice) && (
+            <div className="rounded-2xl border border-zinc-200 bg-zinc-50/80 p-4">
+              <div className="text-xs font-semibold text-zinc-400">중요 공지</div>
+              {currentUser.id === OWNER_ID ? (
+                <div className="mt-3 space-y-3">
+                  <textarea
+                    value={quickNotice}
+                    onChange={(e) => setQuickNotice(e.target.value)}
+                    placeholder="중요 공지를 입력하세요. 비워두면 일반 회원에게 보이지 않습니다."
+                    rows={5}
+                    className="w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm leading-6 text-zinc-950 outline-none placeholder:text-zinc-400 focus:ring-4 focus:ring-zinc-200/70"
+                  />
+                  <Button onClick={saveQuickNotice} variant="secondary" className="w-full">저장</Button>
+                </div>
+              ) : (
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-zinc-700">{settings.quick_notice}</p>
+              )}
+            </div>
+          )}
         </div>
       </section>
       <PageShell>
@@ -397,8 +466,10 @@ function Dashboard({ setActive, currentUser, users, settings }) {
           )}
         </div>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <FeatureCard title="방어팀" desc="공덱/방덱/마법덱 추천 방어팀 구성을 확인하세요." icon={Shield} onClick={() => setActive("defense")} />
+          <FeatureCard title="방어팀" desc="공덱/방덱/마덱 추천 방어팀 구성을 확인하세요." icon={Shield} onClick={() => setActive("defense")} />
           <FeatureCard title="공격팀" desc="상대 유형별 족보와 주의사항을 확인하세요." icon={Swords} onClick={() => setActive("attack")} />
+          <FeatureCard title="총력전 공략" desc="총력전 추천 조합과 속공 기준을 확인하세요." icon={ScrollText} onClick={() => setActive("total")} />
+          <FeatureCard title="결투장 공략" desc="결투장 추천 조합과 장비세팅을 확인하세요." icon={Swords} onClick={() => setActive("arena")} />
         </div>
         
       </PageShell>
@@ -441,7 +512,10 @@ function DefensePage({ currentUser, defenseTeams, setDefenseTeams, reloadData })
     await reloadData();
   };
   const tabs = [["attack", "공덱"], ["tank", "방덱"], ["magic", "마덱"]];
-  const list = defenseTeams.filter((t) => t.category === tab).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  const list = defenseTeams
+    .filter((t) => t.category === tab)
+    .filter((t) => isVisibleItem(t, currentUser))
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
   return (
     <PageShell>
@@ -453,7 +527,10 @@ function DefensePage({ currentUser, defenseTeams, setDefenseTeams, reloadData })
         {list.map((team, index) => (
           <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white lg:grid-cols-[220px_1fr]">
             <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 lg:border-b-0 lg:border-r">
-              <p className="text-xs font-semibold text-zinc-400">#{index + 1}</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-zinc-400">#{index + 1}</p>
+                {currentUser.role === "admin" && team.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}
+              </div>
               <h3 className="mt-2 text-xl font-semibold text-zinc-950">{team.title}</h3>
               {currentUser.role === "admin" && (
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -461,6 +538,11 @@ function DefensePage({ currentUser, defenseTeams, setDefenseTeams, reloadData })
                   <Button onClick={() => deleteDefenseTeam(team)} variant="danger"><Trash2 size={14} /> 삭제</Button>
                 </div>
               )}
+              <div className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-zinc-400">
+                <span>추천도 <b className="ml-1 text-zinc-800">{team.power || "0"}/10</b></span>
+                <span>펫 <b className="ml-1 text-zinc-800">{team.pet || "미입력"}</b></span>
+                <span>최근 수정 <b className="ml-1 text-zinc-700">{formatUpdatedAt(team.updated_at || team.created_at)}</b></span>
+              </div>
             </div>
             <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[1fr_220px] lg:items-center">
               <div>
@@ -468,10 +550,12 @@ function DefensePage({ currentUser, defenseTeams, setDefenseTeams, reloadData })
                 <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {splitList(team.heroes).map((hero, heroIndex) => {
                     const ring = splitList(team.rings)[heroIndex];
+                    const gear = splitList(team.gears)[heroIndex];
                     return (
                       <div key={`${hero}-${heroIndex}`} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
                         <div className="text-xs font-semibold text-zinc-800">{hero}</div>
                         <div className="mt-1 text-[11px] text-zinc-500">반지: {ring || "미입력"}</div>
+                        <div className="mt-1 text-[11px] text-zinc-500">장비: {gear || "미입력"}</div>
                       </div>
                     );
                   })}
@@ -511,10 +595,14 @@ function DefenseEditor({ item, onClose, onSaved }) {
       power: form.power,
       heroes: form.heroes,
       rings: form.rings,
+      gears: form.gears,
+      pet: form.pet,
       speed_order: form.speed_order,
       team_speed: form.team_speed,
       note: form.note,
       sort_order: Number(form.sort_order) || 1,
+      is_public: form.is_public !== false && form.is_public !== "false",
+      updated_at: new Date().toISOString(),
     };
     const { error } = isNew ? await supabase.from("defense_teams").insert(payload) : await supabase.from("defense_teams").update(payload).eq("id", item.id);
     setSaving(false);
@@ -533,7 +621,8 @@ function DefenseEditor({ item, onClose, onSaved }) {
     if (error) return alert(error.message);
     onSaved();
   };
-  return <Modal title={isNew ? "방어팀 추가" : "방어팀 수정"} onClose={onClose}><div className="grid gap-4"><Select label="분류" value={form.category} onChange={(v) => setForm({ ...form, category: v })} options={[["attack","공덱"],["tank","방덱"],["magic","마법"]]} /><Input label="제목" value={form.title} onChange={(v) => setForm({ ...form, title: v })} /><Input label="부제목" value={form.subtitle} onChange={(v) => setForm({ ...form, subtitle: v })} /><Input label="추천도 / 10점 만점" value={form.power} onChange={(v) => setForm({ ...form, power: v })} placeholder="예: 8.5" /><TextArea label="영웅명" value={form.heroes} onChange={(v) => setForm({ ...form, heroes: v })} placeholder="쉼표 또는 줄바꿈으로 구분" rows={3} /><TextArea label="영웅별 반지" value={form.rings} onChange={(v) => setForm({ ...form, rings: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} /><TextArea label="속공순서 추천" value={form.speed_order} onChange={(v) => setForm({ ...form, speed_order: v })} placeholder="예: 여포 → 칼헤론 → 란드그리드" rows={3} /><TextArea label="팀속공 추천" value={form.team_speed} onChange={(v) => setForm({ ...form, team_speed: v })} placeholder="예: 팀속공 45 이상 권장" rows={3} /><TextArea label="특징/메모" value={form.note} onChange={(v) => setForm({ ...form, note: v })} rows={3} /><Input label="정렬 순서" value={form.sort_order} onChange={(v) => setForm({ ...form, sort_order: v })} /><div className="flex justify-between gap-2"><Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>{!isNew && <Button onClick={remove} variant="danger"><Trash2 size={16} /> 삭제</Button>}</div></div></Modal>;
+  return <Modal title={isNew ? "방어팀 추가" : "방어팀 수정"} onClose={onClose}><div className="grid gap-4"><Select label="분류" value={form.category} onChange={(v) => setForm({ ...form, category: v })} options={[["attack","공덱"],["tank","방덱"],["magic","마법"]]} /><Input label="제목" value={form.title} onChange={(v) => setForm({ ...form, title: v })} /><Input label="부제목" value={form.subtitle} onChange={(v) => setForm({ ...form, subtitle: v })} /><Input label="추천도 / 10점 만점" value={form.power} onChange={(v) => setForm({ ...form, power: v })} placeholder="예: 8.5" /><TextArea label="영웅명" value={form.heroes} onChange={(v) => setForm({ ...form, heroes: v })} placeholder="쉼표 또는 줄바꿈으로 구분" rows={3} /><TextArea label="영웅별 반지" value={form.rings} onChange={(v) => setForm({ ...form, rings: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} /><TextArea label="영웅별 장비세팅" value={form.gears} onChange={(v) => setForm({ ...form, gears: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} /><Input label="펫" value={form.pet} onChange={(v) => setForm({ ...form, pet: v })} placeholder="예: 연지" /><TextArea label="속공순서 추천" value={form.speed_order} onChange={(v) => setForm({ ...form, speed_order: v })} placeholder="예: 여포 → 칼헤론 → 란드그리드" rows={3} /><TextArea label="팀속공 추천" value={form.team_speed} onChange={(v) => setForm({ ...form, team_speed: v })} placeholder="예: 팀속공 45 이상 권장" rows={3} /><TextArea label="특징/메모" value={form.note} onChange={(v) => setForm({ ...form, note: v })} rows={3} />
+        <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} /><div className="flex justify-between gap-2"><Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>{!isNew && <Button onClick={remove} variant="danger"><Trash2 size={16} /> 삭제</Button>}</div></div></Modal>;
 }
 
 function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeams, setEnemyDefenseTeams, reloadData }) {
@@ -546,6 +635,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
   const enemyTypes = ["전체", ...Array.from(new Set(attackTeams.map((team) => team.enemy_type).filter(Boolean)))];
   const list = attackTeams
     .filter((team) => filter === "전체" || team.enemy_type === filter)
+    .filter((team) => isVisibleItem(team, currentUser))
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
   const selectedCounterDecks = selectedEnemyDefense
@@ -584,11 +674,13 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
     : [];
 
   const searchedDefenseTeams = enemyHeroSearch.trim()
-    ? enemyDefenseTeams.filter((team) =>
-        splitList(team.heroes).some((hero) =>
-          hero.toLowerCase().includes(enemyHeroSearch.trim().toLowerCase())
+    ? enemyDefenseTeams
+        .filter((team) => isVisibleItem(team, currentUser))
+        .filter((team) =>
+          splitList(team.heroes).some((hero) =>
+            matchesHeroSearch(hero, enemyHeroSearch)
+          )
         )
-      )
     : currentUser.role === "admin"
       ? enemyDefenseTeams
       : [];
@@ -648,9 +740,9 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
               label="상대 영웅 검색"
               value={enemyHeroSearch}
               onChange={setEnemyHeroSearch}
-              placeholder="예: 여포"
+              placeholder="예: 여포 또는 ㅇㅍ"
             />
-            <p className="mt-2 text-xs leading-5 text-zinc-400">상대 방어팀에 들어간 영웅명을 검색하면 해당 영웅이 포함된 방어팀 목록이 나옵니다.</p>
+            <p className="mt-2 text-xs leading-5 text-zinc-400">상대 방어팀에 들어간 영웅명이나 초성을 검색하면 해당 영웅이 포함된 방어팀 목록이 나옵니다.</p>
           </div>
           <div>
             <div className="mb-2 flex items-center justify-between gap-3">
@@ -675,11 +767,14 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                     <button onClick={() => { setSelectedEnemyDefense(team); setFilter(team.title); }} className="w-full text-left">
                       <div className="flex items-center justify-between gap-3">
                         <div className="font-semibold text-zinc-950">{team.title}</div>
-                        {team.note && <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-zinc-500 ring-1 ring-zinc-200">속공 {team.note}</span>}
+                        <div className="flex items-center gap-2">
+                          {currentUser.role === "admin" && team.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}
+                          {team.note && <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-zinc-500 ring-1 ring-zinc-200">속공 {team.note}</span>}
+                        </div>
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {splitList(team.heroes).map((hero) => (
-                          <span key={hero} className={cx("rounded-md px-2 py-1 text-[11px] font-medium", hero.toLowerCase().includes(enemyHeroSearch.trim().toLowerCase()) ? "bg-zinc-950 text-white" : "bg-white text-zinc-500 ring-1 ring-zinc-200")}>
+                          <span key={hero} className={cx("rounded-md px-2 py-1 text-[11px] font-medium", matchesHeroSearch(hero, enemyHeroSearch) ? "bg-zinc-950 text-white" : "bg-white text-zinc-500 ring-1 ring-zinc-200")}>
                             {hero}
                           </span>
                         ))}
@@ -705,6 +800,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">Counter Guide</p>
               <h2 className="mt-2 break-keep text-xl font-semibold text-zinc-950 sm:text-2xl">{selectedEnemyDefense.title} 카운터치는 법</h2>
+              <p className="mt-2 text-xs text-zinc-400">최근 수정 {formatUpdatedAt(selectedEnemyDefense.updated_at || selectedEnemyDefense.created_at)}</p>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {splitList(selectedEnemyDefense.heroes).map((hero) => (
                   <span key={hero} className="rounded-md bg-zinc-100 px-2 py-1 text-[11px] font-medium text-zinc-600">{hero}</span>
@@ -727,8 +823,8 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                     <div>
                       <p className="text-xs font-semibold text-zinc-400">카운터덱 #{deckIndex + 1}</p>
                       <h3 className="mt-1 text-lg font-semibold text-zinc-950">{deck.title || `카운터덱 ${deckIndex + 1}`}</h3>
+                      <p className="mt-1 text-xs text-zinc-400">최근 수정 {formatUpdatedAt(selectedEnemyDefense.updated_at || selectedEnemyDefense.created_at)}</p>
                     </div>
-                    {deck.team_speed && <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-zinc-500 ring-1 ring-zinc-200">팀속공 {deck.team_speed}</span>}
                   </div>
 
                   <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_260px]">
@@ -743,6 +839,9 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                             <div className="mt-1 text-[11px] text-zinc-500">반지: {counterRings[index] || "미입력"}</div>
                           </div>
                         ))}
+                      </div>
+                      <div className="mt-3 text-xs font-medium text-zinc-400">
+                        펫 <span className="ml-1 text-sm font-semibold text-zinc-800">{deck.pet || "미입력"}</span>
                       </div>
 
                       <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -803,10 +902,15 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
         {list.map((team, index) => (
           <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white lg:grid-cols-[220px_1fr]">
             <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 lg:border-b-0 lg:border-r">
-              <p className="text-xs font-semibold text-zinc-400">#{index + 1}</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-zinc-400">#{index + 1}</p>
+                {currentUser.role === "admin" && team.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}
+              </div>
               <h3 className="mt-2 text-xl font-semibold text-zinc-950">{team.title}</h3>
               <p className="mt-2 text-sm text-zinc-500">상대: {team.enemy_type || "미입력"}</p>
               {team.power && <p className="mt-2 text-sm font-semibold text-zinc-800">추천도 {team.power}/10</p>}
+              <p className="mt-2 text-sm text-zinc-500">펫: <span className="font-semibold text-zinc-800">{team.pet || "미입력"}</span></p>
+              <p className="mt-2 text-xs text-zinc-400">최근 수정 {formatUpdatedAt(team.updated_at || team.created_at)}</p>
               {currentUser.role === "admin" && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button onClick={() => setEditing(team)} variant="secondary"><Pencil size={14} /> 수정</Button>
@@ -821,10 +925,12 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                 <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {splitList(team.heroes).map((hero, heroIndex) => {
                     const ring = splitList(team.rings)[heroIndex];
+                    const gear = splitList(team.gears)[heroIndex];
                     return (
                       <div key={`${hero}-${heroIndex}`} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
                         <div className="text-xs font-semibold text-zinc-800">{hero}</div>
                         <div className="mt-1 text-[11px] text-zinc-500">반지: {ring || "미입력"}</div>
+                        <div className="mt-1 text-[11px] text-zinc-500">장비: {gear || "미입력"}</div>
                       </div>
                     );
                   })}
@@ -868,6 +974,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
         title: "카운터덱 1",
         heroes: item.counter_heroes || "",
         rings: item.counter_rings || "",
+        pet: item.counter_pet || "",
         speed_order: item.counter_speed_order || "",
         team_speed: item.counter_team_speed || "",
         gear_1: item.counter_gear_1 || "",
@@ -903,6 +1010,8 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
       note: form.note || "",
       counter_decks: stringifyCounterDecks(counterDecks),
       sort_order: Number(form.sort_order) || 1,
+      is_public: form.is_public !== false && form.is_public !== "false",
+      updated_at: new Date().toISOString(),
     };
 
     const { error } = isNew
@@ -927,6 +1036,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
         <Input label="상대 방어팀" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="예: 여포 방어팀" />
         <TextArea label="상대 영웅" value={form.heroes} onChange={(v) => setForm({ ...form, heroes: v })} placeholder="쉼표 또는 줄바꿈으로 구분" rows={3} />
         <Input label="상대 속공" value={form.note} onChange={(v) => setForm({ ...form, note: v })} placeholder="예: 232" />
+        <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} />
 
         <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
           <div className="mb-4 flex items-center justify-between gap-3">
@@ -951,6 +1061,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
                     <Input label="카운터덱 이름" value={deck.title} onChange={(v) => updateDeck(deckIndex, { title: v })} />
                     <TextArea label="추천 카운터 영웅" value={deck.heroes} onChange={(v) => updateDeck(deckIndex, { heroes: v })} rows={3} />
                     <TextArea label="추천 카운터 반지" value={deck.rings} onChange={(v) => updateDeck(deckIndex, { rings: v })} rows={3} />
+                    <Input label="추천 카운터 펫" value={deck.pet} onChange={(v) => updateDeck(deckIndex, { pet: v })} placeholder="예: 연지" />
                     <TextArea label="추천 카운터 속공" value={deck.speed_order} onChange={(v) => updateDeck(deckIndex, { speed_order: v })} rows={3} />
                     <Input label="추천 카운터 팀속공" value={deck.team_speed} onChange={(v) => updateDeck(deckIndex, { team_speed: v })} />
                     <div className="grid gap-4 md:grid-cols-3">
@@ -988,10 +1099,14 @@ function AttackTeamEditor({ item, onClose, onSaved }) {
       power: form.power || "",
       heroes: form.heroes || "",
       rings: form.rings || "",
+      gears: form.gears || "",
+      pet: form.pet || "",
       speed_order: form.speed_order || "",
       team_speed: form.team_speed || "",
       note: form.note || "",
       sort_order: Number(form.sort_order) || 1,
+      is_public: form.is_public !== false && form.is_public !== "false",
+      updated_at: new Date().toISOString(),
     };
 
     const { error } = isNew
@@ -1018,10 +1133,13 @@ function AttackTeamEditor({ item, onClose, onSaved }) {
         <Input label="추천도 / 10점 만점" value={form.power} onChange={(v) => setForm({ ...form, power: v })} placeholder="예: 9" />
         <TextArea label="공격 영웅명" value={form.heroes} onChange={(v) => setForm({ ...form, heroes: v })} placeholder="쉼표 또는 줄바꿈으로 구분" rows={3} />
         <TextArea label="영웅별 반지" value={form.rings} onChange={(v) => setForm({ ...form, rings: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} />
+        <TextArea label="영웅별 장비세팅" value={form.gears} onChange={(v) => setForm({ ...form, gears: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} />
+        <Input label="펫" value={form.pet} onChange={(v) => setForm({ ...form, pet: v })} placeholder="예: 연지" />
         <TextArea label="속공순서 추천" value={form.speed_order} onChange={(v) => setForm({ ...form, speed_order: v })} placeholder="예: 여포 → 칼헤론 → 란드그리드" rows={3} />
         <TextArea label="팀속공 추천" value={form.team_speed} onChange={(v) => setForm({ ...form, team_speed: v })} placeholder="예: 팀속공 232 이상" rows={3} />
         <TextArea label="공격 핵심 메모" value={form.note} onChange={(v) => setForm({ ...form, note: v })} rows={4} />
         <Input label="정렬 순서" value={form.sort_order} onChange={(v) => setForm({ ...form, sort_order: v })} />
+        <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} />
         <div className="flex justify-between gap-2">
           <Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>
           {!isNew && <Button onClick={remove} variant="danger"><Trash2 size={16} /> 삭제</Button>}
@@ -1033,7 +1151,9 @@ function AttackTeamEditor({ item, onClose, onSaved }) {
 
 function TotalWarPage({ currentUser, totalWarTeams, setTotalWarTeams, reloadData }) {
   const [editing, setEditing] = useState(null);
-  const list = [...totalWarTeams].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  const list = [...totalWarTeams]
+    .filter((team) => isVisibleItem(team, currentUser))
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
   const deleteTotalWarTeam = async (team) => {
     if (!team?.id) return alert("삭제할 총력전 공략 ID를 찾지 못했습니다.");
@@ -1067,8 +1187,13 @@ function TotalWarPage({ currentUser, totalWarTeams, setTotalWarTeams, reloadData
         {list.map((team, index) => (
           <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white lg:grid-cols-[220px_1fr]">
             <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 lg:border-b-0 lg:border-r">
-              <p className="text-xs font-semibold text-zinc-400">#{index + 1}</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-zinc-400">#{index + 1}</p>
+                {currentUser.role === "admin" && team.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}
+              </div>
               <h3 className="mt-2 text-xl font-semibold text-zinc-950">{team.title}</h3>
+              <p className="mt-2 text-sm text-zinc-500">펫: <span className="font-semibold text-zinc-800">{team.pet || "미입력"}</span></p>
+              <p className="mt-2 text-xs text-zinc-400">최근 수정 {formatUpdatedAt(team.updated_at || team.created_at)}</p>
               {currentUser.role === "admin" && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button onClick={() => setEditing(team)} variant="secondary"><Pencil size={14} /> 수정</Button>
@@ -1083,10 +1208,12 @@ function TotalWarPage({ currentUser, totalWarTeams, setTotalWarTeams, reloadData
                 <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {splitList(team.heroes).map((hero, heroIndex) => {
                     const ring = splitList(team.rings)[heroIndex];
+                    const gear = splitList(team.gears)[heroIndex];
                     return (
                       <div key={`${hero}-${heroIndex}`} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
                         <div className="text-xs font-semibold text-zinc-800">{hero}</div>
                         <div className="mt-1 text-[11px] text-zinc-500">반지: {ring || "미입력"}</div>
+                        <div className="mt-1 text-[11px] text-zinc-500">장비: {gear || "미입력"}</div>
                       </div>
                     );
                   })}
@@ -1128,10 +1255,14 @@ function TotalWarEditor({ item, onClose, onSaved }) {
       title: form.title || "",
       heroes: form.heroes || "",
       rings: form.rings || "",
+      gears: form.gears || "",
+      pet: form.pet || "",
       speed_order: form.speed_order || "",
       team_speed: form.team_speed || "",
       note: form.note || "",
       sort_order: Number(form.sort_order) || 1,
+      is_public: form.is_public !== false && form.is_public !== "false",
+      updated_at: new Date().toISOString(),
     };
 
     const { error } = isNew
@@ -1156,10 +1287,167 @@ function TotalWarEditor({ item, onClose, onSaved }) {
         <Input label="제목" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="예: 공덱임" />
         <TextArea label="영웅명" value={form.heroes} onChange={(v) => setForm({ ...form, heroes: v })} placeholder="쉼표 또는 줄바꿈으로 구분" rows={3} />
         <TextArea label="영웅별 반지" value={form.rings} onChange={(v) => setForm({ ...form, rings: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} />
+        <TextArea label="영웅별 장비세팅" value={form.gears} onChange={(v) => setForm({ ...form, gears: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} />
+        <Input label="펫" value={form.pet} onChange={(v) => setForm({ ...form, pet: v })} placeholder="예: 연지" />
         <TextArea label="속공순서 추천" value={form.speed_order} onChange={(v) => setForm({ ...form, speed_order: v })} placeholder="예: 여포 → 칼헤론 → 란드그리드" rows={3} />
         <TextArea label="팀속공 추천" value={form.team_speed} onChange={(v) => setForm({ ...form, team_speed: v })} placeholder="예: 팀속공 45 이상 권장" rows={3} />
         <TextArea label="특징/메모" value={form.note} onChange={(v) => setForm({ ...form, note: v })} rows={3} />
         <Input label="정렬 순서" value={form.sort_order} onChange={(v) => setForm({ ...form, sort_order: v })} />
+        <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} />
+        <div className="flex justify-between gap-2">
+          <Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>
+          {!isNew && <Button onClick={remove} variant="danger"><Trash2 size={16} /> 삭제</Button>}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function ArenaPage({ currentUser, arenaTeams, setArenaTeams, reloadData }) {
+  const [editing, setEditing] = useState(null);
+  const list = [...arenaTeams]
+    .filter((team) => isVisibleItem(team, currentUser))
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+  const deleteArenaTeam = async (team) => {
+    if (!team?.id) return alert("삭제할 결투장 공략 ID를 찾지 못했습니다.");
+
+    setArenaTeams((prev) => prev.filter((item) => item.id !== team.id));
+
+    const { error } = await supabase
+      .from("arena_teams")
+      .delete()
+      .eq("id", team.id);
+
+    if (error) {
+      alert(`삭제 실패: ${error.message}`);
+      await reloadData();
+      return;
+    }
+
+    await reloadData();
+  };
+
+  return (
+    <PageShell>
+      <PageHeader
+        eyebrow="Arena"
+        title="결투장 공략"
+        desc="결투장 추천 조합과 영웅별 반지, 장비세팅, 속공 기준을 정리하는 페이지입니다."
+        action={currentUser.role === "admin" && <Button onClick={() => setEditing({ ...emptyArena, sort_order: list.length + 1 })}><Plus size={16} /> 추가</Button>}
+      />
+
+      <div className="space-y-3">
+        {list.map((team, index) => (
+          <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white lg:grid-cols-[220px_1fr]">
+            <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 lg:border-b-0 lg:border-r">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-zinc-400">#{index + 1}</p>
+                {currentUser.role === "admin" && team.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}
+              </div>
+              <h3 className="mt-2 text-xl font-semibold text-zinc-950">{team.title}</h3>
+              <p className="mt-2 text-sm text-zinc-500">펫: <span className="font-semibold text-zinc-800">{team.pet || "미입력"}</span></p>
+              <p className="mt-2 text-xs text-zinc-400">최근 수정 {formatUpdatedAt(team.updated_at || team.created_at)}</p>
+              {currentUser.role === "admin" && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button onClick={() => setEditing(team)} variant="secondary"><Pencil size={14} /> 수정</Button>
+                  <Button onClick={() => deleteArenaTeam(team)} variant="danger"><Trash2 size={14} /> 삭제</Button>
+                </div>
+              )}
+            </div>
+
+            <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[1fr_240px] lg:items-start">
+              <div>
+                <div className="text-xs font-semibold text-zinc-400">영웅 구성</div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {splitList(team.heroes).map((hero, heroIndex) => {
+                    const ring = splitList(team.rings)[heroIndex];
+                    const gear = splitList(team.gears)[heroIndex];
+                    return (
+                      <div key={`${hero}-${heroIndex}`} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
+                        <div className="text-xs font-semibold text-zinc-800">{hero}</div>
+                        <div className="mt-1 text-[11px] text-zinc-500">반지: {ring || "미입력"}</div>
+                        <div className="mt-1 text-[11px] text-zinc-500">장비: {gear || "미입력"}</div>
+                      </div>
+                    );
+                  })}
+                  {splitList(team.heroes).length === 0 && <div className="text-sm text-zinc-400">등록된 영웅이 없습니다.</div>}
+                </div>
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
+                    <div className="mb-1 text-xs font-semibold text-zinc-400">속공순서 추천</div>
+                    <div className="whitespace-pre-wrap">{team.speed_order || "미입력"}</div>
+                  </div>
+                  <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
+                    <div className="mb-1 text-xs font-semibold text-zinc-400">팀속공 추천</div>
+                    <div className="whitespace-pre-wrap">{team.team_speed || "미입력"}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600 whitespace-pre-wrap">{team.note || "메모 없음"}</div>
+            </div>
+          </div>
+        ))}
+        {list.length === 0 && <EmptyState text="등록된 결투장 공략이 없습니다." />}
+      </div>
+
+      {editing && <ArenaEditor item={editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await reloadData(); }} />}
+    </PageShell>
+  );
+}
+
+function ArenaEditor({ item, onClose, onSaved }) {
+  const [form, setForm] = useState({ ...emptyArena, ...item });
+  const [saving, setSaving] = useState(false);
+  const isNew = !item.id;
+
+  const save = async () => {
+    setSaving(true);
+    const payload = {
+      title: form.title || "",
+      heroes: form.heroes || "",
+      rings: form.rings || "",
+      gears: form.gears || "",
+      pet: form.pet || "",
+      speed_order: form.speed_order || "",
+      team_speed: form.team_speed || "",
+      note: form.note || "",
+      sort_order: Number(form.sort_order) || 1,
+      is_public: form.is_public !== false && form.is_public !== "false",
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = isNew
+      ? await supabase.from("arena_teams").insert(payload)
+      : await supabase.from("arena_teams").update(payload).eq("id", item.id);
+
+    setSaving(false);
+    if (error) return alert(`저장 실패: ${error.message}`);
+    onSaved();
+  };
+
+  const remove = async () => {
+    if (!item?.id) return alert("삭제할 결투장 공략 ID를 찾지 못했습니다.");
+    const { error } = await supabase.from("arena_teams").delete().eq("id", item.id);
+    if (error) return alert(`삭제 실패: ${error.message}`);
+    onSaved();
+  };
+
+  return (
+    <Modal title={isNew ? "결투장 공략 추가" : "결투장 공략 수정"} onClose={onClose}>
+      <div className="grid gap-4">
+        <Input label="제목" value={form.title} onChange={(v) => setForm({ ...form, title: v })} />
+        <TextArea label="영웅명" value={form.heroes} onChange={(v) => setForm({ ...form, heroes: v })} placeholder="쉼표 또는 줄바꿈으로 구분" rows={3} />
+        <TextArea label="영웅별 반지" value={form.rings} onChange={(v) => setForm({ ...form, rings: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} />
+        <TextArea label="영웅별 장비세팅" value={form.gears} onChange={(v) => setForm({ ...form, gears: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} />
+        <Input label="펫" value={form.pet} onChange={(v) => setForm({ ...form, pet: v })} placeholder="예: 연지" />
+        <TextArea label="속공순서 추천" value={form.speed_order} onChange={(v) => setForm({ ...form, speed_order: v })} rows={3} />
+        <TextArea label="팀속공 추천" value={form.team_speed} onChange={(v) => setForm({ ...form, team_speed: v })} rows={3} />
+        <TextArea label="특징/메모" value={form.note} onChange={(v) => setForm({ ...form, note: v })} rows={3} />
+        <Input label="정렬 순서" value={form.sort_order} onChange={(v) => setForm({ ...form, sort_order: v })} />
+        <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} />
         <div className="flex justify-between gap-2">
           <Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>
           {!isNew && <Button onClick={remove} variant="danger"><Trash2 size={16} /> 삭제</Button>}
@@ -1171,14 +1459,20 @@ function TotalWarEditor({ item, onClose, onSaved }) {
 
 function NoticesPage({ currentUser, notices, reloadData }) {
   const [editing, setEditing] = useState(null);
-  return <PageShell><PageHeader eyebrow="Notice" title="공지" desc="길드전 관련 공지를 확인하세요." action={currentUser.role === "admin" && <Button onClick={() => setEditing(emptyNotice)}><Plus size={16} /> 작성</Button>} /><div className="space-y-3">{notices.map((notice) => <article key={notice.id} className="rounded-2xl border border-zinc-200 bg-white p-5"><div className="flex items-start justify-between gap-3"><div><div className="text-xs font-semibold text-zinc-400">{new Date(notice.created_at).toLocaleDateString()}</div><h2 className="mt-2 text-xl font-semibold text-zinc-950">{notice.title}</h2></div>{currentUser.role === "admin" && <Button onClick={() => setEditing(notice)} variant="secondary"><Pencil size={14} /> 수정</Button>}</div><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-zinc-600">{notice.body}</p></article>)}{notices.length === 0 && <EmptyState text="등록된 공지가 없습니다." />}</div>{editing && <NoticeEditor item={editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await reloadData(); }} />}</PageShell>;
+  const visibleNotices = notices.filter((notice) => isVisibleItem(notice, currentUser));
+  return <PageShell><PageHeader eyebrow="Notice" title="공지" desc="길드전 관련 공지를 확인하세요." action={currentUser.role === "admin" && <Button onClick={() => setEditing(emptyNotice)}><Plus size={16} /> 작성</Button>} /><div className="space-y-3">{visibleNotices.map((notice) => <article key={notice.id} className="rounded-2xl border border-zinc-200 bg-white p-5"><div className="flex items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-400"><span>최근 수정 {formatUpdatedAt(notice.updated_at || notice.created_at)}</span>{currentUser.role === "admin" && notice.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}</div><h2 className="mt-2 text-xl font-semibold text-zinc-950">{notice.title}</h2></div>{currentUser.role === "admin" && <Button onClick={() => setEditing(notice)} variant="secondary"><Pencil size={14} /> 수정</Button>}</div><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-zinc-600">{notice.body}</p></article>)}{visibleNotices.length === 0 && <EmptyState text="등록된 공지가 없습니다." />}</div>{editing && <NoticeEditor item={editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await reloadData(); }} />}</PageShell>;
 }
 
 function NoticeEditor({ item, onClose, onSaved }) {
   const [form, setForm] = useState(item);
   const isNew = !item.id;
   const save = async () => {
-    const payload = { title: form.title, body: form.body };
+    const payload = {
+      title: form.title,
+      body: form.body,
+      is_public: form.is_public !== false && form.is_public !== "false",
+      updated_at: new Date().toISOString(),
+    };
     const { error } = isNew ? await supabase.from("notices").insert(payload) : await supabase.from("notices").update(payload).eq("id", item.id);
     if (error) return alert(error.message);
     onSaved();
@@ -1189,7 +1483,7 @@ function NoticeEditor({ item, onClose, onSaved }) {
     if (error) return alert(error.message);
     onSaved();
   };
-  return <Modal title={isNew ? "공지 작성" : "공지 수정"} onClose={onClose}><div className="grid gap-4"><Input label="제목" value={form.title} onChange={(v) => setForm({ ...form, title: v })} /><TextArea label="내용" value={form.body} onChange={(v) => setForm({ ...form, body: v })} rows={8} /><div className="flex justify-between gap-2"><Button onClick={save}><Save size={16} /> 저장</Button>{!isNew && <Button onClick={remove} variant="danger"><Trash2 size={16} /> 삭제</Button>}</div></div></Modal>;
+  return <Modal title={isNew ? "공지 작성" : "공지 수정"} onClose={onClose}><div className="grid gap-4"><Input label="제목" value={form.title} onChange={(v) => setForm({ ...form, title: v })} /><TextArea label="내용" value={form.body} onChange={(v) => setForm({ ...form, body: v })} rows={8} /><Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} /><div className="flex justify-between gap-2"><Button onClick={save}><Save size={16} /> 저장</Button>{!isNew && <Button onClick={remove} variant="danger"><Trash2 size={16} /> 삭제</Button>}</div></div></Modal>;
 }
 
 function ContentManagementPage({ settings, setSettings, reloadData }) {
@@ -1204,7 +1498,7 @@ function ContentManagementPage({ settings, setSettings, reloadData }) {
     await reloadData();
     alert("저장 완료");
   };
-  const fields = [["guild_name", "길드명"], ["site_title", "사이트 메인 제목"], ["main_subtitle", "메인 설명"], ["hero_notice", "승인 대기 안내 문구"], ["dashboard_banner_title", "하단 배너 제목"], ["dashboard_banner_body", "하단 배너 설명"], ["footer_text", "크레딧/푸터 문구"]];
+  const fields = [["guild_name", "길드명"], ["site_title", "사이트 메인 제목"], ["main_subtitle", "메인 설명"], ["hero_notice", "승인 대기 안내 문구"], ["footer_text", "제작자 문구"]];
   return <PageShell><PageHeader eyebrow="Admin" title="콘텐츠 문구 관리" desc="메인 화면에 나오는 문구를 수정합니다." /><div className="rounded-2xl border border-zinc-200 bg-white p-6"><div className="grid gap-4">{fields.map(([key, label]) => key.includes("subtitle") || key.includes("body") || key.includes("notice") ? <TextArea key={key} label={label} value={form[key]} onChange={(v) => setForm({ ...form, [key]: v })} rows={3} /> : <Input key={key} label={label} value={form[key]} onChange={(v) => setForm({ ...form, [key]: v })} />)}<Button onClick={save} className="w-fit"><Save size={16} /> 저장</Button></div></div></PageShell>;
 }
 
@@ -1212,7 +1506,7 @@ function Modal({ title, onClose, children }) {
   return <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-3 backdrop-blur-sm sm:p-4"><div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xl sm:p-6"><div className="mb-5 flex items-center justify-between"><h2 className="text-xl font-semibold text-zinc-950">{title}</h2><button onClick={onClose} className="rounded-lg bg-zinc-100 p-2 text-zinc-500 hover:text-zinc-950"><X size={18} /></button></div>{children}</div></div>;
 }
 
-function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser }) {
+function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, reloadData }) {
   const pending = users.filter((u) => u.status === "pending");
   const members = users.filter((u) => u.status !== "pending");
   const updateUser = async (id, patch) => {
@@ -1222,16 +1516,73 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser }) 
     const dbPatch = {};
     if (patch.status) dbPatch.status = patch.status;
     if (patch.role) dbPatch.role = patch.role;
+    if (Object.prototype.hasOwnProperty.call(patch, "memo")) dbPatch.memo = patch.memo;
     const { error } = await supabase.from("profiles").update(dbPatch).eq("user_id", id);
     if (error) return alert(`회원 정보 수정 실패: ${error.message}`);
     setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...patch } : u)));
     if (currentUser.id === id) setCurrentUser((u) => ({ ...u, ...patch }));
   };
-  return <PageShell><PageHeader eyebrow="Admin" title="회원 관리" desc="게임 닉네임을 확인한 뒤 승인하세요." /><section className="rounded-2xl border border-zinc-200 bg-white p-5"><div className="flex items-center justify-between"><h2 className="text-lg font-semibold text-zinc-950">가입 승인 대기</h2><span className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-semibold text-zinc-700">{pending.length}건</span></div><MemberTable list={pending} pending updateUser={updateUser} /></section><section className="mt-5 rounded-2xl border border-zinc-200 bg-white p-5"><h2 className="text-lg font-semibold text-zinc-950">전체 회원</h2><MemberTable list={members} updateUser={updateUser} /></section></PageShell>;
+
+  const deleteUser = async (id) => {
+    const target = users.find((u) => u.id === id);
+    if (!target) return;
+    if (target.id === OWNER_ID) return alert("최고 관리자 계정은 삭제할 수 없습니다.");
+
+    // 일부 브라우저/미리보기 환경에서 confirm 창이 막히면 버튼이 안 먹는 것처럼 보여서 바로 삭제 처리
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+
+    const query = supabase.from("profiles").delete();
+    const { error } = target.dbId
+      ? await query.eq("id", target.dbId)
+      : await query.eq("user_id", id);
+
+    if (error) {
+      alert(`회원 삭제 실패: ${error.message}`);
+      await reloadData();
+      return;
+    }
+  };
+
+  return <PageShell><PageHeader eyebrow="Admin" title="회원 관리" desc="게임 닉네임을 확인한 뒤 승인하세요." /><section className="rounded-2xl border border-zinc-200 bg-white p-5"><div className="flex items-center justify-between"><h2 className="text-lg font-semibold text-zinc-950">가입 승인 대기</h2><span className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-semibold text-zinc-700">{pending.length}건</span></div><MemberTable list={pending} pending updateUser={updateUser} deleteUser={deleteUser} /></section><section className="mt-5 rounded-2xl border border-zinc-200 bg-white p-5"><h2 className="text-lg font-semibold text-zinc-950">전체 회원</h2><MemberTable list={members} updateUser={updateUser} deleteUser={deleteUser} /></section></PageShell>;
 }
 
-function MemberTable({ list, pending, updateUser }) {
-  return <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[720px] text-left text-sm"><thead><tr className="border-b border-zinc-200 text-xs font-semibold uppercase text-zinc-400"><th className="px-3 py-3">게임 닉네임</th><th className="px-3 py-3">아이디</th><th className="px-3 py-3">상태</th><th className="px-3 py-3">등급</th><th className="px-3 py-3 text-right">관리</th></tr></thead><tbody>{list.length === 0 ? <tr><td colSpan={5} className="py-8 text-center text-zinc-400">표시할 회원이 없습니다.</td></tr> : list.map((u) => <tr key={u.id} className="border-b border-zinc-100"><td className="px-3 py-4 font-semibold text-zinc-950">{u.gameNickname}</td><td className="px-3 py-4 text-zinc-600">{u.id}</td><td className="px-3 py-4"><StatusBadge status={u.status} /></td><td className="px-3 py-4"><RoleBadge role={u.role} /></td><td className="px-3 py-4"><div className="flex flex-wrap justify-end gap-2">{pending ? <><Button onClick={() => updateUser(u.id, { status: "approved", role: "member" })}><CheckCircle2 size={15} /> 승인</Button><Button onClick={() => updateUser(u.id, { status: "rejected" })} variant="subtle"><Ban size={15} /> 거절</Button></> : <><Button disabled={u.id === OWNER_ID} onClick={() => updateUser(u.id, { role: u.role === "admin" ? "member" : "admin", status: "approved" })} variant="secondary">{u.role === "admin" ? "일반회원으로" : "관리자로"}</Button><Button disabled={u.id === OWNER_ID} onClick={() => updateUser(u.id, { status: u.status === "blocked" ? "approved" : "blocked" })} variant="subtle">{u.status === "blocked" ? "차단해제" : "차단"}</Button></>}</div></td></tr>)}</tbody></table></div>;
+function MemberTable({ list, pending, updateUser, deleteUser }) {
+  return <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[920px] text-left text-sm"><thead><tr className="border-b border-zinc-200 text-xs font-semibold uppercase text-zinc-400"><th className="px-3 py-3">게임 닉네임</th><th className="px-3 py-3">아이디</th><th className="px-3 py-3">상태</th><th className="px-3 py-3">등급</th><th className="px-3 py-3">관리자 메모</th><th className="px-3 py-3 text-right">관리</th></tr></thead><tbody>{list.length === 0 ? <tr><td colSpan={6} className="py-8 text-center text-zinc-400">표시할 회원이 없습니다.</td></tr> : list.map((u) => <MemberRow key={u.id} user={u} pending={pending} updateUser={updateUser} deleteUser={deleteUser} />)}</tbody></table></div>;
+}
+
+function MemberRow({ user: u, pending, updateUser, deleteUser }) {
+  const [memo, setMemo] = useState(u.memo || "");
+  useEffect(() => setMemo(u.memo || ""), [u.memo]);
+
+  const saveMemo = () => {
+    updateUser(u.id, { memo });
+  };
+
+  return (
+    <tr className="border-b border-zinc-100 align-top">
+      <td className="px-3 py-4 font-semibold text-zinc-950">{u.gameNickname}</td>
+      <td className="px-3 py-4 text-zinc-600">{u.id}</td>
+      <td className="px-3 py-4"><StatusBadge status={u.status} /></td>
+      <td className="px-3 py-4"><RoleBadge role={u.role} /></td>
+      <td className="px-3 py-4">
+        <div className="flex min-w-[220px] gap-2">
+          <input
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && saveMemo()}
+            placeholder="예: 서리 or 1채널"
+            className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-950 outline-none focus:ring-4 focus:ring-zinc-200/70"
+          />
+          <Button onClick={saveMemo} variant="secondary" className="shrink-0 px-3 py-2 text-xs">저장</Button>
+        </div>
+      </td>
+      <td className="px-3 py-4">
+        <div className="flex flex-wrap justify-end gap-2">
+          {pending ? <><Button onClick={() => updateUser(u.id, { status: "approved", role: "member" })}><CheckCircle2 size={15} /> 승인</Button><Button onClick={() => updateUser(u.id, { status: "rejected" })} variant="subtle"><Ban size={15} /> 거절</Button></> : <><Button disabled={u.id === OWNER_ID} onClick={() => updateUser(u.id, { role: u.role === "admin" ? "member" : "admin", status: "approved" })} variant="secondary">{u.role === "admin" ? "일반회원으로" : "관리자로"}</Button><Button disabled={u.id === OWNER_ID} onClick={() => deleteUser(u.id)} variant="danger"><Trash2 size={15} /> 삭제</Button></>}
+        </div>
+      </td>
+    </tr>
+  );
 }
 
 function StatusBadge({ status }) {
@@ -1250,6 +1601,7 @@ export default function App() {
   const [attackTeams, setAttackTeams] = useState([]);
   const [notices, setNotices] = useState([]);
   const [totalWarTeams, setTotalWarTeams] = useState([]);
+  const [arenaTeams, setArenaTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
   const [active, setActive] = useState("dashboard");
@@ -1257,7 +1609,7 @@ export default function App() {
 
   const loadData = async () => {
     setLoading(true);
-    const [profilesRes, settingsRes, defenseRes, enemyDefenseRes, attackTeamsRes, noticesRes, totalWarRes] = await Promise.all([
+    const [profilesRes, settingsRes, defenseRes, enemyDefenseRes, attackTeamsRes, noticesRes, totalWarRes, arenaRes] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("site_settings").select("*"),
       supabase.from("defense_teams").select("*").order("sort_order", { ascending: true }),
@@ -1265,6 +1617,7 @@ export default function App() {
       supabase.from("attack_teams").select("*").order("sort_order", { ascending: true }),
       supabase.from("notices").select("*").order("created_at", { ascending: false }),
       supabase.from("total_war_teams").select("*").order("sort_order", { ascending: true }),
+      supabase.from("arena_teams").select("*").order("sort_order", { ascending: true }),
     ]);
     if (profilesRes.error) alert(`회원 목록 불러오기 실패: ${profilesRes.error.message}`);
     if (!profilesRes.error) setUsers((profilesRes.data || []).map(mapProfile));
@@ -1278,6 +1631,7 @@ export default function App() {
     if (!attackTeamsRes.error) setAttackTeams(attackTeamsRes.data || []);
     if (!noticesRes.error) setNotices(noticesRes.data || []);
     if (!totalWarRes.error) setTotalWarTeams(totalWarRes.data || []);
+    if (!arenaRes.error) setArenaTeams(arenaRes.data || []);
     setLoading(false);
   };
 
@@ -1288,7 +1642,24 @@ export default function App() {
     return users.find((u) => u.id === currentUser.id) || currentUser;
   }, [users, currentUser]);
 
-  const logout = () => { setCurrentUser(null); setActive("dashboard"); };
+  useEffect(() => {
+    if (loading || currentUser || users.length === 0) return;
+    const savedId = localStorage.getItem(SESSION_KEY);
+    if (!savedId) return;
+
+    const savedUser = users.find((u) => u.id === savedId);
+    if (savedUser && savedUser.status === "approved") {
+      setCurrentUser(savedUser);
+    } else if (savedUser && savedUser.status !== "approved") {
+      localStorage.removeItem(SESSION_KEY);
+    }
+  }, [loading, users, currentUser]);
+
+  const logout = () => {
+    localStorage.removeItem(SESSION_KEY);
+    setCurrentUser(null);
+    setActive("dashboard");
+  };
 
   if (loading) return <div className="grid min-h-screen place-items-center bg-[#0d0f12] text-white"><div className="text-sm text-zinc-400">데이터 불러오는 중...</div></div>;
   if (!syncedCurrentUser) return <AuthScreen users={users} setUsers={setUsers} setCurrentUser={setCurrentUser} settings={settings} />;
@@ -1299,6 +1670,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f6f7f9] font-sans text-zinc-950">
+      <style>{"@keyframes snowSway{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}.snow-sway-icon{animation:snowSway 3.8s ease-in-out infinite;transform-origin:center}"}</style>
       {menuOpen && (
         <div
           onClick={() => setMenuOpen(false)}
@@ -1329,6 +1701,7 @@ export default function App() {
             currentUser={syncedCurrentUser}
             users={users}
             settings={settings}
+            setSettings={setSettings}
           />
         )}
 
@@ -1361,6 +1734,15 @@ export default function App() {
           />
         )}
 
+        {safeActive === "arena" && (
+          <ArenaPage
+            currentUser={syncedCurrentUser}
+            arenaTeams={arenaTeams}
+            setArenaTeams={setArenaTeams}
+            reloadData={loadData}
+          />
+        )}
+
         {safeActive === "notices" && (
           <NoticesPage
             currentUser={syncedCurrentUser}
@@ -1383,6 +1765,7 @@ export default function App() {
             setUsers={setUsers}
             currentUser={syncedCurrentUser}
             setCurrentUser={setCurrentUser}
+            reloadData={loadData}
           />
         )}
       </main>
