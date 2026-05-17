@@ -176,6 +176,26 @@ function Button({ children, onClick, variant = "primary", className = "", disabl
   );
 }
 
+function DeleteButton({ children, onConfirm, className = "" }) {
+  const [armed, setArmed] = useState(false);
+
+  const click = () => {
+    if (!armed) {
+      setArmed(true);
+      window.setTimeout(() => setArmed(false), 2500);
+      return;
+    }
+    setArmed(false);
+    onConfirm?.();
+  };
+
+  return (
+    <Button onClick={click} variant="danger" className={className}>
+      <Trash2 size={14} /> {armed ? "한번 더 누르면 삭제" : children}
+    </Button>
+  );
+}
+
 function Input({ label, value, onChange, placeholder, type = "text", dark, onEnter }) {
   return (
     <div>
@@ -495,7 +515,6 @@ function DefensePage({ currentUser, defenseTeams, setDefenseTeams, reloadData })
       return;
     }
 
-    // 일부 미리보기 환경에서 confirm 창이 막히는 경우가 있어서 바로 삭제되게 처리
     setDefenseTeams((prev) => prev.filter((item) => item.id !== team.id));
 
     const { error } = await supabase
@@ -535,7 +554,7 @@ function DefensePage({ currentUser, defenseTeams, setDefenseTeams, reloadData })
               {currentUser.role === "admin" && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button onClick={() => setEditing(team)} variant="secondary"><Pencil size={14} /> 수정</Button>
-                  <Button onClick={() => deleteDefenseTeam(team)} variant="danger"><Trash2 size={14} /> 삭제</Button>
+                  <DeleteButton onConfirm={() => deleteDefenseTeam(team)}>삭제</DeleteButton>
                 </div>
               )}
               <div className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-zinc-400">
@@ -618,7 +637,6 @@ function DefenseEditor({ item, onClose, onSaved }) {
   };
   const remove = async () => {
     if (!item?.id) return alert("삭제할 방어팀 ID를 찾지 못했습니다.");
-    if (!confirm("정말 삭제할까요?")) return;
 
     const { error } = await supabase
       .from("defense_teams")
@@ -629,7 +647,7 @@ function DefenseEditor({ item, onClose, onSaved }) {
     onSaved();
   };
   return <Modal title={isNew ? "방어팀 추가" : "방어팀 수정"} onClose={onClose}><div className="grid gap-4"><Select label="분류" value={form.category} onChange={(v) => setForm({ ...form, category: v })} options={[["attack","공덱"],["tank","방덱"],["magic","마법"]]} /><Input label="제목" value={form.title} onChange={(v) => setForm({ ...form, title: v })} /><Input label="부제목" value={form.subtitle} onChange={(v) => setForm({ ...form, subtitle: v })} /><Input label="추천도 / 10점 만점" value={form.power} onChange={(v) => setForm({ ...form, power: v })} placeholder="예: 8.5" /><TextArea label="영웅명" value={form.heroes} onChange={(v) => setForm({ ...form, heroes: v })} placeholder="쉼표 또는 줄바꿈으로 구분" rows={3} /><TextArea label="영웅별 반지" value={form.rings} onChange={(v) => setForm({ ...form, rings: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} /><TextArea label="영웅별 장비세팅" value={form.gears} onChange={(v) => setForm({ ...form, gears: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} /><Input label="펫" value={form.pet} onChange={(v) => setForm({ ...form, pet: v })} placeholder="예: 연지" /><Input label="진형" value={form.formation} onChange={(v) => setForm({ ...form, formation: v })} placeholder="예: 공격진형 / 보호진형" /><TextArea label="속공순서 추천" value={form.speed_order} onChange={(v) => setForm({ ...form, speed_order: v })} placeholder="예: 여포 → 칼헤론 → 란드그리드" rows={3} /><TextArea label="팀속공 추천" value={form.team_speed} onChange={(v) => setForm({ ...form, team_speed: v })} placeholder="예: 팀속공 45 이상 권장" rows={3} /><TextArea label="스킬순서" value={form.skill_order} onChange={(v) => setForm({ ...form, skill_order: v })} placeholder="예: 여포1스 파이2스 여포2스" rows={3} /><TextArea label="특징/메모" value={form.note} onChange={(v) => setForm({ ...form, note: v })} rows={3} />
-        <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} /><div className="flex justify-between gap-2"><Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>{!isNew && <Button onClick={remove} variant="danger"><Trash2 size={16} /> 삭제</Button>}</div></div></Modal>;
+        <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} /><div className="flex justify-between gap-2"><Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>{!isNew && <DeleteButton onConfirm={remove}>삭제</DeleteButton>}</div></div></Modal>;
 }
 
 function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeams, setEnemyDefenseTeams, reloadData }) {
@@ -792,7 +810,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                     {currentUser.role === "admin" && (
                       <div className="mt-3 flex gap-2">
                         <Button onClick={() => setEnemyDefenseEditing(team)} variant="secondary" className="px-3 py-1.5 text-xs"><Pencil size={13} /> 수정</Button>
-                        <Button onClick={() => deleteEnemyDefenseTeam(team)} variant="danger" className="px-3 py-1.5 text-xs"><Trash2 size={13} /> 삭제</Button>
+                        <DeleteButton onConfirm={() => deleteEnemyDefenseTeam(team)} className="px-3 py-1.5 text-xs">삭제</DeleteButton>
                       </div>
                     )}
                   </div>
@@ -929,7 +947,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
               {currentUser.role === "admin" && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button onClick={() => setEditing(team)} variant="secondary"><Pencil size={14} /> 수정</Button>
-                  <Button onClick={() => deleteAttackTeam(team)} variant="danger"><Trash2 size={14} /> 삭제</Button>
+                  <DeleteButton onConfirm={() => deleteAttackTeam(team)}>삭제</DeleteButton>
                 </div>
               )}
             </div>
@@ -1019,6 +1037,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
   };
 
   const removeDeck = (index) => {
+    const target = counterDecks[index];
     setCounterDecks((prev) => prev.filter((_, i) => i !== index));
   };
 
@@ -1075,7 +1094,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
                 <div key={deckIndex} className="rounded-2xl border border-zinc-200 bg-white p-4">
                   <div className="mb-4 flex items-center justify-between gap-3">
                     <h4 className="text-sm font-semibold text-zinc-950">카운터덱 #{deckIndex + 1}</h4>
-                    {counterDecks.length > 1 && <Button onClick={() => removeDeck(deckIndex)} variant="danger" className="px-3 py-1.5 text-xs"><Trash2 size={13} /> 삭제</Button>}
+                    {counterDecks.length > 1 && <DeleteButton onConfirm={() => removeDeck(deckIndex)} className="px-3 py-1.5 text-xs">삭제</DeleteButton>}
                   </div>
 
                   <div className="grid gap-4">
@@ -1102,7 +1121,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
 
         <div className="flex justify-between gap-2">
           <Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>
-          {!isNew && <Button onClick={remove} variant="danger"><Trash2 size={16} /> 삭제</Button>}
+          {!isNew && <DeleteButton onConfirm={remove}>삭제</DeleteButton>}
         </div>
       </div>
     </Modal>
@@ -1169,7 +1188,7 @@ function AttackTeamEditor({ item, onClose, onSaved }) {
         <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} />
         <div className="flex justify-between gap-2">
           <Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>
-          {!isNew && <Button onClick={remove} variant="danger"><Trash2 size={16} /> 삭제</Button>}
+          {!isNew && <DeleteButton onConfirm={remove}>삭제</DeleteButton>}
         </div>
       </div>
     </Modal>
@@ -1225,7 +1244,7 @@ function TotalWarPage({ currentUser, totalWarTeams, setTotalWarTeams, reloadData
               {currentUser.role === "admin" && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button onClick={() => setEditing(team)} variant="secondary"><Pencil size={14} /> 수정</Button>
-                  <Button onClick={() => deleteTotalWarTeam(team)} variant="danger"><Trash2 size={14} /> 삭제</Button>
+                  <DeleteButton onConfirm={() => deleteTotalWarTeam(team)}>삭제</DeleteButton>
                 </div>
               )}
             </div>
@@ -1332,7 +1351,7 @@ function TotalWarEditor({ item, onClose, onSaved }) {
         <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} />
         <div className="flex justify-between gap-2">
           <Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>
-          {!isNew && <Button onClick={remove} variant="danger"><Trash2 size={16} /> 삭제</Button>}
+          {!isNew && <DeleteButton onConfirm={remove}>삭제</DeleteButton>}
         </div>
       </div>
     </Modal>
@@ -1388,7 +1407,7 @@ function ArenaPage({ currentUser, arenaTeams, setArenaTeams, reloadData }) {
               {currentUser.role === "admin" && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button onClick={() => setEditing(team)} variant="secondary"><Pencil size={14} /> 수정</Button>
-                  <Button onClick={() => deleteArenaTeam(team)} variant="danger"><Trash2 size={14} /> 삭제</Button>
+                  <DeleteButton onConfirm={() => deleteArenaTeam(team)}>삭제</DeleteButton>
                 </div>
               )}
             </div>
@@ -1495,7 +1514,7 @@ function ArenaEditor({ item, onClose, onSaved }) {
         <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} />
         <div className="flex justify-between gap-2">
           <Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>
-          {!isNew && <Button onClick={remove} variant="danger"><Trash2 size={16} /> 삭제</Button>}
+          {!isNew && <DeleteButton onConfirm={remove}>삭제</DeleteButton>}
         </div>
       </div>
     </Modal>
@@ -1523,12 +1542,11 @@ function NoticeEditor({ item, onClose, onSaved }) {
     onSaved();
   };
   const remove = async () => {
-    if (!confirm("정말 삭제할까?")) return;
     const { error } = await supabase.from("notices").delete().eq("id", item.id);
     if (error) return alert(error.message);
     onSaved();
   };
-  return <Modal title={isNew ? "공지 작성" : "공지 수정"} onClose={onClose}><div className="grid gap-4"><Input label="제목" value={form.title} onChange={(v) => setForm({ ...form, title: v })} /><TextArea label="내용" value={form.body} onChange={(v) => setForm({ ...form, body: v })} rows={8} /><Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} /><div className="flex justify-between gap-2"><Button onClick={save}><Save size={16} /> 저장</Button>{!isNew && <Button onClick={remove} variant="danger"><Trash2 size={16} /> 삭제</Button>}</div></div></Modal>;
+  return <Modal title={isNew ? "공지 작성" : "공지 수정"} onClose={onClose}><div className="grid gap-4"><Input label="제목" value={form.title} onChange={(v) => setForm({ ...form, title: v })} /><TextArea label="내용" value={form.body} onChange={(v) => setForm({ ...form, body: v })} rows={8} /><Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} /><div className="flex justify-between gap-2"><Button onClick={save}><Save size={16} /> 저장</Button>{!isNew && <DeleteButton onConfirm={remove}>삭제</DeleteButton>}</div></div></Modal>;
 }
 
 function ContentManagementPage({ settings, setSettings, reloadData }) {
@@ -1573,7 +1591,6 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
     if (!target) return;
     if (target.id === OWNER_ID) return alert("최고 관리자 계정은 삭제할 수 없습니다.");
 
-    // 일부 브라우저/미리보기 환경에서 confirm 창이 막히면 버튼이 안 먹는 것처럼 보여서 바로 삭제 처리
     setUsers((prev) => prev.filter((u) => u.id !== id));
 
     const query = supabase.from("profiles").delete();
@@ -1623,7 +1640,7 @@ function MemberRow({ user: u, pending, updateUser, deleteUser }) {
       </td>
       <td className="px-3 py-4">
         <div className="flex flex-wrap justify-end gap-2">
-          {pending ? <><Button onClick={() => updateUser(u.id, { status: "approved", role: "member" })}><CheckCircle2 size={15} /> 승인</Button><Button onClick={() => updateUser(u.id, { status: "rejected" })} variant="subtle"><Ban size={15} /> 거절</Button></> : <><Button disabled={u.id === OWNER_ID} onClick={() => updateUser(u.id, { role: u.role === "admin" ? "member" : "admin", status: "approved" })} variant="secondary">{u.role === "admin" ? "일반회원으로" : "관리자로"}</Button><Button disabled={u.id === OWNER_ID} onClick={() => deleteUser(u.id)} variant="danger"><Trash2 size={15} /> 삭제</Button></>}
+          {pending ? <><Button onClick={() => updateUser(u.id, { status: "approved", role: "member" })}><CheckCircle2 size={15} /> 승인</Button><Button onClick={() => updateUser(u.id, { status: "rejected" })} variant="subtle"><Ban size={15} /> 거절</Button></> : <><Button disabled={u.id === OWNER_ID} onClick={() => updateUser(u.id, { role: u.role === "admin" ? "member" : "admin", status: "approved" })} variant="secondary">{u.role === "admin" ? "일반회원으로" : "관리자로"}</Button><DeleteButton onConfirm={() => deleteUser(u.id)} className={u.id === OWNER_ID ? "pointer-events-none opacity-50" : ""}>삭제</DeleteButton></>}
         </div>
       </td>
     </tr>
