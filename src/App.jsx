@@ -46,13 +46,13 @@ const FALLBACK_SETTINGS = {
 };
 
 const navItems = [
-  { id: "dashboard", label: "메인", icon: BarChart3, visibleTo: ["member", "admin"] },
-  { id: "attackTips", label: "공격잘가는법", icon: ScrollText, visibleTo: ["member", "admin"] },
-  { id: "defense", label: "방어팀", icon: Shield, visibleTo: ["member", "admin"] },
-  { id: "attack", label: "공격팀", icon: Swords, visibleTo: ["member", "admin"] },
-  { id: "total", label: "총력전 공략", icon: ScrollText, visibleTo: ["member", "admin"] },
-  { id: "arena", label: "결투장 공략", icon: Swords, visibleTo: ["member", "admin"] },
-  { id: "notices", label: "공지", icon: ScrollText, visibleTo: ["member", "admin"] },
+  { id: "dashboard", label: "메인", icon: BarChart3, visibleTo: ["guest", "member", "admin"] },
+  { id: "attackTips", label: "공격잘가는법", icon: ScrollText, visibleTo: ["guest", "member", "admin"] },
+  { id: "defense", label: "방어팀", icon: Shield, visibleTo: ["guest", "member", "admin"] },
+  { id: "attack", label: "공격팀", icon: Swords, visibleTo: ["guest", "member", "admin"] },
+  { id: "total", label: "총력전 공략", icon: ScrollText, visibleTo: ["guest", "member", "admin"] },
+  { id: "arena", label: "결투장 공략", icon: Swords, visibleTo: ["guest", "member", "admin"] },
+  { id: "notices", label: "공지", icon: ScrollText, visibleTo: ["guest", "member", "admin"] },
   { id: "content", label: "콘텐츠 문구 관리", icon: Pencil, visibleTo: ["admin"] },
   { id: "backup", label: "백업", icon: Save, visibleTo: ["admin"] },
   { id: "members", label: "회원 관리", icon: Users, visibleTo: ["admin"] },
@@ -198,7 +198,24 @@ function formatLastSeen(value) {
 }
 
 function isVisibleItem(item, currentUser) {
+  if (currentUser?.role === "guest") return false;
   return currentUser?.role === "admin" || item.is_public !== false;
+}
+
+function isGuest(currentUser) {
+  return currentUser?.role === "guest";
+}
+
+function GuestLockedContent() {
+  return (
+    <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center">
+      <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-zinc-100 text-zinc-500">
+        <Lock size={22} />
+      </div>
+      <h2 className="mt-5 text-lg font-semibold text-zinc-950">내용 열람 권한이 없습니다.</h2>
+      <p className="mt-2 text-sm leading-6 text-zinc-500">일반회원 이상부터 열람 가능합니다.</p>
+    </div>
+  );
 }
 
 async function updateLastSeen(user, setUsers, setCurrentUser) {
@@ -218,7 +235,7 @@ async function updateLastSeen(user, setUsers, setCurrentUser) {
 }
 
 function roleLabel(role) {
-  return { member: "일반회원", admin: "관리자" }[role] || role;
+  return { guest: "게스트", member: "일반회원", admin: "관리자" }[role] || role;
 }
 
 async function upsertSetting(key, value) {
@@ -392,7 +409,7 @@ function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
               
             </div>
           </div>
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">Private access</p>
+          <p className="text-sm font-medium text-zinc-500">made by 15월</p>
           <h1 className="mt-4 max-w-4xl break-keep text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl md:text-6xl">{renderRichText(settings.site_title, "")}</h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-zinc-400">{renderRichText(settings.main_subtitle, "")}</p>
           
@@ -415,7 +432,6 @@ function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
                 </div>
               </div>
               <Button onClick={login} className="w-full">로그인 <ChevronRight size={17} /></Button>
-              <p className="rounded-xl border border-white/10 bg-black/20 p-3 text-xs leading-5 text-zinc-500">관리자는 Supabase profiles 테이블에 등록된 계정으로 로그인합니다.</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -506,6 +522,7 @@ function MobileHeader({ setIsOpen, currentUser, settings }) {
 }
 
 function Dashboard({ setActive, currentUser, users, settings, setSettings }) {
+  const guestMode = isGuest(currentUser);
   const pendingCount = users.filter((u) => u.status === "pending").length;
   const approvedCount = users.filter((u) => u.status === "approved").length;
   const [quickNotice, setQuickNotice] = useState(settings.quick_notice || "");
@@ -539,7 +556,7 @@ function Dashboard({ setActive, currentUser, users, settings, setSettings }) {
           </div>
           </div>
 
-          {(currentUser.id === OWNER_ID || settings.quick_notice) && (
+          {!guestMode && (currentUser.id === OWNER_ID || settings.quick_notice) && (
             <div className="rounded-2xl border border-zinc-200 bg-zinc-50/80 p-4">
               <div className="text-xs font-semibold text-zinc-400">중요 공지</div>
               {currentUser.id === OWNER_ID ? (
@@ -566,7 +583,11 @@ function Dashboard({ setActive, currentUser, users, settings, setSettings }) {
       </section>
       <PageShell>
         <div className="grid gap-4 md:grid-cols-3">
-          <SummaryCard title="승인 회원" value={`${approvedCount}명`} desc="현재 사이트 이용 가능" icon={Users} />
+          {guestMode ? (
+            <SummaryCard title="접속 권한" value="게스트" desc="공략 내용 열람 제한" icon={Lock} />
+          ) : (
+            <SummaryCard title="승인 회원" value={`${approvedCount}명`} desc="현재 사이트 이용 가능" icon={Users} />
+          )}
           {currentUser.role === "admin" && (
             <>
               <SummaryCard title="가입 대기" value={`${pendingCount}명`} desc="관리자 확인 필요" icon={Lock} />
@@ -597,6 +618,15 @@ function FeatureCard({ title, desc, icon: Icon, onClick }) {
 }
 
 function AttackTipsPage({ currentUser, settings, setSettings }) {
+  if (isGuest(currentUser)) {
+    return (
+      <PageShell>
+        <PageHeader eyebrow="Attack Guide" title="공격잘가는법" desc="길드전 공격 전에 확인할 기본 운영법과 주의사항을 정리하는 페이지입니다." />
+        <GuestLockedContent />
+      </PageShell>
+    );
+  }
+
   const [items, setItems] = useState(() => parseAttackGuideItems(settings));
   const [saving, setSaving] = useState(false);
 
@@ -697,6 +727,15 @@ function AttackTipsPage({ currentUser, settings, setSettings }) {
 }
 
 function DefensePage({ currentUser, defenseTeams, setDefenseTeams, reloadData }) {
+  if (isGuest(currentUser)) {
+    return (
+      <PageShell>
+        <PageHeader eyebrow="Defense Team" title="방어팀" desc="덱 타입별 추천 방어팀을 확인하세요." />
+        <GuestLockedContent />
+      </PageShell>
+    );
+  }
+
   const [tab, setTab] = useState("attack");
   const [editing, setEditing] = useState(null);
 
@@ -878,9 +917,19 @@ function DefenseEditor({ item, onClose, onSaved }) {
 }
 
 function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeams, setEnemyDefenseTeams, reloadData }) {
+  if (isGuest(currentUser)) {
+    return (
+      <PageShell>
+        <PageHeader eyebrow="Attack Team" title="공격팀" desc="상대 방어팀별 공격 조합과 속공 기준을 정리하는 페이지입니다." />
+        <GuestLockedContent />
+      </PageShell>
+    );
+  }
+
   const [filter, setFilter] = useState("전체");
   const [editing, setEditing] = useState(null);
   const [enemyHeroSearch, setEnemyHeroSearch] = useState("");
+  const [showAllEnemyDefense, setShowAllEnemyDefense] = useState(false);
   const [enemyDefenseEditing, setEnemyDefenseEditing] = useState(null);
   const [selectedEnemyDefense, setSelectedEnemyDefense] = useState(null);
 
@@ -928,17 +977,19 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
       })()
     : [];
 
-  const searchedDefenseTeams = enemyHeroSearch.trim()
+  const enemySearchKeyword = enemyHeroSearch.trim();
+  const baseEnemyDefenseTeams = currentUser.role === "admin"
     ? enemyDefenseTeams
-        .filter((team) => isVisibleItem(team, currentUser))
-        .filter((team) =>
-          splitList(team.heroes).some((hero) =>
-            matchesHeroSearch(hero, enemyHeroSearch)
-          )
-        )
-    : currentUser.role === "admin"
-      ? enemyDefenseTeams
-      : [];
+    : enemyDefenseTeams.filter((team) => isVisibleItem(team, currentUser));
+  const searchedDefenseTeams = [...baseEnemyDefenseTeams]
+    .filter((team) => {
+      if (!enemySearchKeyword) return currentUser.role === "admin" && showAllEnemyDefense;
+      const titleMatch = String(team.title || "").toLowerCase().includes(enemySearchKeyword.toLowerCase());
+      const titleInitialMatch = getKoreanInitials(team.title || "").toLowerCase().includes(enemySearchKeyword.toLowerCase());
+      const heroMatch = splitList(team.heroes).some((hero) => matchesHeroSearch(hero, enemySearchKeyword));
+      return titleMatch || titleInitialMatch || heroMatch;
+    })
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
   const deleteEnemyDefenseTeam = async (team) => {
     if (!team?.id) return alert("삭제할 상대 방어팀 ID를 찾지 못했습니다.");
@@ -1001,14 +1052,19 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
           </div>
           <div>
             <div className="mb-2 flex items-center justify-between gap-3">
-              <div className="text-xs font-semibold text-zinc-400">{currentUser.role === "admin" && !enemyHeroSearch.trim() ? "등록된 방어팀" : "검색된 방어팀"}</div>
+              <div className="text-xs font-semibold text-zinc-400">{currentUser.role === "admin" && !enemyHeroSearch.trim() && showAllEnemyDefense ? "등록된 방어팀" : "검색된 방어팀"}</div>
               {currentUser.role === "admin" && (
-                <Button onClick={() => setEnemyDefenseEditing({ ...emptyEnemyDefense, sort_order: enemyDefenseTeams.length + 1 })} variant="secondary" className="px-3 py-1.5 text-xs">
-                  <Plus size={14} /> 상대 방어팀 추가
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => setShowAllEnemyDefense((v) => !v)} variant="secondary" className="px-3 py-1.5 text-xs">
+                    {showAllEnemyDefense ? "상대방어팀 일괄보기 닫기" : "상대방어팀 일괄보기"}
+                  </Button>
+                  <Button onClick={() => setEnemyDefenseEditing({ ...emptyEnemyDefense, sort_order: enemyDefenseTeams.length + 1 })} variant="secondary" className="px-3 py-1.5 text-xs">
+                    <Plus size={14} /> 상대 방어팀 추가
+                  </Button>
+                </div>
               )}
             </div>
-            {!enemyHeroSearch.trim() && currentUser.role !== "admin" ? null : searchedDefenseTeams.length === 0 ? (
+            {!enemyHeroSearch.trim() && currentUser.role !== "admin" ? null : !enemyHeroSearch.trim() && currentUser.role === "admin" && !showAllEnemyDefense ? null : searchedDefenseTeams.length === 0 ? (
               <div className="rounded-xl bg-zinc-50 p-4 text-sm text-zinc-400">검색된 방어팀이 없습니다.</div>
             ) : (
               <div className="grid gap-2 lg:grid-cols-2">
@@ -1145,82 +1201,6 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
         </div>
       )}
 
-      <div className="mb-5 flex max-w-full flex-wrap gap-2 overflow-x-auto rounded-xl border border-zinc-200 bg-white p-1 sm:w-fit">
-        {enemyTypes.map((type) => (
-          <button
-            key={type}
-            onClick={() => setFilter(type)}
-            className={cx("shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition", filter === type ? "bg-zinc-950 text-white" : "text-zinc-500 hover:text-zinc-950")}
-          >
-            {type}
-          </button>
-        ))}
-      </div>
-
-      <div className="space-y-3">
-        {list.map((team, index) => (
-          <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white lg:grid-cols-[220px_1fr]">
-            <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 lg:border-b-0 lg:border-r">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold text-zinc-400">#{team.sort_order || index + 1}</p>
-                {currentUser.role === "admin" && team.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}
-              </div>
-              <h3 className="mt-2 text-xl font-semibold text-zinc-950">{renderRichText(team.title, "")}</h3>
-              <p className="mt-2 text-sm text-zinc-500">상대: {team.enemy_type || "미입력"}</p>
-              {team.power && <p className="mt-2 text-sm font-semibold text-zinc-800">추천도 {team.power}/10</p>}
-              <p className="mt-2 text-sm text-zinc-500">펫: <span className="font-semibold text-zinc-800">{team.pet || "미입력"}</span></p>
-              <p className="mt-1 text-sm text-zinc-500">진형: <span className="font-semibold text-zinc-800">{team.formation || "미입력"}</span></p>
-              <p className="mt-2 text-xs text-zinc-400">최근 수정 {formatUpdatedAt(team.updated_at || team.created_at)}</p>
-              {currentUser.role === "admin" && (
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button onClick={() => setEditing(team)} variant="secondary"><Pencil size={14} /> 수정</Button>
-                  <DeleteButton onConfirm={() => deleteAttackTeam(team)}>삭제</DeleteButton>
-                </div>
-              )}
-            </div>
-
-            <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[1fr_240px] lg:items-start">
-              <div>
-                <div className="text-xs font-semibold text-zinc-400">공격 영웅 구성</div>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                  {splitList(team.heroes).map((hero, heroIndex) => {
-                    const ring = splitList(team.rings)[heroIndex];
-                    const gear = splitList(team.gears)[heroIndex];
-                    return (
-                      <div key={`${hero}-${heroIndex}`} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
-                        <div className="text-xs font-semibold text-zinc-800">{renderRichText(hero, "")}</div>
-                        <div className="mt-1 text-[11px] text-zinc-500">반지: {renderRichText(ring, "미입력")}</div>
-                        <div className="mt-1 text-[11px] text-zinc-500">장비: {renderRichText(gear, "미입력")}</div>
-                      </div>
-                    );
-                  })}
-                  {splitList(team.heroes).length === 0 && <div className="text-sm text-zinc-400">등록된 영웅이 없습니다.</div>}
-                </div>
-
-                <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                  <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
-                    <div className="mb-1 text-xs font-semibold text-zinc-400">속공순서 추천</div>
-                    <div className="whitespace-pre-wrap">{renderRichText(team.speed_order, "미입력")}</div>
-                  </div>
-                  <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
-                    <div className="mb-1 text-xs font-semibold text-zinc-400">팀속공 추천</div>
-                    <div className="whitespace-pre-wrap">{renderRichText(team.team_speed, "미입력")}</div>
-                  </div>
-                  <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
-                    <div className="mb-1 text-xs font-semibold text-zinc-400">스킬순서</div>
-                    <div className="whitespace-pre-wrap">{renderRichText(team.skill_order, "미입력")}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600 whitespace-pre-wrap">{renderRichText(team.note, "메모 없음")}</div>
-            </div>
-          </div>
-        ))}
-        {list.length === 0 && <EmptyState text="등록된 공격팀이 없습니다." />}
-      </div>
-
-      {editing && <AttackTeamEditor item={editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await reloadData(); }} />}
       {enemyDefenseEditing && <EnemyDefenseEditor item={enemyDefenseEditing} onClose={() => setEnemyDefenseEditing(null)} onSaved={async () => { setEnemyDefenseEditing(null); await reloadData(); }} />}
     </PageShell>
   );
@@ -1425,6 +1405,15 @@ function AttackTeamEditor({ item, onClose, onSaved }) {
 }
 
 function TotalWarPage({ currentUser, totalWarTeams, setTotalWarTeams, reloadData }) {
+  if (isGuest(currentUser)) {
+    return (
+      <PageShell>
+        <PageHeader eyebrow="Total War" title="총력전 공략" desc="총력전 추천 조합과 영웅별 반지, 속공등을 정리해둔 페이지입니다." />
+        <GuestLockedContent />
+      </PageShell>
+    );
+  }
+
   const [editing, setEditing] = useState(null);
   const list = [...totalWarTeams]
     .filter((team) => isVisibleItem(team, currentUser))
@@ -1454,7 +1443,7 @@ function TotalWarPage({ currentUser, totalWarTeams, setTotalWarTeams, reloadData
       <PageHeader
         eyebrow="Total War"
         title="총력전 공략"
-        desc="총력전 추천 조합과 영웅별 반지, 속공 기준을 정리하는 페이지입니다."
+        desc="총력전 추천 조합과 영웅별 반지, 속공등을 정리해둔 페이지입니다."
         action={currentUser.role === "admin" && <Button onClick={() => setEditing({ ...emptyTotalWar, sort_order: list.length + 1 })}><Plus size={16} /> 추가</Button>}
       />
 
@@ -1588,6 +1577,15 @@ function TotalWarEditor({ item, onClose, onSaved }) {
 }
 
 function ArenaPage({ currentUser, arenaTeams, setArenaTeams, reloadData }) {
+  if (isGuest(currentUser)) {
+    return (
+      <PageShell>
+        <PageHeader eyebrow="Arena" title="결투장 공략" desc="결투장 추천 조합과 영웅별 반지, 장비세팅, 속공등을 정리해둔 페이지입니다." />
+        <GuestLockedContent />
+      </PageShell>
+    );
+  }
+
   const [editing, setEditing] = useState(null);
   const list = [...arenaTeams]
     .filter((team) => isVisibleItem(team, currentUser))
@@ -1617,7 +1615,7 @@ function ArenaPage({ currentUser, arenaTeams, setArenaTeams, reloadData }) {
       <PageHeader
         eyebrow="Arena"
         title="결투장 공략"
-        desc="결투장 추천 조합과 영웅별 반지, 장비세팅, 속공 기준을 정리하는 페이지입니다."
+        desc="결투장 추천 조합과 영웅별 반지, 장비세팅, 속공등을 정리해둔 페이지입니다."
         action={currentUser.role === "admin" && <Button onClick={() => setEditing({ ...emptyArena, sort_order: list.length + 1 })}><Plus size={16} /> 추가</Button>}
       />
 
@@ -1751,6 +1749,15 @@ function ArenaEditor({ item, onClose, onSaved }) {
 }
 
 function NoticesPage({ currentUser, notices, reloadData }) {
+  if (isGuest(currentUser)) {
+    return (
+      <PageShell>
+        <PageHeader eyebrow="Notice" title="공지" desc="길드전 관련 공지를 확인하세요." />
+        <GuestLockedContent />
+      </PageShell>
+    );
+  }
+
   const [editing, setEditing] = useState(null);
   const visibleNotices = notices.filter((notice) => isVisibleItem(notice, currentUser));
   return <PageShell><PageHeader eyebrow="Notice" title="공지" desc="길드전 관련 공지를 확인하세요." action={currentUser.role === "admin" && <Button onClick={() => setEditing(emptyNotice)}><Plus size={16} /> 작성</Button>} /><div className="space-y-3">{visibleNotices.map((notice) => <article key={notice.id} className="rounded-2xl border border-zinc-200 bg-white p-5"><div className="flex items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-400"><span>최근 수정 {formatUpdatedAt(notice.updated_at || notice.created_at)}</span>{currentUser.role === "admin" && notice.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}</div><h2 className="mt-2 text-xl font-semibold text-zinc-950">{renderRichText(notice.title, "")}</h2></div>{currentUser.role === "admin" && <Button onClick={() => setEditing(notice)} variant="secondary"><Pencil size={14} /> 수정</Button>}</div><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-zinc-600">{renderRichText(notice.body, "")}</p></article>)}{visibleNotices.length === 0 && <EmptyState text="등록된 공지가 없습니다." />}</div>{editing && <NoticeEditor item={editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await reloadData(); }} />}</PageShell>;
@@ -1805,7 +1812,7 @@ function BackupPage() {
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("site_settings").select("*"),
       supabase.from("defense_teams").select("*").order("sort_order", { ascending: true }),
-      supabase.from("enemy_defense_teams").select("*").order("sort_order", { ascending: true }),
+      supabase.from("enemy_defense_teams").select("*").order("sort_order", { ascending: true }).range(0, 5000),
       supabase.from("attack_teams").select("*").order("sort_order", { ascending: true }),
       supabase.from("notices").select("*").order("created_at", { ascending: false }),
       supabase.from("total_war_teams").select("*").order("sort_order", { ascending: true }),
@@ -1945,7 +1952,7 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
   const updateUser = async (id, patch) => {
     const target = users.find((u) => u.id === id);
     if (!target) return;
-    if (target.id === OWNER_ID && (patch.status === "blocked" || patch.status === "rejected" || patch.role === "member")) return;
+    if (target.id === OWNER_ID && (patch.status === "blocked" || patch.status === "rejected" || (patch.role && patch.role !== "admin"))) return;
     const dbPatch = {};
     if (patch.status) dbPatch.status = patch.status;
     if (patch.role) dbPatch.role = patch.role;
@@ -2044,7 +2051,7 @@ function MemberRow({ user: u, pending, updateUser, deleteUser }) {
       </td>
       <td className="px-3 py-4">
         <div className="flex flex-wrap justify-end gap-2">
-          {pending ? <><Button onClick={() => updateUser(u.id, { status: "approved", role: "member" })}><CheckCircle2 size={15} /> 승인</Button><Button onClick={() => updateUser(u.id, { status: "rejected" })} variant="subtle"><Ban size={15} /> 거절</Button></> : <><Button disabled={u.id === OWNER_ID} onClick={() => updateUser(u.id, { role: u.role === "admin" ? "member" : "admin", status: "approved" })} variant="secondary">{u.role === "admin" ? "일반회원으로" : "관리자로"}</Button><DeleteButton onConfirm={() => deleteUser(u.id)} className={u.id === OWNER_ID ? "pointer-events-none opacity-50" : ""}>삭제</DeleteButton></>}
+          {pending ? <><Button onClick={() => updateUser(u.id, { status: "approved", role: "member" })}><CheckCircle2 size={15} /> 승인</Button><Button onClick={() => updateUser(u.id, { status: "rejected" })} variant="subtle"><Ban size={15} /> 거절</Button></> : <><select disabled={u.id === OWNER_ID} value={u.role} onChange={(e) => updateUser(u.id, { role: e.target.value, status: "approved" })} className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 outline-none focus:ring-4 focus:ring-zinc-200/70 disabled:cursor-not-allowed disabled:opacity-50"><option value="guest">게스트</option><option value="member">일반회원</option><option value="admin">관리자</option></select><DeleteButton onConfirm={() => deleteUser(u.id)} className={u.id === OWNER_ID ? "pointer-events-none opacity-50" : ""}>삭제</DeleteButton></>}
         </div>
       </td>
     </tr>
@@ -2079,7 +2086,7 @@ export default function App() {
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("site_settings").select("*"),
       supabase.from("defense_teams").select("*").order("sort_order", { ascending: true }),
-      supabase.from("enemy_defense_teams").select("*").order("sort_order", { ascending: true }),
+      supabase.from("enemy_defense_teams").select("*").order("sort_order", { ascending: true }).range(0, 5000),
       supabase.from("attack_teams").select("*").order("sort_order", { ascending: true }),
       supabase.from("notices").select("*").order("created_at", { ascending: false }),
       supabase.from("total_war_teams").select("*").order("sort_order", { ascending: true }),
