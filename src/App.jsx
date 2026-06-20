@@ -24,12 +24,41 @@ import {
   Snowflake,
 } from "lucide-react";
 
-const SUPABASE_URL = "https://mdzgblgujeztjgssodla.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kemdibGd1amV6dGpnc3NvZGxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5NTgxOTIsImV4cCI6MjA5NDUzNDE5Mn0.qR6WOPAgP8_2RlXErgZW27mJq30nkFwYMIYYrgX7Y6o";
+const SUPABASE_URL = "https://kqygrszkbuzxmmfndhye.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxeWdyc3prYnV6eG1tZm5kaHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MjI2OTUsImV4cCI6MjA5NzQ5ODY5NX0.SDIjG-rrBt4apIxTYT-qg9vyJuVgzN9uxiwpQ_QkOLs";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const OWNER_ID = "15month";
 const SESSION_KEY = "seori_guild_current_user_id";
+const SESSION_EXPIRES_KEY = "seori_guild_session_expires_at";
+const SESSION_TTL_MS = 20 * 60 * 1000;
+
+function storeSession(userId) {
+  localStorage.setItem(SESSION_KEY, userId);
+  localStorage.setItem(SESSION_EXPIRES_KEY, String(Date.now() + SESSION_TTL_MS));
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SESSION_EXPIRES_KEY);
+}
+
+function getValidSessionId() {
+  const savedId = localStorage.getItem(SESSION_KEY);
+  const expiresAt = Number(localStorage.getItem(SESSION_EXPIRES_KEY) || 0);
+
+  if (!savedId || !expiresAt) {
+    clearSession();
+    return null;
+  }
+
+  if (Date.now() >= expiresAt) {
+    clearSession();
+    return null;
+  }
+
+  return savedId;
+}
 
 const FALLBACK_SETTINGS = {
   guild_name: "15월",
@@ -340,6 +369,7 @@ function Select({ label, value, onChange, options }) {
   );
 }
 
+
 function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
   const [mode, setMode] = useState("login");
   const [loginId, setLoginId] = useState("");
@@ -353,15 +383,33 @@ function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const resetAlerts = () => { setMessage(""); setError(""); };
+  const resetAlerts = () => {
+    setMessage("");
+    setError("");
+  };
 
   const login = () => {
     resetAlerts();
+
+    if (loginId.trim() === "admin" && loginPw === "1234") {
+      const adminUser = {
+        id: "admin",
+        gameNickname: "관리자",
+        role: "admin",
+        status: "approved",
+        memo: "",
+      };
+      storeSession(adminUser.id);
+      setCurrentUser(adminUser);
+      return;
+    }
+
     const user = users.find((u) => u.id === loginId.trim() && u.password === loginPw);
     if (!user) return setError("아이디 또는 비밀번호가 일치하지 않습니다.");
     if (user.status === "rejected") return setError("가입 신청이 거절된 계정입니다.");
     if (user.status === "blocked") return setError("차단된 계정입니다. 관리자에게 문의하세요.");
-    localStorage.setItem(SESSION_KEY, user.id);
+
+    storeSession(user.id);
     updateLastSeen(user, setUsers, setCurrentUser);
   };
 
@@ -369,22 +417,34 @@ function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
     resetAlerts();
     const nickname = gameNickname.trim();
     const id = signupId.trim();
-    if (!nickname || !id || !signupPw || !signupPw2) return setError("게임 닉네임, 아이디, 비밀번호를 모두 입력해주세요.");
+
+    if (!nickname || !id || !signupPw || !signupPw2) {
+      return setError("게임 닉네임, 아이디, 비밀번호를 모두 입력해주세요.");
+    }
     if (id.length < 4) return setError("아이디는 4글자 이상으로 입력해주세요.");
     if (signupPw.length < 4) return setError("비밀번호는 4글자 이상으로 입력해주세요.");
     if (signupPw !== signupPw2) return setError("비밀번호 확인이 일치하지 않습니다.");
     if (users.some((u) => u.id === id)) return setError("이미 사용 중인 아이디입니다.");
-    if (users.some((u) => u.gameNickname === nickname && u.status !== "rejected")) return setError("이미 신청된 게임 닉네임입니다.");
+    if (users.some((u) => u.gameNickname === nickname && u.status !== "rejected")) {
+      return setError("이미 신청된 게임 닉네임입니다.");
+    }
 
     setSubmitting(true);
     const { data, error: insertError } = await supabase
       .from("profiles")
-      .insert({ user_id: id, password: signupPw, game_nickname: nickname, role: "member", status: "pending" })
+      .insert({
+        user_id: id,
+        password: signupPw,
+        game_nickname: nickname,
+        role: "member",
+        status: "pending",
+      })
       .select()
       .single();
     setSubmitting(false);
 
     if (insertError) return setError(`가입 신청 저장 실패: ${insertError.message}`);
+
     setUsers((prev) => [mapProfile(data), ...prev]);
     setMessage("가입 신청이 완료되었습니다. 관리자 승인 후 이용할 수 있습니다.");
     setMode("login");
@@ -406,19 +466,43 @@ function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
             </div>
             <div>
               <p className="text-sm font-semibold text-white">{renderRichText(settings.guild_name, "")}</p>
-              
             </div>
           </div>
           <p className="text-sm font-medium text-zinc-500">made by 15월</p>
-          <h1 className="mt-4 max-w-4xl break-keep text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl md:text-6xl">{renderRichText(settings.site_title, "")}</h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-zinc-400">{renderRichText(settings.main_subtitle, "")}</p>
-          
+          <h1 className="mt-4 max-w-4xl break-keep text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl md:text-6xl">
+            {renderRichText(settings.site_title, "")}
+          </h1>
+          <p className="mt-5 max-w-xl text-base leading-7 text-zinc-400">
+            {renderRichText(settings.main_subtitle, "")}
+          </p>
         </section>
 
         <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-2xl shadow-black/30 sm:p-5">
           <div className="mb-5 grid grid-cols-2 rounded-xl bg-black/30 p-1">
-            <button onClick={() => { setMode("login"); resetAlerts(); }} className={cx("rounded-lg py-2.5 text-sm font-semibold transition", mode === "login" ? "bg-white text-zinc-950" : "text-zinc-500 hover:text-white")}>로그인</button>
-            <button onClick={() => { setMode("signup"); resetAlerts(); }} className={cx("rounded-lg py-2.5 text-sm font-semibold transition", mode === "signup" ? "bg-white text-zinc-950" : "text-zinc-500 hover:text-white")}>회원가입</button>
+            <button
+              onClick={() => {
+                setMode("login");
+                resetAlerts();
+              }}
+              className={cx(
+                "rounded-lg py-2.5 text-sm font-semibold transition",
+                mode === "login" ? "bg-white text-zinc-950" : "text-zinc-500 hover:text-white"
+              )}
+            >
+              로그인
+            </button>
+            <button
+              onClick={() => {
+                setMode("signup");
+                resetAlerts();
+              }}
+              className={cx(
+                "rounded-lg py-2.5 text-sm font-semibold transition",
+                mode === "signup" ? "bg-white text-zinc-950" : "text-zinc-500 hover:text-white"
+              )}
+            >
+              회원가입
+            </button>
           </div>
 
           {mode === "login" ? (
@@ -427,24 +511,57 @@ function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
               <div>
                 <label className="text-xs font-semibold text-zinc-300">비밀번호</label>
                 <div className="relative mt-2">
-                  <input type={showPw ? "text" : "password"} value={loginPw} onChange={(e) => setLoginPw(e.target.value)} onKeyDown={(e) => e.key === "Enter" && login()} placeholder="비밀번호" className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-11 text-sm text-white outline-none placeholder:text-zinc-500 focus:ring-4 focus:ring-white/10" />
-                  <button onClick={() => setShowPw((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white">{showPw ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                  <input
+                    type={showPw ? "text" : "password"}
+                    value={loginPw}
+                    onChange={(e) => setLoginPw(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && login()}
+                    placeholder="비밀번호"
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-11 text-sm text-white outline-none placeholder:text-zinc-500 focus:ring-4 focus:ring-white/10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                  >
+                    {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </div>
-              <Button onClick={login} className="w-full">로그인 <ChevronRight size={17} /></Button>
+              <Button onClick={login} className="w-full">
+                로그인 <ChevronRight size={17} />
+              </Button>
             </div>
           ) : (
             <div className="space-y-4">
               <Input label="게임 닉네임" value={gameNickname} onChange={setGameNickname} placeholder="예: 15월" dark />
               <Input label="아이디" value={signupId} onChange={setSignupId} placeholder="로그인 아이디" dark />
               <Input label="비밀번호" type="password" value={signupPw} onChange={setSignupPw} placeholder="비밀번호" dark />
-              <Input label="비밀번호 확인" type="password" value={signupPw2} onChange={setSignupPw2} placeholder="한 번 더 입력" dark onEnter={signup} />
-              <Button disabled={submitting} onClick={signup} className="w-full"><UserPlus size={17} /> {submitting ? "신청 중" : "가입 신청"}</Button>
+              <Input
+                label="비밀번호 확인"
+                type="password"
+                value={signupPw2}
+                onChange={setSignupPw2}
+                placeholder="한 번 더 입력"
+                dark
+                onEnter={signup}
+              />
+              <Button disabled={submitting} onClick={signup} className="w-full">
+                <UserPlus size={17} /> {submitting ? "신청 중" : "가입 신청"}
+              </Button>
             </div>
           )}
 
-          {message && <p className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">{message}</p>}
-          {error && <p className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}
+          {message && (
+            <p className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
+              {message}
+            </p>
+          )}
+          {error && (
+            <p className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">
+              {error}
+            </p>
+          )}
           <p className="mt-5 text-center text-xs text-zinc-600">{renderRichText(settings.footer_text, "")}</p>
         </section>
       </div>
@@ -805,7 +922,7 @@ function DefensePage({ currentUser, defenseTeams, setDefenseTeams, reloadData })
                     return (
                       <div key={`${hero}-${heroIndex}`} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
                         <div className="text-xs font-semibold text-zinc-800">{renderRichText(hero, "")}</div>
-                        <div className="mt-1 text-[11px] text-zinc-500">반지: {renderRichText(ring, "미입력")}</div>
+                        <div className="mt-1 text-[11px] text-zinc-950">반지: {renderRichText(ring, "미입력")}</div>
                         <div className="mt-1 text-[11px] text-zinc-500">장비: {renderRichText(gear, "미입력")}</div>
                       </div>
                     );
@@ -916,6 +1033,7 @@ function DefenseEditor({ item, onClose, onSaved }) {
   );
 }
 
+
 function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeams, setEnemyDefenseTeams, reloadData }) {
   if (isGuest(currentUser)) {
     return (
@@ -943,36 +1061,6 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
     ? (() => {
         const parsed = parseCounterDecks(selectedEnemyDefense.counter_decks);
         if (parsed.length > 0) return parsed;
-
-        // 이전 단일 카운터 방식으로 저장된 데이터도 화면에 표시되게 변환
-        if (
-          selectedEnemyDefense.counter_heroes ||
-          selectedEnemyDefense.counter_rings ||
-          selectedEnemyDefense.counter_speed_order ||
-          selectedEnemyDefense.counter_team_speed ||
-          selectedEnemyDefense.counter_gear_1 ||
-          selectedEnemyDefense.counter_gear_2 ||
-          selectedEnemyDefense.counter_gear_3 ||
-          selectedEnemyDefense.counter_note
-        ) {
-          return [
-            {
-              title: "카운터덱 1",
-              power: selectedEnemyDefense.counter_power || "",
-              heroes: selectedEnemyDefense.counter_heroes || "",
-              rings: selectedEnemyDefense.counter_rings || "",
-              formation: selectedEnemyDefense.counter_formation || "",
-              speed_order: selectedEnemyDefense.counter_speed_order || "",
-              team_speed: selectedEnemyDefense.counter_team_speed || "",
-              skill_order: selectedEnemyDefense.counter_skill_order || "",
-              gear_1: selectedEnemyDefense.counter_gear_1 || "",
-              gear_2: selectedEnemyDefense.counter_gear_2 || "",
-              gear_3: selectedEnemyDefense.counter_gear_3 || "",
-              note: selectedEnemyDefense.counter_note || "",
-            },
-          ];
-        }
-
         return [];
       })()
     : [];
@@ -981,6 +1069,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
   const baseEnemyDefenseTeams = currentUser.role === "admin"
     ? enemyDefenseTeams
     : enemyDefenseTeams.filter((team) => isVisibleItem(team, currentUser));
+
   const searchedDefenseTeams = [...baseEnemyDefenseTeams]
     .filter((team) => {
       if (!enemySearchKeyword) return currentUser.role === "admin" && showAllEnemyDefense;
@@ -996,10 +1085,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
 
     setEnemyDefenseTeams((prev) => prev.filter((item) => item.id !== team.id));
 
-    const { error } = await supabase
-      .from("enemy_defense_teams")
-      .delete()
-      .eq("id", team.id);
+    const { error } = await supabase.from("enemy_defense_teams").delete().eq("id", team.id);
 
     if (error) {
       alert(`삭제 실패: ${error.message}`);
@@ -1010,17 +1096,12 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
     await reloadData();
   };
 
-  const defenseCategoryLabel = (category) => ({ attack: "공덱", tank: "방덱", magic: "마덱" }[category] || category || "미분류");
-
   const deleteAttackTeam = async (team) => {
     if (!team?.id) return alert("삭제할 공격팀 ID를 찾지 못했습니다.");
 
     setAttackTeams((prev) => prev.filter((item) => item.id !== team.id));
 
-    const { error } = await supabase
-      .from("attack_teams")
-      .delete()
-      .eq("id", team.id);
+    const { error } = await supabase.from("attack_teams").delete().eq("id", team.id);
 
     if (error) {
       alert(`삭제 실패: ${error.message}`);
@@ -1037,6 +1118,13 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
         eyebrow="Attack Team"
         title="공격팀"
         desc="상대 방어팀별 공격 조합과 속공 기준을 정리하는 페이지입니다."
+        action={
+          currentUser.role === "admin" && (
+            <Button onClick={() => setEditing({ ...emptyAttackTeam, sort_order: list.length + 1 })}>
+              <Plus size={16} /> 추가
+            </Button>
+          )
+        }
       />
 
       <div className="mb-5 rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5">
@@ -1048,24 +1136,33 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
               onChange={setEnemyHeroSearch}
               placeholder="예: 여포 또는 ㅇㅍ"
             />
-            <p className="mt-2 text-xs leading-5 text-zinc-400">상대 방어팀에 들어간 영웅명이나 초성을 검색하면 해당 영웅이 포함된 방어팀 목록이 나옵니다.</p>
+            <p className="mt-2 text-xs leading-5 text-zinc-400">
+              상대 방어팀에 들어간 영웅명이나 초성을 검색하면 해당 영웅이 포함된 방어팀 목록이 나옵니다.
+            </p>
           </div>
           <div>
             <div className="mb-2 flex items-center justify-between gap-3">
-              <div className="text-xs font-semibold text-zinc-400">{currentUser.role === "admin" && !enemyHeroSearch.trim() && showAllEnemyDefense ? "등록된 방어팀" : "검색된 방어팀"}</div>
+              <div className="text-xs font-semibold text-zinc-400">
+                {currentUser.role === "admin" && !enemyHeroSearch.trim() && showAllEnemyDefense ? "등록된 방어팀" : "검색된 방어팀"}
+              </div>
               {currentUser.role === "admin" && (
                 <div className="flex flex-wrap gap-2">
                   <Button onClick={() => setShowAllEnemyDefense((v) => !v)} variant="secondary" className="px-3 py-1.5 text-xs">
                     {showAllEnemyDefense ? "상대방어팀 일괄보기 닫기" : "상대방어팀 일괄보기"}
                   </Button>
-                  <Button onClick={() => setEnemyDefenseEditing({ ...emptyEnemyDefense, sort_order: enemyDefenseTeams.length + 1 })} variant="secondary" className="px-3 py-1.5 text-xs">
+                  <Button
+                    onClick={() => setEnemyDefenseEditing({ ...emptyEnemyDefense, sort_order: enemyDefenseTeams.length + 1 })}
+                    variant="secondary"
+                    className="px-3 py-1.5 text-xs"
+                  >
                     <Plus size={14} /> 상대 방어팀 추가
                   </Button>
                 </div>
               )}
             </div>
+
             {!enemyHeroSearch.trim() && currentUser.role !== "admin" ? null : !enemyHeroSearch.trim() && currentUser.role === "admin" && !showAllEnemyDefense ? null : searchedDefenseTeams.length === 0 ? (
-              <div className="rounded-xl bg-zinc-50 p-4 text-sm text-zinc-400">검색된 방어팀이 없습니다.</div>
+              <div className="rounded-xl bg-zinc-50 p-4 text-sm text-zinc-950">검색된 방어팀이 없습니다.</div>
             ) : (
               <div className="grid gap-2 lg:grid-cols-2">
                 {searchedDefenseTeams.map((team) => (
@@ -1073,17 +1170,35 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                     key={team.id}
                     className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-left transition hover:border-zinc-300 hover:bg-white"
                   >
-                    <button onClick={() => { setSelectedEnemyDefense(team); setFilter(team.title); }} className="w-full text-left">
+                    <button
+                      onClick={() => {
+                        setSelectedEnemyDefense(team);
+                        setFilter(team.title || "전체");
+                      }}
+                      className="w-full text-left"
+                    >
                       <div className="flex items-center justify-between gap-3">
                         <div className="font-semibold text-zinc-950">{team.title}</div>
                         <div className="flex items-center gap-2">
-                          {currentUser.role === "admin" && team.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}
-                          {team.note && <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-zinc-500 ring-1 ring-zinc-200">속공 {team.note}</span>}
+                          {currentUser.role === "admin" && team.is_public === false && (
+                            <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>
+                          )}
+                          {team.note && (
+                            <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-zinc-500 ring-1 ring-zinc-200">
+                              속공 {team.note}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {splitList(team.heroes).map((hero) => (
-                          <span key={hero} className={cx("rounded-md px-2 py-1 text-[11px] font-medium", matchesHeroSearch(hero, enemyHeroSearch) ? "bg-zinc-950 text-white" : "bg-white text-zinc-500 ring-1 ring-zinc-200")}>
+                          <span
+                            key={hero}
+                            className={cx(
+                              "rounded-md px-2 py-1 text-[11px] font-medium",
+                              matchesHeroSearch(hero, enemyHeroSearch) ? "bg-zinc-950 text-white" : "bg-white text-zinc-500 ring-1 ring-zinc-200"
+                            )}
+                          >
                             {hero}
                           </span>
                         ))}
@@ -1091,8 +1206,12 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                     </button>
                     {currentUser.role === "admin" && (
                       <div className="mt-3 flex gap-2">
-                        <Button onClick={() => setEnemyDefenseEditing(team)} variant="secondary" className="px-3 py-1.5 text-xs"><Pencil size={13} /> 수정</Button>
-                        <DeleteButton onConfirm={() => deleteEnemyDefenseTeam(team)} className="px-3 py-1.5 text-xs">삭제</DeleteButton>
+                        <Button onClick={() => setEnemyDefenseEditing(team)} variant="secondary" className="px-3 py-1.5 text-xs">
+                          <Pencil size={13} /> 수정
+                        </Button>
+                        <DeleteButton onConfirm={() => deleteEnemyDefenseTeam(team)} className="px-3 py-1.5 text-xs">
+                          삭제
+                        </DeleteButton>
                       </div>
                     )}
                   </div>
@@ -1107,101 +1226,211 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
         <div className="mb-5 rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">Counter Guide</p>
-              <h2 className="mt-2 break-keep text-xl font-semibold text-zinc-950 sm:text-2xl">{renderRichText(selectedEnemyDefense.title, "")} 카운터치는 법</h2>
-              <p className="mt-2 text-xs text-zinc-400">최근 수정 {formatUpdatedAt(selectedEnemyDefense.updated_at || selectedEnemyDefense.created_at)}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-950">Counter Guide</p>
+              <h2 className="mt-2 break-keep text-xl font-semibold text-zinc-950 sm:text-2xl">
+                {renderRichText(selectedEnemyDefense.title, "")} 카운터치는 법
+              </h2>
+              <p className="mt-2 text-xs text-zinc-950">
+                최근 수정 {formatUpdatedAt(selectedEnemyDefense.updated_at || selectedEnemyDefense.created_at)}
+              </p>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {splitList(selectedEnemyDefense.heroes).map((hero) => (
-                  <span key={hero} className="rounded-md bg-zinc-100 px-2 py-1 text-[11px] font-medium text-zinc-600">{hero}</span>
+                  <span key={hero} className="rounded-md bg-zinc-100 px-2 py-1 text-[11px] font-medium text-zinc-950">
+                    {hero}
+                  </span>
                 ))}
               </div>
-              {selectedEnemyDefense.note && <p className="mt-3 text-sm text-zinc-500">상대 속공: {renderRichText(selectedEnemyDefense.note, "")} </p>}
+              {selectedEnemyDefense.note && (
+                <p className="mt-3 text-sm text-zinc-950">상대 속공: {renderRichText(selectedEnemyDefense.note, "")}</p>
+              )}
             </div>
-            <Button onClick={() => { setSelectedEnemyDefense(null); setFilter("전체"); }} variant="secondary">닫기</Button>
+            <Button
+              onClick={() => {
+                setSelectedEnemyDefense(null);
+                setFilter("전체");
+              }}
+              variant="secondary"
+            >
+              닫기
+            </Button>
           </div>
 
           <div className="mt-5 space-y-3">
             {selectedCounterDecks.length === 0 ? (
-              <div className="rounded-xl bg-zinc-50 p-4 text-sm text-zinc-400">등록된 카운터덱이 없습니다.</div>
-            ) : selectedCounterDecks.map((deck, deckIndex) => {
-              const counterHeroes = splitList(deck.heroes);
-              const counterRings = splitList(deck.rings);
-              return (
-                <div key={deckIndex} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold text-zinc-400">카운터덱 #{deckIndex + 1}</p>
-                      <h3 className="mt-1 text-lg font-semibold text-zinc-950">{renderRichText(deck.title || `카운터덱 ${deckIndex + 1}`, "")}</h3>
-                      <p className="mt-1 text-xs font-semibold text-zinc-500">추천도 <span className="text-zinc-800">{deck.power || "0"}/10</span></p>
-                      <p className="mt-1 text-xs text-zinc-400">최근 수정 {formatUpdatedAt(selectedEnemyDefense.updated_at || selectedEnemyDefense.created_at)}</p>
+              <div className="rounded-xl bg-zinc-50 p-4 text-sm text-zinc-950">등록된 카운터덱이 없습니다.</div>
+            ) : (
+              selectedCounterDecks.map((deck, deckIndex) => {
+                const counterHeroes = splitList(deck.heroes);
+                const counterRings = splitList(deck.rings);
+
+                return (
+                  <div key={deckIndex} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold text-zinc-950">카운터덱 #{deckIndex + 1}</p>
+                        <h3 className="mt-1 text-lg font-semibold text-zinc-950">
+                          {renderRichText(deck.title || `카운터덱 ${deckIndex + 1}`, "")}
+                        </h3>
+                        <p className="mt-1 text-xs font-semibold text-zinc-950">
+                          추천도 <span className="text-zinc-800">{deck.power || "0"}/10</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_260px]">
+                      <div>
+                        <div className="text-xs font-semibold text-zinc-950">추천 카운터 영웅</div>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                          {counterHeroes.length === 0 ? (
+                            <div className="text-sm text-zinc-950">등록된 카운터 영웅이 없습니다.</div>
+                          ) : (
+                            counterHeroes.map((hero, index) => (
+                              <div key={`${hero}-${index}`} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
+                                <div className="text-xs font-semibold text-zinc-800">{renderRichText(hero, "")}</div>
+                                <div className="mt-1 text-[11px] text-zinc-950">반지: {counterRings[index] || "미입력"}</div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-zinc-950">
+                          <span>펫 <b className="ml-1 text-sm font-semibold text-zinc-800">{deck.pet || "미입력"}</b></span>
+                          <span>진형 <b className="ml-1 text-sm font-semibold text-zinc-800">{deck.formation || "미입력"}</b></span>
+                        </div>
+
+                        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                          <div className="rounded-xl bg-white p-4 text-sm leading-6 text-zinc-950 ring-1 ring-zinc-200">
+                            <div className="mb-1 text-xs font-semibold text-zinc-950">추천 속공순서</div>
+                            <div className="whitespace-pre-wrap">{renderRichText(deck.speed_order, "미입력")}</div>
+                          </div>
+                          <div className="rounded-xl bg-white p-4 text-sm leading-6 text-zinc-950 ring-1 ring-zinc-200">
+                            <div className="mb-1 text-xs font-semibold text-zinc-950">추천 카운터 팀속공</div>
+                            <div className="whitespace-pre-wrap">{renderRichText(deck.team_speed, "미입력")}</div>
+                          </div>
+                          <div className="rounded-xl bg-white p-4 text-sm leading-6 text-zinc-950 ring-1 ring-zinc-200">
+                            <div className="mb-1 text-xs font-semibold text-zinc-950">추천 카운터 스킬순서</div>
+                            <div className="whitespace-pre-wrap">{renderRichText(deck.skill_order, "미입력")}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl bg-white p-4 text-sm leading-6 text-zinc-950 ring-1 ring-zinc-200 whitespace-pre-wrap">
+                        <div className="mb-1 text-xs font-semibold text-zinc-950">그외 참고사항</div>
+                        {renderRichText(deck.note, "메모 없음")}
+                      </div>
                     </div>
                   </div>
-
-                  <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_260px]">
-                    <div>
-                      <div className="text-xs font-semibold text-zinc-400">추천 카운터 영웅</div>
-                      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                        {counterHeroes.length === 0 ? (
-                          <div className="text-sm text-zinc-400">등록된 카운터 영웅이 없습니다.</div>
-                        ) : counterHeroes.map((hero, index) => (
-                          <div key={`${hero}-${index}`} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
-                            <div className="text-xs font-semibold text-zinc-800">{renderRichText(hero, "")}</div>
-                            <div className="mt-1 text-[11px] text-zinc-500">반지: {counterRings[index] || "미입력"}</div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-zinc-400">
-                        <span>펫 <b className="ml-1 text-sm font-semibold text-zinc-800">{deck.pet || "미입력"}</b></span>
-                        <span>진형 <b className="ml-1 text-sm font-semibold text-zinc-800">{deck.formation || "미입력"}</b></span>
-                      </div>
-
-                      <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                        <div className="rounded-xl bg-white p-4 text-sm leading-6 text-zinc-600 ring-1 ring-zinc-200">
-                          <div className="mb-1 text-xs font-semibold text-zinc-400">추천 속공순서</div>
-                          <div className="whitespace-pre-wrap">{renderRichText(deck.speed_order, "미입력")}</div>
-                        </div>
-                        <div className="rounded-xl bg-white p-4 text-sm leading-6 text-zinc-600 ring-1 ring-zinc-200">
-                          <div className="mb-1 text-xs font-semibold text-zinc-400">추천 카운터 팀속공</div>
-                          <div className="whitespace-pre-wrap">{renderRichText(deck.team_speed, "미입력")}</div>
-                        </div>
-                        <div className="rounded-xl bg-white p-4 text-sm leading-6 text-zinc-600 ring-1 ring-zinc-200">
-                          <div className="mb-1 text-xs font-semibold text-zinc-400">추천 카운터 스킬순서</div>
-                          <div className="whitespace-pre-wrap">{renderRichText(deck.skill_order, "미입력")}</div>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 rounded-xl bg-white p-4 text-sm leading-6 text-zinc-600 ring-1 ring-zinc-200">
-                        <div className="mb-3 text-xs font-semibold text-zinc-400">추천 카운터 장비세팅</div>
-                        <div className="grid gap-2 sm:grid-cols-3">
-                          <div className="rounded-lg bg-zinc-50 p-3">
-                            <div className="mb-1 text-[11px] font-semibold text-zinc-400">{counterHeroes[0] || "1번 영웅"}</div>
-                            <div className="whitespace-pre-wrap">{renderRichText(deck.gear_1, "미입력")}</div>
-                          </div>
-                          <div className="rounded-lg bg-zinc-50 p-3">
-                            <div className="mb-1 text-[11px] font-semibold text-zinc-400">{counterHeroes[1] || "2번 영웅"}</div>
-                            <div className="whitespace-pre-wrap">{renderRichText(deck.gear_2, "미입력")}</div>
-                          </div>
-                          <div className="rounded-lg bg-zinc-50 p-3">
-                            <div className="mb-1 text-[11px] font-semibold text-zinc-400">{counterHeroes[2] || "3번 영웅"}</div>
-                            <div className="whitespace-pre-wrap">{renderRichText(deck.gear_3, "미입력")}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl bg-white p-4 text-sm leading-6 text-zinc-600 ring-1 ring-zinc-200 whitespace-pre-wrap">
-                      <div className="mb-1 text-xs font-semibold text-zinc-400">그외 참고사항</div>
-                      {renderRichText(deck.note, "메모 없음")}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
       )}
 
-      {enemyDefenseEditing && <EnemyDefenseEditor item={enemyDefenseEditing} onClose={() => setEnemyDefenseEditing(null)} onSaved={async () => { setEnemyDefenseEditing(null); await reloadData(); }} />}
+      <div className="mb-5 flex max-w-full overflow-x-auto rounded-xl border border-zinc-200 bg-white p-1 sm:w-fit">
+        {enemyTypes.map((type) => (
+          <button
+            key={type}
+            onClick={() => setFilter(type)}
+            className={cx(
+              "shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition",
+              filter === type ? "bg-zinc-950 text-white" : "text-zinc-500 hover:text-zinc-950"
+            )}
+          >
+            {type}
+          </button>
+        ))}
+      </div>
+
+      <div className="space-y-3">
+        {list.map((team, index) => (
+          <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white lg:grid-cols-[220px_1fr]">
+            <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 lg:border-b-0 lg:border-r">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-zinc-400">#{team.sort_order || index + 1}</p>
+                {currentUser.role === "admin" && team.is_public === false && (
+                  <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>
+                )}
+              </div>
+              <h3 className="mt-2 text-xl font-semibold text-zinc-950">{renderRichText(team.title, "")}</h3>
+              <p className="mt-1 text-sm text-zinc-500">상대 분류: {renderRichText(team.enemy_type, "")}</p>
+              <div className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-zinc-400">
+                <span>추천도 <b className="ml-1 text-zinc-800">{team.power || "0"}/10</b></span>
+                <span>펫 <b className="ml-1 text-zinc-800">{team.pet || "미입력"}</b></span>
+                <span>진형 <b className="ml-1 text-zinc-800">{team.formation || "미입력"}</b></span>
+                <span>최근 수정 <b className="ml-1 text-zinc-700">{formatUpdatedAt(team.updated_at || team.created_at)}</b></span>
+              </div>
+              {currentUser.role === "admin" && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button onClick={() => setEditing(team)} variant="secondary"><Pencil size={14} /> 수정</Button>
+                  <DeleteButton onConfirm={() => deleteAttackTeam(team)}>삭제</DeleteButton>
+                </div>
+              )}
+            </div>
+
+            <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[1fr_220px] lg:items-center">
+              <div>
+                <div className="text-xs font-semibold text-zinc-400">영웅 구성</div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {splitList(team.heroes).map((hero, heroIndex) => {
+                    const ring = splitList(team.rings)[heroIndex];
+                    const gear = splitList(team.gears)[heroIndex];
+                    return (
+                      <div key={`${hero}-${heroIndex}`} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
+                        <div className="text-xs font-semibold text-zinc-800">{renderRichText(hero, "")}</div>
+                        <div className="mt-1 text-[11px] text-zinc-950">반지: {renderRichText(ring, "미입력")}</div>
+                        <div className="mt-1 text-[11px] text-zinc-500">장비: {renderRichText(gear, "미입력")}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                  <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
+                    <div className="mb-1 text-xs font-semibold text-zinc-400">속공순서 추천</div>
+                    <div className="whitespace-pre-wrap">{renderRichText(team.speed_order, "미입력")}</div>
+                  </div>
+                  <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
+                    <div className="mb-1 text-xs font-semibold text-zinc-400">팀속공 추천</div>
+                    <div className="whitespace-pre-wrap">{renderRichText(team.team_speed, "미입력")}</div>
+                  </div>
+                  <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600">
+                    <div className="mb-1 text-xs font-semibold text-zinc-400">스킬순서</div>
+                    <div className="whitespace-pre-wrap">{renderRichText(team.skill_order, "미입력")}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-zinc-50 p-4 text-sm leading-6 text-zinc-600 whitespace-pre-wrap">
+                {renderRichText(team.note, "메모 없음")}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {list.length === 0 && <EmptyState text="등록된 공격팀이 없습니다." />}
+      </div>
+
+      {editing && (
+        <AttackTeamEditor
+          item={editing}
+          onClose={() => setEditing(null)}
+          onSaved={async () => {
+            setEditing(null);
+            await reloadData();
+          }}
+        />
+      )}
+      {enemyDefenseEditing && (
+        <EnemyDefenseEditor
+          item={enemyDefenseEditing}
+          onClose={() => setEnemyDefenseEditing(null)}
+          onSaved={async () => {
+            setEnemyDefenseEditing(null);
+            await reloadData();
+          }}
+        />
+      )}
     </PageShell>
   );
 }
@@ -1458,7 +1687,7 @@ function TotalWarPage({ currentUser, totalWarTeams, setTotalWarTeams, reloadData
               <h3 className="mt-2 text-xl font-semibold text-zinc-950">{renderRichText(team.title, "")}</h3>
               <p className="mt-2 text-sm text-zinc-500">펫: <span className="font-semibold text-zinc-800">{team.pet || "미입력"}</span></p>
               <p className="mt-1 text-sm text-zinc-500">진형: <span className="font-semibold text-zinc-800">{team.formation || "미입력"}</span></p>
-              <p className="mt-2 text-xs text-zinc-400">최근 수정 {formatUpdatedAt(team.updated_at || team.created_at)}</p>
+              <p className="mt-2 text-xs text-zinc-950">최근 수정 {formatUpdatedAt(team.updated_at || team.created_at)}</p>
               {currentUser.role === "admin" && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button onClick={() => setEditing(team)} variant="secondary"><Pencil size={14} /> 수정</Button>
@@ -1477,7 +1706,7 @@ function TotalWarPage({ currentUser, totalWarTeams, setTotalWarTeams, reloadData
                     return (
                       <div key={`${hero}-${heroIndex}`} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
                         <div className="text-xs font-semibold text-zinc-800">{renderRichText(hero, "")}</div>
-                        <div className="mt-1 text-[11px] text-zinc-500">반지: {renderRichText(ring, "미입력")}</div>
+                        <div className="mt-1 text-[11px] text-zinc-950">반지: {renderRichText(ring, "미입력")}</div>
                         <div className="mt-1 text-[11px] text-zinc-500">장비: {renderRichText(gear, "미입력")}</div>
                       </div>
                     );
@@ -1630,7 +1859,7 @@ function ArenaPage({ currentUser, arenaTeams, setArenaTeams, reloadData }) {
               <h3 className="mt-2 text-xl font-semibold text-zinc-950">{renderRichText(team.title, "")}</h3>
               <p className="mt-2 text-sm text-zinc-500">펫: <span className="font-semibold text-zinc-800">{team.pet || "미입력"}</span></p>
               <p className="mt-1 text-sm text-zinc-500">진형: <span className="font-semibold text-zinc-800">{team.formation || "미입력"}</span></p>
-              <p className="mt-2 text-xs text-zinc-400">최근 수정 {formatUpdatedAt(team.updated_at || team.created_at)}</p>
+              <p className="mt-2 text-xs text-zinc-950">최근 수정 {formatUpdatedAt(team.updated_at || team.created_at)}</p>
               {currentUser.role === "admin" && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button onClick={() => setEditing(team)} variant="secondary"><Pencil size={14} /> 수정</Button>
@@ -1649,7 +1878,7 @@ function ArenaPage({ currentUser, arenaTeams, setArenaTeams, reloadData }) {
                     return (
                       <div key={`${hero}-${heroIndex}`} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
                         <div className="text-xs font-semibold text-zinc-800">{renderRichText(hero, "")}</div>
-                        <div className="mt-1 text-[11px] text-zinc-500">반지: {renderRichText(ring, "미입력")}</div>
+                        <div className="mt-1 text-[11px] text-zinc-950">반지: {renderRichText(ring, "미입력")}</div>
                         <div className="mt-1 text-[11px] text-zinc-500">장비: {renderRichText(gear, "미입력")}</div>
                       </div>
                     );
@@ -1929,97 +2158,185 @@ function Modal({ title, onClose, children }) {
   return <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-3 backdrop-blur-sm sm:p-4"><div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xl sm:p-6"><div className="mb-5 flex items-center justify-between"><h2 className="text-xl font-semibold text-zinc-950">{title}</h2><button onClick={onClose} className="rounded-lg bg-zinc-100 p-2 text-zinc-500 hover:text-zinc-950"><X size={18} /></button></div>{children}</div></div>;
 }
 
+
 function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, reloadData }) {
   const [selectedGuild, setSelectedGuild] = useState(null);
   const pending = users.filter((u) => u.status === "pending");
   const members = users.filter((u) => u.status !== "pending");
-  const getUserGuilds = (user) => String(user.memo || "")
-    .split(",")
-    .map((v) => v.trim())
-    .filter(Boolean);
+
+  const getUserGuilds = (user) =>
+    String(user.memo || "")
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
 
   const memoCounts = members.reduce((acc, user) => {
     getUserGuilds(user).forEach((guild) => {
       acc[guild] = (acc[guild] || 0) + 1;
     });
-
     return acc;
   }, {});
+
   const memoCountList = Object.entries(memoCounts).sort((a, b) => b[1] - a[1]);
   const selectedGuildMembers = selectedGuild
     ? members.filter((user) => getUserGuilds(user).includes(selectedGuild))
     : [];
-  const updateUser = async (id, patch) => {
-    const target = users.find((u) => u.id === id);
-    if (!target) return;
-    if (target.id === OWNER_ID && (patch.status === "blocked" || patch.status === "rejected" || (patch.role && patch.role !== "admin"))) return;
+
+  const updateUser = async (user, patch) => {
+    if (!user) return;
+
+    const isOwner = user.id === OWNER_ID;
+
+    if (isOwner && (patch.status === "blocked" || patch.status === "rejected")) {
+      return alert("최고 관리자 계정은 차단하거나 거절할 수 없습니다.");
+    }
+
     const dbPatch = {};
     if (patch.status) dbPatch.status = patch.status;
     if (patch.role) dbPatch.role = patch.role;
     if (Object.prototype.hasOwnProperty.call(patch, "memo")) dbPatch.memo = patch.memo;
-    const { error } = await supabase.from("profiles").update(dbPatch).eq("user_id", id);
+
+    if (isOwner && patch.status === "approved") {
+      dbPatch.role = "admin";
+    }
+
+    const { error } = await supabase.from("profiles").update(dbPatch).eq("user_id", user.id);
     if (error) return alert(`회원 정보 수정 실패: ${error.message}`);
-    setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, ...patch } : u)));
-    if (currentUser.id === id) setCurrentUser((u) => ({ ...u, ...patch }));
+
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === user.id ? { ...u, ...patch, ...(isOwner && patch.status === "approved" ? { role: "admin" } : {}) } : u
+      )
+    );
+
+    if (currentUser?.id === user.id) {
+      setCurrentUser((prev) => ({
+        ...prev,
+        ...patch,
+        ...(isOwner && patch.status === "approved" ? { role: "admin" } : {}),
+      }));
+    }
+
+    await reloadData();
   };
 
-  const deleteUser = async (id) => {
-    const target = users.find((u) => u.id === id);
-    if (!target) return;
-    if (target.id === OWNER_ID) return alert("최고 관리자 계정은 삭제할 수 없습니다.");
+  const deleteUser = async (user) => {
+    if (!user) return;
+    if (user.id === OWNER_ID) return alert("최고 관리자 계정은 삭제할 수 없습니다.");
 
-    setUsers((prev) => prev.filter((u) => u.id !== id));
+    setUsers((prev) => prev.filter((u) => u.id !== user.id));
 
-    const query = supabase.from("profiles").delete();
-    const { error } = target.dbId
-      ? await query.eq("id", target.dbId)
-      : await query.eq("user_id", id);
+    const { error } = user.dbId
+      ? await supabase.from("profiles").delete().eq("id", user.dbId)
+      : await supabase.from("profiles").delete().eq("user_id", user.id);
 
     if (error) {
       alert(`회원 삭제 실패: ${error.message}`);
       await reloadData();
       return;
     }
+
+    await reloadData();
   };
 
-  return <PageShell><PageHeader eyebrow="Admin" title="회원 관리" desc="게임 닉네임을 확인한 뒤 승인하세요." />
-  <section className="mb-5 rounded-2xl border border-zinc-200 bg-white p-5">
-    <div className="flex items-center justify-between gap-3">
-      <h2 className="text-lg font-semibold text-zinc-950">길드별 인원</h2>
-      <span className="text-xs font-semibold text-zinc-400">관리자 메모 기준</span>
-    </div>
-    <div className="mt-3 flex flex-wrap gap-2">
-      {memoCountList.length === 0 ? <span className="text-sm text-zinc-400">입력된 메모가 없습니다.</span> : memoCountList.map(([memo, count]) => (
-        <button
-          key={memo}
-          onClick={() => setSelectedGuild((prev) => prev === memo ? null : memo)}
-          className={cx("rounded-full px-3 py-1.5 text-sm font-semibold transition", selectedGuild === memo ? "bg-zinc-950 text-white" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200")}
-        >
-          {memo} {count}명
-        </button>
-      ))}
-    </div>
-  {selectedGuild && (
-      <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div className="text-sm font-semibold text-zinc-950">{selectedGuild} 회원 목록</div>
-          <button onClick={() => setSelectedGuild(null)} className="text-xs font-semibold text-zinc-400 hover:text-zinc-700">닫기</button>
+  return (
+    <PageShell>
+      <PageHeader eyebrow="Admin" title="회원 관리" desc="게임 닉네임을 확인한 뒤 승인하세요." />
+
+      <section className="mb-5 rounded-2xl border border-zinc-200 bg-white p-5">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-zinc-950">길드별 인원</h2>
+          <span className="text-xs font-semibold text-zinc-400">관리자 메모 기준</span>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {selectedGuildMembers.map((user) => (
-            <span key={user.id} className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-zinc-700 ring-1 ring-zinc-200">
-              {user.gameNickname}
-            </span>
-          ))}
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          {memoCountList.length === 0 ? (
+            <span className="text-sm text-zinc-400">입력된 메모가 없습니다.</span>
+          ) : (
+            memoCountList.map(([memo, count]) => (
+              <button
+                key={memo}
+                onClick={() => setSelectedGuild((prev) => (prev === memo ? null : memo))}
+                className={cx(
+                  "rounded-full px-3 py-1.5 text-sm font-semibold transition",
+                  selectedGuild === memo ? "bg-zinc-950 text-white" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                )}
+              >
+                {memo} {count}명
+              </button>
+            ))
+          )}
         </div>
-      </div>
-    )}
-  </section>
-  <section className="rounded-2xl border border-zinc-200 bg-white p-5"><div className="flex items-center justify-between"><h2 className="text-lg font-semibold text-zinc-950">가입 승인 대기</h2><span className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-semibold text-zinc-700">{pending.length}건</span></div><MemberTable list={pending} pending updateUser={updateUser} deleteUser={deleteUser} /></section><section className="mt-5 rounded-2xl border border-zinc-200 bg-white p-5"><h2 className="text-lg font-semibold text-zinc-950">전체 회원</h2><MemberTable list={members} updateUser={updateUser} deleteUser={deleteUser} /></section></PageShell>;
+
+        {selectedGuild && (
+          <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="text-sm font-semibold text-zinc-950">{selectedGuild} 회원 목록</div>
+              <button
+                onClick={() => setSelectedGuild(null)}
+                className="text-xs font-semibold text-zinc-400 hover:text-zinc-700"
+              >
+                닫기
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {selectedGuildMembers.map((user) => (
+                <span key={user.id} className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-zinc-700 ring-1 ring-zinc-200">
+                  {user.gameNickname}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-zinc-950">가입 승인 대기</h2>
+          <span className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-semibold text-zinc-700">{pending.length}건</span>
+        </div>
+        <MemberTable list={pending} pending updateUser={updateUser} deleteUser={deleteUser} />
+      </section>
+
+      <section className="mt-5 rounded-2xl border border-zinc-200 bg-white p-5">
+        <h2 className="text-lg font-semibold text-zinc-950">전체 회원</h2>
+        <MemberTable list={members} updateUser={updateUser} deleteUser={deleteUser} />
+      </section>
+    </PageShell>
+  );
 }
 
 function MemberTable({ list, pending, updateUser, deleteUser }) {
-  return <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[1080px] text-left text-sm"><thead><tr className="border-b border-zinc-200 text-xs font-semibold uppercase text-zinc-400"><th className="px-3 py-3">게임 닉네임</th><th className="px-3 py-3">아이디</th><th className="px-3 py-3">상태</th><th className="px-3 py-3">등급</th><th className="px-3 py-3">마지막 접속</th><th className="px-3 py-3">관리자 메모</th><th className="px-3 py-3 text-right">관리</th></tr></thead><tbody>{list.length === 0 ? <tr><td colSpan={7} className="py-8 text-center text-zinc-400">표시할 회원이 없습니다.</td></tr> : list.map((u) => <MemberRow key={u.id} user={u} pending={pending} updateUser={updateUser} deleteUser={deleteUser} />)}</tbody></table></div>;
+  return (
+    <div className="mt-4 overflow-x-auto">
+      <table className="w-full min-w-[1080px] text-left text-sm">
+        <thead>
+          <tr className="border-b border-zinc-200 text-xs font-semibold uppercase text-zinc-400">
+            <th className="px-3 py-3">게임 닉네임</th>
+            <th className="px-3 py-3">아이디</th>
+            <th className="px-3 py-3">상태</th>
+            <th className="px-3 py-3">등급</th>
+            <th className="px-3 py-3">마지막 접속</th>
+            <th className="px-3 py-3">관리자 메모</th>
+            <th className="px-3 py-3 text-right">관리</th>
+          </tr>
+        </thead>
+        <tbody>
+          {list.length === 0 ? (
+            <tr>
+              <td colSpan={7} className="py-8 text-center text-zinc-400">
+                표시할 회원이 없습니다.
+              </td>
+            </tr>
+          ) : (
+            list.map((u) => (
+              <MemberRow key={u.id} user={u} pending={pending} updateUser={updateUser} deleteUser={deleteUser} />
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 function MemberRow({ user: u, pending, updateUser, deleteUser }) {
@@ -2027,7 +2344,7 @@ function MemberRow({ user: u, pending, updateUser, deleteUser }) {
   useEffect(() => setMemo(u.memo || ""), [u.memo]);
 
   const saveMemo = () => {
-    updateUser(u.id, { memo });
+    updateUser(u, { memo });
   };
 
   return (
@@ -2051,7 +2368,32 @@ function MemberRow({ user: u, pending, updateUser, deleteUser }) {
       </td>
       <td className="px-3 py-4">
         <div className="flex flex-wrap justify-end gap-2">
-          {pending ? <><Button onClick={() => updateUser(u.id, { status: "approved", role: "member" })}><CheckCircle2 size={15} /> 승인</Button><Button onClick={() => updateUser(u.id, { status: "rejected" })} variant="subtle"><Ban size={15} /> 거절</Button></> : <><select disabled={u.id === OWNER_ID} value={u.role} onChange={(e) => updateUser(u.id, { role: e.target.value, status: "approved" })} className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 outline-none focus:ring-4 focus:ring-zinc-200/70 disabled:cursor-not-allowed disabled:opacity-50"><option value="guest">게스트</option><option value="member">일반회원</option><option value="admin">관리자</option></select><DeleteButton onConfirm={() => deleteUser(u.id)} className={u.id === OWNER_ID ? "pointer-events-none opacity-50" : ""}>삭제</DeleteButton></>}
+          {pending ? (
+            <>
+              <Button onClick={() => updateUser(u, { status: "approved", role: u.id === OWNER_ID ? "admin" : "member" })}>
+                <CheckCircle2 size={15} /> 승인
+              </Button>
+              <Button onClick={() => updateUser(u, { status: "rejected" })} variant="subtle">
+                <Ban size={15} /> 거절
+              </Button>
+            </>
+          ) : (
+            <>
+              <select
+                disabled={u.id === OWNER_ID}
+                value={u.role}
+                onChange={(e) => updateUser(u, { role: e.target.value, status: "approved" })}
+                className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 outline-none focus:ring-4 focus:ring-zinc-200/70 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="guest">게스트</option>
+                <option value="member">일반회원</option>
+                <option value="admin">관리자</option>
+              </select>
+              <DeleteButton onConfirm={() => deleteUser(u)} className={u.id === OWNER_ID ? "pointer-events-none opacity-50" : ""}>
+                삭제
+              </DeleteButton>
+            </>
+          )}
         </div>
       </td>
     </tr>
@@ -2079,6 +2421,14 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [active, setActive] = useState("dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const savedId = getValidSessionId();
+    if (savedId) {
+      setCurrentUser({ id: savedId });
+    }
+  }, []);
+
 
   const loadData = async () => {
     setLoading(true);
@@ -2117,14 +2467,14 @@ export default function App() {
 
   useEffect(() => {
     if (loading || currentUser || users.length === 0) return;
-    const savedId = localStorage.getItem(SESSION_KEY);
+    const savedId = getValidSessionId();
     if (!savedId) return;
 
     const savedUser = users.find((u) => u.id === savedId);
     if (savedUser && savedUser.status === "approved") {
       updateLastSeen(savedUser, setUsers, setCurrentUser);
     } else if (savedUser && savedUser.status !== "approved") {
-      localStorage.removeItem(SESSION_KEY);
+      clearSession();
     }
   }, [loading, users, currentUser]);
 
@@ -2139,7 +2489,7 @@ export default function App() {
   }, [syncedCurrentUser?.id, syncedCurrentUser?.status]);
 
   const logout = () => {
-    localStorage.removeItem(SESSION_KEY);
+    clearSession();
     setCurrentUser(null);
     setActive("dashboard");
   };
