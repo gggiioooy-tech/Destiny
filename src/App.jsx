@@ -2028,7 +2028,7 @@ function MemberRow({ user: u, pending, updateUser, deleteUser }) {
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && saveMemo()}
-            placeholder="예: 운명 , Guest"
+            placeholder="예: 운명"
             className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-950 outline-none focus:ring-4 focus:ring-zinc-200/70"
           />
           <Button onClick={saveMemo} variant="secondary" className="shrink-0 px-3 py-2 text-xs">저장</Button>
