@@ -24,8 +24,8 @@ import {
   Snowflake,
 } from "lucide-react";
 
-const SUPABASE_URL = "https://mdzgblgujeztjgssodla.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1kemdibGd1amV6dGpnc3NvZGxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5NTgxOTIsImV4cCI6MjA5NDUzNDE5Mn0.qR6WOPAgP8_2RlXErgZW27mJq30nkFwYMIYYrgX7Y6o";
+const SUPABASE_URL = "https://kqygrszkbuzxmmfndhye.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxeWdyc3prYnV6eG1tZm5kaHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MjI2OTUsImV4cCI6MjA5NzQ5ODY5NX0.SDIjG-rrBt4apIxTYT-qg9vyJuVgzN9uxiwpQ_QkOLs";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const OWNER_ID = "15month";
