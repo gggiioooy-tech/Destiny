@@ -106,6 +106,80 @@ function stringifyCounterDecks(decks) {
   return JSON.stringify(decks || []);
 }
 
+function getLegacyCounterDeck(item) {
+  if (!item) return null;
+  if (
+    !item.counter_heroes &&
+    !item.counter_rings &&
+    !item.counter_speed_order &&
+    !item.counter_team_speed &&
+    !item.counter_gear_1 &&
+    !item.counter_gear_2 &&
+    !item.counter_gear_3 &&
+    !item.counter_note &&
+    !item.counter_power &&
+    !item.counter_pet &&
+    !item.counter_formation &&
+    !item.counter_skill_order
+  ) {
+    return null;
+  }
+
+  return {
+    ...emptyCounterDeck,
+    title: "카운터덱 1",
+    power: item.counter_power || "",
+    heroes: item.counter_heroes || "",
+    rings: item.counter_rings || "",
+    pet: item.counter_pet || "",
+    formation: item.counter_formation || "",
+    speed_order: item.counter_speed_order || "",
+    team_speed: item.counter_team_speed || "",
+    skill_order: item.counter_skill_order || "",
+    gear_1: item.counter_gear_1 || "",
+    gear_2: item.counter_gear_2 || "",
+    gear_3: item.counter_gear_3 || "",
+    note: item.counter_note || "",
+  };
+}
+
+function normalizeCounterDecks(item) {
+  const parsed = parseCounterDecks(item?.counter_decks);
+  const legacy = getLegacyCounterDeck(item);
+
+  if (parsed.length > 0) {
+    return parsed.map((deck, index) => {
+      const merged = { ...emptyCounterDeck, ...deck };
+      if (index === 0 && legacy) {
+        return {
+          ...legacy,
+          ...merged,
+          title: merged.title || legacy.title || "카운터덱 1",
+          power: merged.power || legacy.power || "",
+          heroes: merged.heroes || legacy.heroes || "",
+          rings: merged.rings || legacy.rings || "",
+          pet: merged.pet || legacy.pet || "",
+          formation: merged.formation || legacy.formation || "",
+          speed_order: merged.speed_order || legacy.speed_order || "",
+          team_speed: merged.team_speed || legacy.team_speed || "",
+          skill_order: merged.skill_order || legacy.skill_order || "",
+          gear_1: merged.gear_1 || legacy.gear_1 || "",
+          gear_2: merged.gear_2 || legacy.gear_2 || "",
+          gear_3: merged.gear_3 || legacy.gear_3 || "",
+          note: merged.note || legacy.note || "",
+        };
+      }
+      return {
+        ...merged,
+        title: merged.title || `카운터덱 ${index + 1}`,
+      };
+    });
+  }
+
+  if (legacy) return [legacy];
+  return [];
+}
+
 function renderRichText(value, fallback = "미입력") {
   const text = value === undefined || value === null || value === "" ? fallback : String(value);
   const regex = new RegExp("[(](노|굵|빨글)[)]", "g");
@@ -361,7 +435,7 @@ function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
     if (!user) return setError("아이디 또는 비밀번호가 일치하지 않습니다.");
     if (user.status === "rejected") return setError("가입 신청이 거절된 계정입니다.");
     if (user.status === "blocked") return setError("차단된 계정입니다. 관리자에게 문의하세요.");
-    .setItem(SESSION_KEY, user.id);localStorage
+    localStorage.setItem(SESSION_KEY, user.id);
     updateLastSeen(user, setUsers, setCurrentUser);
   };
 
@@ -940,41 +1014,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
   const selectedCounterDecks = selectedEnemyDefense
-    ? (() => {
-        const parsed = parseCounterDecks(selectedEnemyDefense.counter_decks);
-        if (parsed.length > 0) return parsed;
-
-        // 이전 단일 카운터 방식으로 저장된 데이터도 화면에 표시되게 변환
-        if (
-          selectedEnemyDefense.counter_heroes ||
-          selectedEnemyDefense.counter_rings ||
-          selectedEnemyDefense.counter_speed_order ||
-          selectedEnemyDefense.counter_team_speed ||
-          selectedEnemyDefense.counter_gear_1 ||
-          selectedEnemyDefense.counter_gear_2 ||
-          selectedEnemyDefense.counter_gear_3 ||
-          selectedEnemyDefense.counter_note
-        ) {
-          return [
-            {
-              title: "카운터덱 1",
-              power: selectedEnemyDefense.counter_power || "",
-              heroes: selectedEnemyDefense.counter_heroes || "",
-              rings: selectedEnemyDefense.counter_rings || "",
-              formation: selectedEnemyDefense.counter_formation || "",
-              speed_order: selectedEnemyDefense.counter_speed_order || "",
-              team_speed: selectedEnemyDefense.counter_team_speed || "",
-              skill_order: selectedEnemyDefense.counter_skill_order || "",
-              gear_1: selectedEnemyDefense.counter_gear_1 || "",
-              gear_2: selectedEnemyDefense.counter_gear_2 || "",
-              gear_3: selectedEnemyDefense.counter_gear_3 || "",
-              note: selectedEnemyDefense.counter_note || "",
-            },
-          ];
-        }
-
-        return [];
-      })()
+    ? normalizeCounterDecks(selectedEnemyDefense)
     : [];
 
   const enemySearchKeyword = enemyHeroSearch.trim();
@@ -1194,28 +1234,8 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
 function EnemyDefenseEditor({ item, onClose, onSaved }) {
   const [form, setForm] = useState({ ...emptyEnemyDefense, ...item });
   const [counterDecks, setCounterDecks] = useState(() => {
-    const parsed = parseCounterDecks(item.counter_decks);
-    if (parsed.length > 0) return parsed;
-
-    // 예전 단일 카운터 방식으로 저장된 데이터가 있으면 1개 카운터덱으로 변환
-    if (item.counter_heroes || item.counter_rings || item.counter_speed_order || item.counter_team_speed || item.counter_gear_1 || item.counter_note) {
-      return [{
-        title: "카운터덱 1",
-        power: item.counter_power || "",
-        heroes: item.counter_heroes || "",
-        rings: item.counter_rings || "",
-        pet: item.counter_pet || "",
-        formation: item.counter_formation || "",
-        speed_order: item.counter_speed_order || "",
-        team_speed: item.counter_team_speed || "",
-        skill_order: item.counter_skill_order || "",
-        gear_1: item.counter_gear_1 || "",
-        gear_2: item.counter_gear_2 || "",
-        gear_3: item.counter_gear_3 || "",
-        note: item.counter_note || "",
-      }];
-    }
-
+    const normalized = normalizeCounterDecks(item);
+    if (normalized.length > 0) return normalized;
     return [{ ...emptyCounterDeck, title: "카운터덱 1" }];
   });
   const [saving, setSaving] = useState(false);
