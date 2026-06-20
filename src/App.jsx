@@ -651,7 +651,10 @@ function MobileHeader({ setIsOpen, currentUser, settings }) {
 function Dashboard({ setActive, currentUser, users, settings, setSettings }) {
   const guestMode = isGuest(currentUser);
   const pendingCount = users.filter((u) => u.status === "pending").length;
-  const approvedCount = users.filter((u) => u.status === "approved").length;
+ const approvedCount = Math.max(
+  users.filter((u) => u.status === "approved").length - 1,
+  0
+);
   const [quickNotice, setQuickNotice] = useState(settings.quick_notice || "");
   useEffect(() => setQuickNotice(settings.quick_notice || ""), [settings.quick_notice]);
 
