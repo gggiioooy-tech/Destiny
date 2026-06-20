@@ -1171,7 +1171,6 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                           <div className="whitespace-pre-wrap">{renderRichText(deck.skill_order, "미입력")}</div>
                         </div>
                       </div>
-                      </div>
                     </div>
 
                     <div className="rounded-xl bg-white p-4 text-sm leading-6 text-zinc-600 ring-1 ring-zinc-200 whitespace-pre-wrap">
