@@ -62,7 +62,7 @@ function getValidSessionId() {
 
 const FALLBACK_SETTINGS = {
   guild_name: "15월",
-  site_title: "세븐나이츠 리버스 서리길드 길드전 공략 사이트",
+  site_title: "세븐나이츠 리버스 운명길드 길드전 공략 사이트",
   main_subtitle: "방어팀 배치와 방어팀별 공격법을 정리한 길드 전용 공략 센터입니다.",
   hero_notice: "승인된 길드원만 열람할 수 있습니다.",
   footer_text: "made by 15월",
@@ -2360,7 +2360,7 @@ function MemberRow({ user: u, pending, updateUser, deleteUser }) {
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && saveMemo()}
-            placeholder="예: 서리, 1채널"
+            placeholder="예: 운명 , Guest "
             className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-950 outline-none focus:ring-4 focus:ring-zinc-200/70"
           />
           <Button onClick={saveMemo} variant="secondary" className="shrink-0 px-3 py-2 text-xs">저장</Button>
