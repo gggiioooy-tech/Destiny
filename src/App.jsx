@@ -402,7 +402,8 @@ function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
     resetAlerts();
 
     if (loginId.trim() === "admin" && loginPw === "1234") {
-      const adminUser = {
+      const dbAdminUser = users.find((u) => u.id === "admin");
+      const adminUser = dbAdminUser || {
         id: "admin",
         gameNickname: "관리자",
         role: "admin",
@@ -410,7 +411,7 @@ function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
         memo: "",
       };
       storeSession(adminUser.id);
-      setCurrentUser(adminUser);
+      updateLastSeen(adminUser, setUsers, setCurrentUser);
       return;
     }
 
