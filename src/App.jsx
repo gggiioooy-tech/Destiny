@@ -81,8 +81,6 @@ const navItems = [
   { id: "attackTips", label: "공격잘가는법", icon: ScrollText, visibleTo: ["guest", "member", "admin"] },
   { id: "defense", label: "방어팀", icon: Shield, visibleTo: ["guest", "member", "admin"] },
   { id: "attack", label: "공격팀", icon: Swords, visibleTo: ["guest", "member", "admin"] },
-  { id: "total", label: "총력전 공략", icon: ScrollText, visibleTo: ["guest", "member", "admin"] },
-  { id: "arena", label: "결투장 공략", icon: Swords, visibleTo: ["guest", "member", "admin"] },
   { id: "notices", label: "공지", icon: ScrollText, visibleTo: ["guest", "member", "admin"] },
   { id: "content", label: "콘텐츠 문구 관리", icon: Pencil, visibleTo: ["admin"] },
   { id: "backup", label: "백업", icon: Save, visibleTo: ["admin"] },
@@ -677,8 +675,6 @@ function Dashboard({ setActive, currentUser, users, settings, setSettings }) {
             <Button onClick={() => setActive("attackTips")}>공격잘가는법 <ChevronRight size={16} /></Button>
             <Button onClick={() => setActive("defense")}>방어팀 보기 <ChevronRight size={16} /></Button>
             <Button onClick={() => setActive("attack")}>공격팀 보기 <ChevronRight size={16} /></Button>
-            <Button onClick={() => setActive("total")}>총력전 공략 보기 <ChevronRight size={16} /></Button>
-            <Button onClick={() => setActive("arena")}>결투장 공략 보기 <ChevronRight size={16} /></Button>
             <Button onClick={() => setActive("notices")}>공지 보기 <ChevronRight size={16} /></Button>
             {currentUser.role === "admin" && <Button onClick={() => setActive("members")} variant="secondary">가입 승인 {pendingCount}건</Button>}
           </div>
@@ -730,8 +726,6 @@ function Dashboard({ setActive, currentUser, users, settings, setSettings }) {
           <FeatureCard title="공격잘가는법" desc="길드전 공격 전 기본 운영법과 주의사항을 확인하세요." icon={ScrollText} onClick={() => setActive("attackTips")} />
           <FeatureCard title="방어팀" desc="공덱/방덱/마덱 추천 방어팀 구성을 확인하세요." icon={Shield} onClick={() => setActive("defense")} />
           <FeatureCard title="공격팀" desc="상대 유형별 족보와 주의사항을 확인하세요." icon={Swords} onClick={() => setActive("attack")} />
-          <FeatureCard title="총력전 공략" desc="총력전 추천 조합과 속공 기준을 확인하세요." icon={ScrollText} onClick={() => setActive("total")} />
-          <FeatureCard title="결투장 공략" desc="결투장 추천 조합과 장비세팅을 확인하세요." icon={Swords} onClick={() => setActive("arena")} />
           <FeatureCard title="공지" desc="길드전 관련 공지와 변경사항을 확인하세요." icon={ScrollText} onClick={() => setActive("notices")} />
         </div>
         
@@ -1132,13 +1126,6 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
         eyebrow="Attack Team"
         title="공격팀"
         desc="상대 방어팀별 공격 조합과 속공 기준을 정리하는 페이지입니다."
-        action={
-          currentUser.role === "admin" && (
-            <Button onClick={() => setEditing({ ...emptyAttackTeam, sort_order: list.length + 1 })}>
-              <Plus size={16} /> 추가
-            </Button>
-          )
-        }
       />
 
       <div className="mb-5 rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5">
