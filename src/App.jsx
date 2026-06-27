@@ -35,6 +35,31 @@ const SESSION_KEY = "seori_guild_current_user_id";
 const SESSION_EXPIRES_KEY = "seori_guild_session_expires_at";
 const SESSION_TTL_MS = 20 * 60 * 1000;
 
+const REMEMBER_LOGIN_KEY = "destiny_guild_remember_login";
+const REMEMBER_LOGIN_ID_KEY = "destiny_guild_saved_login_id";
+const REMEMBER_LOGIN_PW_KEY = "destiny_guild_saved_login_pw";
+
+function saveRememberedLogin(id, password) {
+  localStorage.setItem(REMEMBER_LOGIN_KEY, "true");
+  localStorage.setItem(REMEMBER_LOGIN_ID_KEY, id);
+  localStorage.setItem(REMEMBER_LOGIN_PW_KEY, password);
+}
+
+function clearRememberedLogin() {
+  localStorage.removeItem(REMEMBER_LOGIN_KEY);
+  localStorage.removeItem(REMEMBER_LOGIN_ID_KEY);
+  localStorage.removeItem(REMEMBER_LOGIN_PW_KEY);
+}
+
+function getRememberedLogin() {
+  const enabled = localStorage.getItem(REMEMBER_LOGIN_KEY) === "true";
+  return {
+    remember: enabled,
+    id: enabled ? localStorage.getItem(REMEMBER_LOGIN_ID_KEY) || "" : "",
+    password: enabled ? localStorage.getItem(REMEMBER_LOGIN_PW_KEY) || "" : "",
+  };
+}
+
 function storeSession(userId) {
   localStorage.setItem(SESSION_KEY, userId);
   localStorage.setItem(SESSION_EXPIRES_KEY, String(Date.now() + SESSION_TTL_MS));
@@ -380,8 +405,10 @@ function Select({ label, value, onChange, options }) {
 
 function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
   const [mode, setMode] = useState("login");
-  const [loginId, setLoginId] = useState("");
-  const [loginPw, setLoginPw] = useState("");
+  const rememberedLogin = getRememberedLogin();
+  const [loginId, setLoginId] = useState(rememberedLogin.id || "");
+  const [loginPw, setLoginPw] = useState(rememberedLogin.password || "");
+  const [rememberLogin, setRememberLogin] = useState(rememberedLogin.remember);
   const [gameNickname, setGameNickname] = useState("");
   const [signupId, setSignupId] = useState("");
   const [signupPw, setSignupPw] = useState("");
@@ -399,6 +426,11 @@ function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
   const login = () => {
     resetAlerts();
 
+    const persistRememberLogin = (id, password) => {
+      if (rememberLogin) saveRememberedLogin(id, password);
+      else clearRememberedLogin();
+    };
+
     if (loginId.trim() === "admin" && loginPw === "1234") {
       const dbAdminUser = users.find((u) => u.id === "admin");
       const adminUser = dbAdminUser || {
@@ -409,6 +441,7 @@ function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
         memo: "",
       };
       storeSession(adminUser.id);
+      persistRememberLogin(loginId.trim(), loginPw);
       updateLastSeen(adminUser, setUsers, setCurrentUser);
       return;
     }
@@ -419,6 +452,7 @@ function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
     if (user.status === "blocked") return setError("차단된 계정입니다. 관리자에게 문의하세요.");
 
     storeSession(user.id);
+    persistRememberLogin(loginId.trim(), loginPw);
     updateLastSeen(user, setUsers, setCurrentUser);
   };
 
@@ -537,6 +571,15 @@ function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
                   </button>
                 </div>
               </div>
+              <label className="flex items-center gap-2 text-xs font-medium text-zinc-400">
+                <input
+                  type="checkbox"
+                  checked={rememberLogin}
+                  onChange={(e) => setRememberLogin(e.target.checked)}
+                  className="h-4 w-4 rounded border border-white/20 bg-white/5 accent-white"
+                />
+                아이디 / 비밀번호 저장
+              </label>
               <Button onClick={login} className="w-full">
                 로그인 <ChevronRight size={17} />
               </Button>
