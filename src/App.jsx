@@ -162,7 +162,7 @@ function stringifyCounterDecks(decks) {
 
 function renderRichText(value, fallback = "미입력") {
   const text = value === undefined || value === null || value === "" ? fallback : String(value);
-  const regex = new RegExp("[(](노|굵|빨글)[)]", "g");
+  const regex = /\((노|굵|빨글)\)/g;
   const parts = [];
   const active = { 노: false, 굵: false, 빨글: false };
   let lastIndex = 0;
@@ -177,6 +177,43 @@ function renderRichText(value, fallback = "미입력") {
       빨글: active.빨글,
     });
   };
+
+  while ((match = regex.exec(text)) !== null) {
+    pushText(text.slice(lastIndex, match.index));
+    const key = match[1];
+    active[key] = !active[key];
+    lastIndex = regex.lastIndex;
+  }
+
+  pushText(text.slice(lastIndex));
+
+  return parts.map((part, index) => {
+    const className = cx(
+      part.노 && "rounded bg-yellow-200 px-1",
+      part.굵 && "font-bold",
+      part.빨글 && "text-red-600"
+    );
+
+    const lines = String(part.text).split(/\r?\n/);
+
+    const content = lines.map((line, lineIndex) => (
+      <React.Fragment key={lineIndex}>
+        {line}
+        {lineIndex < lines.length - 1 && <br />}
+      </React.Fragment>
+    ));
+
+    if (!className) {
+      return <React.Fragment key={index}>{content}</React.Fragment>;
+    }
+
+    return (
+      <span key={index} className={className}>
+        {content}
+      </span>
+    );
+  });
+}
 
   while ((match = regex.exec(text)) !== null) {
     pushText(text.slice(lastIndex, match.index));
