@@ -160,8 +160,18 @@ function stringifyCounterDecks(decks) {
   return JSON.stringify(decks || []);
 }
 
+
+function normalizeMultilineText(value) {
+  return String(value ?? "")
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\r\n?/g, "\n");
+}
+
 function renderRichText(value, fallback = "미입력") {
-  const text = value === undefined || value === null || value === "" ? fallback : String(value);
+  const text = normalizeMultilineText(
+    value === undefined || value === null || value === "" ? fallback : String(value)
+  );
   const regex = /\((노|굵|빨글)\)/g;
   const parts = [];
   const active = { 노: false, 굵: false, 빨글: false };
@@ -194,8 +204,7 @@ function renderRichText(value, fallback = "미입력") {
       part.빨글 && "text-red-600"
     );
 
-    const lines = String(part.text).split(/\r?\n/);
-
+    const lines = String(part.text).split("\n");
     const content = lines.map((line, lineIndex) => (
       <React.Fragment key={lineIndex}>
         {line}
@@ -212,27 +221,6 @@ function renderRichText(value, fallback = "미입력") {
         {content}
       </span>
     );
-  });
-}
-
-  while ((match = regex.exec(text)) !== null) {
-    pushText(text.slice(lastIndex, match.index));
-    const key = match[1];
-    active[key] = !active[key];
-    lastIndex = regex.lastIndex;
-  }
-
-  pushText(text.slice(lastIndex));
-
-  return parts.map((part, index) => {
-    const className = cx(
-      part.노 && "rounded bg-yellow-200 px-1",
-      part.굵 && "font-bold",
-      part.빨글 && "text-red-600"
-    );
-
-    if (!className) return <React.Fragment key={index}>{part.text}</React.Fragment>;
-    return <span key={index} className={className}>{part.text}</span>;
   });
 }
 
@@ -399,7 +387,7 @@ function Input({ label, value, onChange, placeholder, type = "text", dark, onEnt
       <input
         type={type}
         value={value || ""}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(normalizeMultilineText(e.target.value))}
         onKeyDown={(e) => e.key === "Enter" && onEnter?.()}
         placeholder={placeholder}
         className={cx(
@@ -420,7 +408,7 @@ function TextArea({ label, value, onChange, placeholder, rows = 5 }) {
       <textarea
         rows={rows}
         value={value || ""}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(normalizeMultilineText(e.target.value))}
         placeholder={placeholder}
         className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-300 focus:ring-4 focus:ring-zinc-200/70"
       />
