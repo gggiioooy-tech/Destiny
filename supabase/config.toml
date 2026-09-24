@@ -1,0 +1,4 @@
+project_id = "destiny-guild-site"
+
+[functions.site-auth]
+verify_jwt = false

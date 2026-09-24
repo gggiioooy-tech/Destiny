@@ -1,30 +1,29 @@
-# 15월 길드전 사이트 실행 방법
+# 15월 공략 사이트
 
-이 압축파일은 Vite + React + Tailwind 프로젝트 기본 폴더입니다.
+React + Vite frontend for https://destiny-lemon-sigma.vercel.app/.
 
-## 1. App.jsx 붙여넣기
-`src/App.jsx` 파일을 열고 기존 내용을 전부 지운 뒤,
-ChatGPT 캔버스에 있는 최신 코드 전체를 복사해서 붙여넣으세요.
+## Scope
 
-## 2. 설치
-터미널에서 이 폴더로 이동한 뒤:
+- GitHub: gggiioooy-tech/Destiny
+- Vercel: tpskfltjfl-s-projects/destiny
+- Supabase: kqygrszkbuzxmmfndhye
 
-```bash
-npm install
-```
+This repository is separate from Seori. Never apply these migrations to another project.
 
-## 3. 실행
-```bash
-npm run dev
-```
+## Development
 
-브라우저에서:
-```text
-http://localhost:5173
-```
+Use Node.js 22.12 or newer. Run `npm ci`, then `npm run dev`.
+Run `npm run build` and `npm audit` before deployment.
+Push main to the existing Vercel project; verify its deployment status and production page.
 
-## 4. 폰 테스트
-같은 와이파이에서 터미널에 뜨는 Network 주소로 접속하세요.
+## Authentication
 
-## 5. 배포
-GitHub에 이 폴더를 올리고 Vercel에서 Import Project 하면 됩니다.
+The site-auth Edge Function validates passwords through Supabase Auth. Database RLS enforces membership and administrator permissions. New members require approval. Browser storage remembers only the optional username; auth sessions use sessionStorage.
+
+The existing 15month owner logs in with the existing password once, then must change it before accessing content. The migration removes plaintext passwords and retains a private one-time bcrypt hash until the first successful login. Never put service-role keys in frontend code.
+
+Deploy database migrations and the site-auth function only to the Supabase project listed above. The function uses custom authentication, so gateway verify_jwt is disabled; password-changing requests verify their bearer token inside the function.
+
+## Security verification
+
+`npm run verify:security` checks anonymous read/write denial and branding against this project's API. The script also has explicit prepare/member/admin/rotation phases for controlled disposable-account integration testing. These phases create or modify live test data and require corresponding administrator setup between phases. Remove the exact test profile and Auth user afterward; never use the owner's account for these tests.

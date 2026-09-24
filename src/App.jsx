@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "./lib/supabase.js";
+import { SecureAuth, PasswordChange } from "./components/SecureAuth.jsx";
 import {
   Shield,
   Swords,
@@ -24,80 +25,20 @@ import {
   Snowflake,
 } from "lucide-react";
 
-const SUPABASE_URL = "https://kqygrszkbuzxmmfndhye.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxeWdyc3prYnV6eG1tZm5kaHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MjI2OTUsImV4cCI6MjA5NzQ5ODY5NX0.SDIjG-rrBt4apIxTYT-qg9vyJuVgzN9uxiwpQ_QkOLs";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-const OWNER_ID = "15month";
-const SUPER_ADMIN_IDS = ["15month", "admin"];
-const HIDDEN_USER_IDS = ["admin"];
-const SESSION_KEY = "seori_guild_current_user_id";
-const SESSION_EXPIRES_KEY = "seori_guild_session_expires_at";
-const SESSION_TTL_MS = 20 * 60 * 1000;
-
-const REMEMBER_LOGIN_KEY = "destiny_guild_remember_login";
-const REMEMBER_LOGIN_ID_KEY = "destiny_guild_saved_login_id";
-const REMEMBER_LOGIN_PW_KEY = "destiny_guild_saved_login_pw";
-
-function saveRememberedLogin(id, password) {
-  localStorage.setItem(REMEMBER_LOGIN_KEY, "true");
-  localStorage.setItem(REMEMBER_LOGIN_ID_KEY, id);
-  localStorage.setItem(REMEMBER_LOGIN_PW_KEY, password);
-}
-
-function clearRememberedLogin() {
-  localStorage.removeItem(REMEMBER_LOGIN_KEY);
-  localStorage.removeItem(REMEMBER_LOGIN_ID_KEY);
-  localStorage.removeItem(REMEMBER_LOGIN_PW_KEY);
-}
-
-function getRememberedLogin() {
-  const enabled = localStorage.getItem(REMEMBER_LOGIN_KEY) === "true";
-  return {
-    remember: enabled,
-    id: enabled ? localStorage.getItem(REMEMBER_LOGIN_ID_KEY) || "" : "",
-    password: enabled ? localStorage.getItem(REMEMBER_LOGIN_PW_KEY) || "" : "",
-  };
-}
-
-function storeSession(userId) {
-  localStorage.setItem(SESSION_KEY, userId);
-  localStorage.setItem(SESSION_EXPIRES_KEY, String(Date.now() + SESSION_TTL_MS));
-}
-
-function clearSession() {
-  localStorage.removeItem(SESSION_KEY);
-  localStorage.removeItem(SESSION_EXPIRES_KEY);
-}
-
-function getValidSessionId() {
-  const savedId = localStorage.getItem(SESSION_KEY);
-  const expiresAt = Number(localStorage.getItem(SESSION_EXPIRES_KEY) || 0);
-
-  if (!savedId || !expiresAt) {
-    clearSession();
-    return null;
-  }
-
-  if (Date.now() >= expiresAt) {
-    clearSession();
-    return null;
-  }
-
-  return savedId;
-}
+const SUPER_ADMIN_IDS = ["15month"];
+const HIDDEN_USER_IDS = [];
 
 const FALLBACK_SETTINGS = {
   guild_name: "15월",
-  site_title: "세븐나이츠 리버스 운명길드 길드전 공략 사이트",
-  main_subtitle: "방어팀 배치와 방어팀별 공격법을 정리한 길드 전용 공략 센터입니다.",
-  hero_notice: "승인된 길드원만 열람할 수 있습니다.",
+  site_title: "세븐나이츠 리버스 15월 공략 사이트",
+  main_subtitle: "방어팀 배치와 방어팀별 공격법을 정리한  전용 공략 센터입니다.",
+  hero_notice: "승인된 회원만 열람할 수 있습니다.",
   footer_text: "made by 15월",
   quick_notice: "",
   attack_guide_title: "공격잘가는법 내용",
   attack_guide_text: "",
   attack_guide_items: "",
-  dashboard_banner_title: "길드전 준비 현황",
+  dashboard_banner_title: "전투 준비 현황",
   dashboard_banner_body: "방어팀을 확인하고, 상대 조합에 맞는 공격법을 선택하세요.",
 };
 
@@ -106,6 +47,7 @@ const navItems = [
   { id: "attackTips", label: "공격잘가는법", icon: ScrollText, visibleTo: ["guest", "member", "admin"] },
   { id: "defense", label: "방어팀", icon: Shield, visibleTo: ["guest", "member", "admin"] },
   { id: "attack", label: "공격팀", icon: Swords, visibleTo: ["guest", "member", "admin"] },
+  { id: "passwordChange", label: "비밀번호 변경", icon: Lock, visibleTo: ["guest", "member", "admin"] },
   { id: "notices", label: "공지", icon: ScrollText, visibleTo: ["guest", "member", "admin"] },
   { id: "content", label: "콘텐츠 문구 관리", icon: Pencil, visibleTo: ["admin"] },
   { id: "backup", label: "백업", icon: Save, visibleTo: ["admin"] },
@@ -248,7 +190,9 @@ function mapProfile(row) {
   return {
     dbId: row.id,
     id: row.user_id,
-    password: row.password,
+    authUserId: row.auth_user_id,
+    isOwner: row.is_owner,
+    mustChangePassword: row.must_change_password,
     gameNickname: row.game_nickname,
     role: row.role,
     status: row.status,
@@ -297,21 +241,6 @@ function GuestLockedContent() {
   );
 }
 
-async function updateLastSeen(user, setUsers, setCurrentUser) {
-  if (!user?.id) return;
-  const now = new Date().toISOString();
-  const activeUser = { ...user, lastSeenAt: now };
-
-  // 로그인은 먼저 바로 처리하고, 마지막 접속 기록은 뒤에서 저장
-  setUsers?.((prev) => prev.map((u) => (u.id === user.id ? { ...u, lastSeenAt: now } : u)));
-  setCurrentUser?.(activeUser);
-
-  try {
-    await supabase.from("profiles").update({ last_seen_at: now }).eq("user_id", user.id);
-  } catch {
-    // 마지막 접속 기록 저장 실패가 로그인 자체를 막지 않게 처리
-  }
-}
 
 function roleLabel(role) {
   return { guest: "게스트", member: "일반회원", admin: "관리자" }[role] || role;
@@ -428,223 +357,6 @@ function Select({ label, value, onChange, options }) {
 }
 
 
-function AuthScreen({ users, setUsers, setCurrentUser, settings }) {
-  const [mode, setMode] = useState("login");
-  const rememberedLogin = getRememberedLogin();
-  const [loginId, setLoginId] = useState(rememberedLogin.id || "");
-  const [loginPw, setLoginPw] = useState(rememberedLogin.password || "");
-  const [rememberLogin, setRememberLogin] = useState(rememberedLogin.remember);
-  const [gameNickname, setGameNickname] = useState("");
-  const [signupId, setSignupId] = useState("");
-  const [signupPw, setSignupPw] = useState("");
-  const [signupPw2, setSignupPw2] = useState("");
-  const [showPw, setShowPw] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  const resetAlerts = () => {
-    setMessage("");
-    setError("");
-  };
-
-  const login = () => {
-    resetAlerts();
-
-    const persistRememberLogin = (id, password) => {
-      if (rememberLogin) saveRememberedLogin(id, password);
-      else clearRememberedLogin();
-    };
-
-    if (loginId.trim() === "admin" && loginPw === "1234") {
-      const dbAdminUser = users.find((u) => u.id === "admin");
-      const adminUser = dbAdminUser || {
-        id: "admin",
-        gameNickname: "관리자",
-        role: "admin",
-        status: "approved",
-        memo: "",
-      };
-      storeSession(adminUser.id);
-      persistRememberLogin(loginId.trim(), loginPw);
-      updateLastSeen(adminUser, setUsers, setCurrentUser);
-      return;
-    }
-
-    const user = users.find((u) => u.id === loginId.trim() && u.password === loginPw);
-    if (!user) return setError("아이디 또는 비밀번호가 일치하지 않습니다.");
-    if (user.status === "rejected") return setError("가입 신청이 거절된 계정입니다.");
-    if (user.status === "blocked") return setError("차단된 계정입니다. 관리자에게 문의하세요.");
-
-    storeSession(user.id);
-    persistRememberLogin(loginId.trim(), loginPw);
-    updateLastSeen(user, setUsers, setCurrentUser);
-  };
-
-  const signup = async () => {
-    resetAlerts();
-    const nickname = gameNickname.trim();
-    const id = signupId.trim();
-
-    if (!nickname || !id || !signupPw || !signupPw2) {
-      return setError("게임 닉네임, 아이디, 비밀번호를 모두 입력해주세요.");
-    }
-    if (id.length < 4) return setError("아이디는 4글자 이상으로 입력해주세요.");
-    if (signupPw.length < 4) return setError("비밀번호는 4글자 이상으로 입력해주세요.");
-    if (signupPw !== signupPw2) return setError("비밀번호 확인이 일치하지 않습니다.");
-    if (users.some((u) => u.id === id)) return setError("이미 사용 중인 아이디입니다.");
-    if (users.some((u) => u.gameNickname === nickname && u.status !== "rejected")) {
-      return setError("이미 신청된 게임 닉네임입니다.");
-    }
-
-    setSubmitting(true);
-    const { data, error: insertError } = await supabase
-      .from("profiles")
-      .insert({
-        user_id: id,
-        password: signupPw,
-        game_nickname: nickname,
-        role: "member",
-        status: "pending",
-      })
-      .select()
-      .single();
-    setSubmitting(false);
-
-    if (insertError) return setError(`가입 신청 저장 실패: ${insertError.message}`);
-
-    setUsers((prev) => [mapProfile(data), ...prev]);
-    setMessage("가입 신청이 완료되었습니다. 관리자 승인 후 이용할 수 있습니다.");
-    setMode("login");
-    setLoginId(id);
-    setLoginPw("");
-    setGameNickname("");
-    setSignupId("");
-    setSignupPw("");
-    setSignupPw2("");
-  };
-
-  return (
-    <div className="min-h-screen bg-[#0d0f12] text-white">
-      <div className="mx-auto grid min-h-screen max-w-6xl items-center gap-7 px-4 py-7 sm:px-5 sm:py-10 lg:grid-cols-[1fr_420px]">
-        <section className="relative min-h-[420px]">
-          <div className="mb-8 flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-white text-zinc-950">
-              <Snowflake size={26} strokeWidth={2.4} className="snow-sway-icon" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">{renderRichText(settings.guild_name, "")}</p>
-            </div>
-          </div>
-          <p className="text-sm font-medium text-zinc-500">made by 15월</p>
-          <h1 className="mt-4 max-w-4xl break-keep text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl md:text-6xl">
-            {renderRichText(settings.site_title, "")}
-          </h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-zinc-400">
-            {renderRichText(settings.main_subtitle, "")}
-          </p>
-        </section>
-
-        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 shadow-2xl shadow-black/30 sm:p-5">
-          <div className="mb-5 grid grid-cols-2 rounded-xl bg-black/30 p-1">
-            <button
-              onClick={() => {
-                setMode("login");
-                resetAlerts();
-              }}
-              className={cx(
-                "rounded-lg py-2.5 text-sm font-semibold transition",
-                mode === "login" ? "bg-white text-zinc-950" : "text-zinc-500 hover:text-white"
-              )}
-            >
-              로그인
-            </button>
-            <button
-              onClick={() => {
-                setMode("signup");
-                resetAlerts();
-              }}
-              className={cx(
-                "rounded-lg py-2.5 text-sm font-semibold transition",
-                mode === "signup" ? "bg-white text-zinc-950" : "text-zinc-500 hover:text-white"
-              )}
-            >
-              회원가입
-            </button>
-          </div>
-
-          {mode === "login" ? (
-            <div className="space-y-4">
-              <Input label="아이디" value={loginId} onChange={setLoginId} placeholder="아이디" dark />
-              <div>
-                <label className="text-xs font-semibold text-zinc-300">비밀번호</label>
-                <div className="relative mt-2">
-                  <input
-                    type={showPw ? "text" : "password"}
-                    value={loginPw}
-                    onChange={(e) => setLoginPw(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && login()}
-                    placeholder="비밀번호"
-                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 pr-11 text-sm text-white outline-none placeholder:text-zinc-500 focus:ring-4 focus:ring-white/10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPw((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
-                  >
-                    {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-              <label className="flex items-center gap-2 text-xs font-medium text-zinc-400">
-                <input
-                  type="checkbox"
-                  checked={rememberLogin}
-                  onChange={(e) => setRememberLogin(e.target.checked)}
-                  className="h-4 w-4 rounded border border-white/20 bg-white/5 accent-white"
-                />
-                아이디 / 비밀번호 저장
-              </label>
-              <Button onClick={login} className="w-full">
-                로그인 <ChevronRight size={17} />
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <Input label="게임 닉네임" value={gameNickname} onChange={setGameNickname} placeholder="예: 15월" dark />
-              <Input label="아이디" value={signupId} onChange={setSignupId} placeholder="로그인 아이디" dark />
-              <Input label="비밀번호" type="password" value={signupPw} onChange={setSignupPw} placeholder="비밀번호" dark />
-              <Input
-                label="비밀번호 확인"
-                type="password"
-                value={signupPw2}
-                onChange={setSignupPw2}
-                placeholder="한 번 더 입력"
-                dark
-                onEnter={signup}
-              />
-              <Button disabled={submitting} onClick={signup} className="w-full">
-                <UserPlus size={17} /> {submitting ? "신청 중" : "가입 신청"}
-              </Button>
-            </div>
-          )}
-
-          {message && (
-            <p className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
-              {message}
-            </p>
-          )}
-          {error && (
-            <p className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-200">
-              {error}
-            </p>
-          )}
-          <p className="mt-5 text-center text-xs text-zinc-600">{renderRichText(settings.footer_text, "")}</p>
-        </section>
-      </div>
-    </div>
-  );
-}
 
 function InfoChip({ title, desc }) {
   return <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4"><p className="text-sm font-semibold text-white">{title}</p><p className="mt-1 text-xs text-zinc-500">{desc}</p></div>;
@@ -738,7 +450,7 @@ function Dashboard({ setActive, currentUser, users, settings, setSettings }) {
           <div className="max-w-5xl">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{renderRichText(settings.footer_text, "")}</p>
           <h1 className="mt-4 max-w-5xl break-keep text-3xl font-semibold leading-tight tracking-[-0.04em] text-zinc-950 sm:text-4xl md:text-6xl">{renderRichText(settings.site_title, "")}</h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-500">어서오세요, <b className="font-semibold text-zinc-950">{currentUser.gameNickname}</b>님. 길드전 방어팀 배치와 공격 족보를 확인하는 길드전 공략 사이트 입니다.</p>
+          <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-500">어서오세요, <b className="font-semibold text-zinc-950">{currentUser.gameNickname}</b>님. 전투 방어팀 배치와 공격 족보를 확인하는 전투 공략 사이트 입니다.</p>
           <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
             <Button onClick={() => setActive("attackTips")}>공격잘가는법 <ChevronRight size={16} /></Button>
             <Button onClick={() => setActive("defense")}>방어팀 보기 <ChevronRight size={16} /></Button>
@@ -791,10 +503,10 @@ function Dashboard({ setActive, currentUser, users, settings, setSettings }) {
           )}
         </div>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <FeatureCard title="공격잘가는법" desc="길드전 공격 전 기본 운영법과 주의사항을 확인하세요." icon={ScrollText} onClick={() => setActive("attackTips")} />
+          <FeatureCard title="공격잘가는법" desc="전투 공격 전 기본 운영법과 주의사항을 확인하세요." icon={ScrollText} onClick={() => setActive("attackTips")} />
           <FeatureCard title="방어팀" desc="공덱/방덱/마덱 추천 방어팀 구성을 확인하세요." icon={Shield} onClick={() => setActive("defense")} />
           <FeatureCard title="공격팀" desc="상대 유형별 족보와 주의사항을 확인하세요." icon={Swords} onClick={() => setActive("attack")} />
-          <FeatureCard title="공지" desc="길드전 관련 공지와 변경사항을 확인하세요." icon={ScrollText} onClick={() => setActive("notices")} />
+          <FeatureCard title="공지" desc="전투 관련 공지와 변경사항을 확인하세요." icon={ScrollText} onClick={() => setActive("notices")} />
         </div>
         
       </PageShell>
@@ -814,7 +526,7 @@ function AttackTipsPage({ currentUser, settings, setSettings }) {
   if (isGuest(currentUser)) {
     return (
       <PageShell>
-        <PageHeader eyebrow="Attack Guide" title="공격잘가는법" desc="길드전 공격 전에 확인할 기본 운영법과 주의사항을 정리하는 페이지입니다." />
+        <PageHeader eyebrow="Attack Guide" title="공격잘가는법" desc="전투 공격 전에 확인할 기본 운영법과 주의사항을 정리하는 페이지입니다." />
         <GuestLockedContent />
       </PageShell>
     );
@@ -867,7 +579,7 @@ function AttackTipsPage({ currentUser, settings, setSettings }) {
       <PageHeader
         eyebrow="Attack Guide"
         title="공격잘가는법"
-        desc="길드전 공격 전에 확인할 기본 운영법과 주의사항을 정리하는 페이지입니다."
+        desc="전투 공격 전에 확인할 기본 운영법과 주의사항을 정리하는 페이지입니다."
         action={currentUser.role === "admin" && <div className="flex flex-wrap gap-2"><Button onClick={addItem} variant="secondary"><Plus size={16} /> 추가</Button><Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button></div>}
       />
 
@@ -2060,7 +1772,7 @@ function NoticesPage({ currentUser, notices, reloadData }) {
   if (isGuest(currentUser)) {
     return (
       <PageShell>
-        <PageHeader eyebrow="Notice" title="공지" desc="길드전 관련 공지를 확인하세요." />
+        <PageHeader eyebrow="Notice" title="공지" desc="전투 관련 공지를 확인하세요." />
         <GuestLockedContent />
       </PageShell>
     );
@@ -2068,7 +1780,7 @@ function NoticesPage({ currentUser, notices, reloadData }) {
 
   const [editing, setEditing] = useState(null);
   const visibleNotices = notices.filter((notice) => isVisibleItem(notice, currentUser));
-  return <PageShell><PageHeader eyebrow="Notice" title="공지" desc="길드전 관련 공지를 확인하세요." action={currentUser.role === "admin" && <Button onClick={() => setEditing(emptyNotice)}><Plus size={16} /> 작성</Button>} /><div className="space-y-3">{visibleNotices.map((notice) => <article key={notice.id} className="rounded-2xl border border-zinc-200 bg-white p-5"><div className="flex items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-400"><span>최근 수정 {formatUpdatedAt(notice.updated_at || notice.created_at)}</span>{currentUser.role === "admin" && notice.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}</div><h2 className="mt-2 text-xl font-semibold text-zinc-950">{renderRichText(notice.title, "")}</h2></div>{currentUser.role === "admin" && <Button onClick={() => setEditing(notice)} variant="secondary"><Pencil size={14} /> 수정</Button>}</div><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-zinc-600">{renderRichText(notice.body, "")}</p></article>)}{visibleNotices.length === 0 && <EmptyState text="등록된 공지가 없습니다." />}</div>{editing && <NoticeEditor item={editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await reloadData(); }} />}</PageShell>;
+  return <PageShell><PageHeader eyebrow="Notice" title="공지" desc="전투 관련 공지를 확인하세요." action={currentUser.role === "admin" && <Button onClick={() => setEditing(emptyNotice)}><Plus size={16} /> 작성</Button>} /><div className="space-y-3">{visibleNotices.map((notice) => <article key={notice.id} className="rounded-2xl border border-zinc-200 bg-white p-5"><div className="flex items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-400"><span>최근 수정 {formatUpdatedAt(notice.updated_at || notice.created_at)}</span>{currentUser.role === "admin" && notice.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}</div><h2 className="mt-2 text-xl font-semibold text-zinc-950">{renderRichText(notice.title, "")}</h2></div>{currentUser.role === "admin" && <Button onClick={() => setEditing(notice)} variant="secondary"><Pencil size={14} /> 수정</Button>}</div><p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-zinc-600">{renderRichText(notice.body, "")}</p></article>)}{visibleNotices.length === 0 && <EmptyState text="등록된 공지가 없습니다." />}</div>{editing && <NoticeEditor item={editing} onClose={() => setEditing(null)} onSaved={async () => { setEditing(null); await reloadData(); }} />}</PageShell>;
 }
 
 function NoticeEditor({ item, onClose, onSaved }) {
@@ -2105,7 +1817,7 @@ function ContentManagementPage({ settings, setSettings, reloadData }) {
     await reloadData();
     alert("저장 완료");
   };
-  const fields = [["guild_name", "길드명"], ["site_title", "사이트 메인 제목"], ["main_subtitle", "메인 설명"], ["hero_notice", "승인 대기 안내 문구"], ["footer_text", "제작자 문구"]];
+  const fields = [["guild_name", "사이트명"], ["site_title", "사이트 메인 제목"], ["main_subtitle", "메인 설명"], ["hero_notice", "승인 대기 안내 문구"], ["footer_text", "제작자 문구"]];
   return <PageShell><PageHeader eyebrow="Admin" title="콘텐츠 문구 관리" desc="메인 화면에 나오는 문구를 수정합니다." /><div className="rounded-2xl border border-zinc-200 bg-white p-6"><div className="grid gap-4">{fields.map(([key, label]) => key.includes("subtitle") || key.includes("body") || key.includes("notice") ? <TextArea key={key} label={label} value={form[key]} onChange={(v) => setForm({ ...form, [key]: v })} rows={3} /> : <Input key={key} label={label} value={form[key]} onChange={(v) => setForm({ ...form, [key]: v })} />)}<Button onClick={save} className="w-fit"><Save size={16} /> 저장</Button></div></div></PageShell>;
 }
 
@@ -2135,7 +1847,7 @@ function BackupPage() {
 
     const backup = {
       exported_at: new Date().toISOString(),
-      site: "seori-guild-site",
+      site: "15month-site",
       version: 1,
       tables: {
         profiles: profilesRes.data || [],
@@ -2151,7 +1863,7 @@ function BackupPage() {
 
     const today = new Date().toISOString().slice(0, 10);
     const json = JSON.stringify(backup, null, 2);
-    const fileName = `seori-guild-backup-${today}.json`;
+    const fileName = `15month-backup-${today}.json`;
     setBackupJson(json);
     setBackupFileName(fileName);
 
@@ -2324,7 +2036,7 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
 
       <section className="mb-5 rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-zinc-950">길드별 인원</h2>
+          <h2 className="text-lg font-semibold text-zinc-950">그룹별 인원</h2>
           <span className="text-xs font-semibold text-zinc-400">관리자 메모 기준</span>
         </div>
 
@@ -2439,7 +2151,7 @@ function MemberRow({ user: u, pending, updateUser, deleteUser }) {
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && saveMemo()}
-            placeholder="예: 운명 , Guest"
+            placeholder="예: 15월 , Guest"
             className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-950 outline-none focus:ring-4 focus:ring-zinc-200/70"
           />
           <Button onClick={saveMemo} variant="secondary" className="shrink-0 px-3 py-2 text-xs">저장</Button>
@@ -2501,82 +2213,95 @@ export default function App() {
   const [active, setActive] = useState("dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const [authUserId, setAuthUserId] = useState(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const loadVersion = useRef(0);
+
   useEffect(() => {
-    const savedId = getValidSessionId();
-    if (savedId) {
-      setCurrentUser({ id: savedId });
-    }
+    let mounted = true;
+    let changed = false;
+    let lastIdentity;
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      changed = true;
+      if (!mounted) return;
+      const nextIdentity = session?.user?.id || null;
+      if (lastIdentity === nextIdentity) return;
+      lastIdentity = nextIdentity;
+      loadVersion.current += 1;
+      setCurrentUser(null);
+      setAuthUserId(nextIdentity);
+      setAuthReady(true);
+    });
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (mounted && !changed) {
+        lastIdentity = data.session?.user?.id || null;
+        if (error) setLoadError('로그인 정보를 불러오지 못했습니다. 다시 로그인해 주세요.');
+        setAuthUserId(data.session?.user?.id || null);
+        setAuthReady(true);
+      }
+    });
+    return () => { mounted = false; listener.subscription.unsubscribe(); loadVersion.current += 1; };
   }, []);
 
+  const loadData = useCallback(async () => {
+    if (!authReady) return;
+    const version = ++loadVersion.current;
+    setLoading(true); setLoadError('');
+    try {
+      const settingsRes = await supabase.from('site_settings').select('*');
+      if (settingsRes.error) throw settingsRes.error;
+      if (version !== loadVersion.current) return;
+      const nextSettings = { ...FALLBACK_SETTINGS };
+      for (const row of settingsRes.data || []) nextSettings[row.key] = row.value;
+      setSettings(nextSettings);
+      setUsers([]); setCurrentUser(null);
+      setDefenseTeams([]); setEnemyDefenseTeams([]); setAttackTeams([]); setNotices([]); setTotalWarTeams([]); setArenaTeams([]);
+      if (!authUserId) return;
+      const profileRes = await supabase.from('profiles').select('*').eq('auth_user_id', authUserId).maybeSingle();
+      if (profileRes.error) throw profileRes.error;
+      if (version !== loadVersion.current) return;
+      if (!profileRes.data) {
+        await supabase.auth.signOut({ scope: 'local' });
+        return;
+      }
+      const profile = mapProfile(profileRes.data);
+      setCurrentUser(profile); setUsers([profile]);
+      if (profile.status !== 'approved' || profile.mustChangePassword) return;
+      const results = await Promise.all([
+        profile.role === 'admin' ? supabase.from('profiles').select('*').order('created_at', { ascending: false }) : Promise.resolve({ data: [profileRes.data] }),
+        supabase.from('defense_teams').select('*').order('sort_order'),
+        supabase.from('enemy_defense_teams').select('*').order('sort_order').range(0, 5000),
+        supabase.from('attack_teams').select('*').order('sort_order'),
+        supabase.from('notices').select('*').order('created_at', { ascending: false }),
+        supabase.from('total_war_teams').select('*').order('sort_order'),
+        supabase.from('arena_teams').select('*').order('sort_order'),
+      ]);
+      if (version !== loadVersion.current) return;
+      const failed = results.find(result => result.error);
+      if (failed) throw failed.error;
+      setUsers((results[0].data || []).map(mapProfile));
+      [setDefenseTeams,setEnemyDefenseTeams,setAttackTeams,setNotices,setTotalWarTeams,setArenaTeams]
+        .forEach((setter,index) => setter(results[index+1].data || []));
+    } catch {
+      if (version === loadVersion.current) setLoadError('데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally { if (version === loadVersion.current) setLoading(false); }
+  }, [authReady, authUserId]);
 
-  const loadData = async () => {
-    setLoading(true);
-    const [profilesRes, settingsRes, defenseRes, enemyDefenseRes, attackTeamsRes, noticesRes, totalWarRes, arenaRes] = await Promise.all([
-      supabase.from("profiles").select("*").order("created_at", { ascending: false }),
-      supabase.from("site_settings").select("*"),
-      supabase.from("defense_teams").select("*").order("sort_order", { ascending: true }),
-      supabase.from("enemy_defense_teams").select("*").order("sort_order", { ascending: true }).range(0, 5000),
-      supabase.from("attack_teams").select("*").order("sort_order", { ascending: true }),
-      supabase.from("notices").select("*").order("created_at", { ascending: false }),
-      supabase.from("total_war_teams").select("*").order("sort_order", { ascending: true }),
-      supabase.from("arena_teams").select("*").order("sort_order", { ascending: true }),
-    ]);
-    if (profilesRes.error) alert(`회원 목록 불러오기 실패: ${profilesRes.error.message}`);
-    if (!profilesRes.error) setUsers((profilesRes.data || []).map(mapProfile));
-    if (!settingsRes.error) {
-      const obj = { ...FALLBACK_SETTINGS };
-      (settingsRes.data || []).forEach((row) => { obj[row.key] = row.value; });
-      setSettings(obj);
-    }
-    if (!defenseRes.error) setDefenseTeams(defenseRes.data || []);
-    if (!enemyDefenseRes.error) setEnemyDefenseTeams(enemyDefenseRes.data || []);
-    if (!attackTeamsRes.error) setAttackTeams(attackTeamsRes.data || []);
-    if (!noticesRes.error) setNotices(noticesRes.data || []);
-    if (!totalWarRes.error) setTotalWarTeams(totalWarRes.data || []);
-    if (!arenaRes.error) setArenaTeams(arenaRes.data || []);
-    setLoading(false);
+  useEffect(() => { loadData(); }, [loadData]);
+  const syncedCurrentUser = currentUser;
+  const logout = async () => {
+    loadVersion.current += 1;
+    setCurrentUser(null); setUsers([]); setActive('dashboard');
+    await supabase.auth.signOut({ scope: 'local' });
   };
 
-  useEffect(() => { loadData(); }, []);
-
-  const syncedCurrentUser = useMemo(() => {
-    if (!currentUser) return null;
-    return users.find((u) => u.id === currentUser.id) || currentUser;
-  }, [users, currentUser]);
-
-  useEffect(() => {
-    if (loading || currentUser || users.length === 0) return;
-    const savedId = getValidSessionId();
-    if (!savedId) return;
-
-    const savedUser = users.find((u) => u.id === savedId);
-    if (savedUser && savedUser.status === "approved") {
-      updateLastSeen(savedUser, setUsers, setCurrentUser);
-    } else if (savedUser && savedUser.status !== "approved") {
-      clearSession();
-    }
-  }, [loading, users, currentUser]);
-
-  useEffect(() => {
-    if (!syncedCurrentUser || syncedCurrentUser.status !== "approved") return;
-
-    const timer = window.setInterval(() => {
-      updateLastSeen(syncedCurrentUser, setUsers, setCurrentUser);
-    }, 5 * 60 * 1000);
-
-    return () => window.clearInterval(timer);
-  }, [syncedCurrentUser?.id, syncedCurrentUser?.status]);
-
-  const logout = () => {
-    clearSession();
-    setCurrentUser(null);
-    setActive("dashboard");
-  };
-
-  if (loading) return <div className="grid min-h-screen place-items-center bg-[#0d0f12] text-white"><div className="text-sm text-zinc-400">데이터 불러오는 중...</div></div>;
-  if (!syncedCurrentUser) return <AuthScreen users={users} setUsers={setUsers} setCurrentUser={setCurrentUser} settings={settings} />;
-  if (syncedCurrentUser.status === "pending") return <PendingScreen user={syncedCurrentUser} logout={logout} settings={settings} />;
-  if (syncedCurrentUser.status !== "approved") return <AuthScreen users={users} setUsers={setUsers} setCurrentUser={setCurrentUser} settings={settings} />;
+  if (!authReady || loading) return <div className="grid min-h-screen place-items-center bg-[#0d0f12] text-zinc-400">데이터 불러오는 중…</div>;
+  if (loadError) return <div className="grid min-h-screen place-items-center bg-[#0d0f12] p-5 text-white"><div><p role="alert">{loadError}</p><button onClick={loadData} className="mr-5 mt-5">다시 시도</button><button onClick={logout}>로그아웃</button></div></div>;
+  if (!syncedCurrentUser) return <SecureAuth settings={settings} />;
+  if (syncedCurrentUser.status === 'pending') return <PendingScreen user={syncedCurrentUser} logout={logout} settings={settings} />;
+  if (syncedCurrentUser.status !== 'approved') return <div className="grid min-h-screen place-items-center"><div>이 계정은 이용할 수 없습니다.<button onClick={logout} className="ml-4">로그아웃</button></div></div>;
+  if (syncedCurrentUser.mustChangePassword || active === 'passwordChange') return <PasswordChange required={syncedCurrentUser.mustChangePassword} onDone={logout} onLogout={logout} />;
 
   const safeActive = navItems.find((item) => item.id === active && item.visibleTo.includes(syncedCurrentUser.role)) ? active : "dashboard";
 

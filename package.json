@@ -2,19 +2,21 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "verify:security": "node scripts/verify-security.mjs anonymous"
   },
   "dependencies": {
-    "@supabase/supabase-js": "latest",
-    "@vitejs/plugin-react": "latest",
-    "lucide-react": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "vite": "latest"
+    "@supabase/supabase-js": "2.105.4",
+    "@vitejs/plugin-react": "6.0.2",
+    "lucide-react": "1.16.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "vite": "8.3.0"
   },
   "devDependencies": {
-    "autoprefixer": "^10.5.0",
-    "postcss": "^8.5.14",
-    "tailwindcss": "^3.4.17"
-  }
+    "autoprefixer": "10.5.0",
+    "postcss": "8.5.28",
+    "tailwindcss": "3.4.17"
+  },
+  "type": "module"
 }
