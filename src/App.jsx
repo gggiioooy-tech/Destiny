@@ -43,12 +43,8 @@ const FALLBACK_SETTINGS = {
 };
 
 const navItems = [
-  { id: "dashboard", label: "메인", icon: BarChart3, visibleTo: ["guest", "member", "admin"] },
-  { id: "attackTips", label: "공격잘가는법", icon: ScrollText, visibleTo: ["guest", "member", "admin"] },
-  { id: "defense", label: "방어팀", icon: Shield, visibleTo: ["guest", "member", "admin"] },
   { id: "attack", label: "공격팀", icon: Swords, visibleTo: ["guest", "member", "admin"] },
   { id: "passwordChange", label: "비밀번호 변경", icon: Lock, visibleTo: ["guest", "member", "admin"] },
-  { id: "notices", label: "공지", icon: ScrollText, visibleTo: ["guest", "member", "admin"] },
   { id: "content", label: "콘텐츠 문구 관리", icon: Pencil, visibleTo: ["admin"] },
   { id: "backup", label: "백업", icon: Save, visibleTo: ["admin"] },
   { id: "members", label: "회원 관리", icon: Users, visibleTo: ["admin"] },
@@ -101,7 +97,6 @@ function stringifyAttackGuideItems(items) {
 function stringifyCounterDecks(decks) {
   return JSON.stringify(decks || []);
 }
-
 
 function normalizeMultilineText(value) {
   return String(value ?? "")
@@ -241,7 +236,6 @@ function GuestLockedContent() {
   );
 }
 
-
 function roleLabel(role) {
   return { guest: "게스트", member: "일반회원", admin: "관리자" }[role] || role;
 }
@@ -355,8 +349,6 @@ function Select({ label, value, onChange, options }) {
     </div>
   );
 }
-
-
 
 function InfoChip({ title, desc }) {
   return <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4"><p className="text-sm font-semibold text-white">{title}</p><p className="mt-1 text-xs text-zinc-500">{desc}</p></div>;
@@ -820,7 +812,6 @@ function DefenseEditor({ item, onClose, onSaved }) {
     </Modal>
   );
 }
-
 
 function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeams, setEnemyDefenseTeams, reloadData }) {
   if (isGuest(currentUser)) {
@@ -1949,7 +1940,6 @@ function Modal({ title, onClose, children }) {
   return <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-3 backdrop-blur-sm sm:p-4"><div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xl sm:p-6"><div className="mb-5 flex items-center justify-between"><h2 className="text-xl font-semibold text-zinc-950">{title}</h2><button onClick={onClose} className="rounded-lg bg-zinc-100 p-2 text-zinc-500 hover:text-zinc-950"><X size={18} /></button></div>{children}</div></div>;
 }
 
-
 function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, reloadData }) {
   const [selectedGuild, setSelectedGuild] = useState(null);
   const pending = users.filter((u) => u.status === "pending" && !isHiddenUserId(u.id));
@@ -2210,7 +2200,7 @@ export default function App() {
   const [arenaTeams, setArenaTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
-  const [active, setActive] = useState("dashboard");
+  const [active, setActive] = useState("attack");
   const [menuOpen, setMenuOpen] = useState(false);
 
   const [authUserId, setAuthUserId] = useState(null);
@@ -2303,7 +2293,7 @@ export default function App() {
   if (syncedCurrentUser.status !== 'approved') return <div className="grid min-h-screen place-items-center"><div>이 계정은 이용할 수 없습니다.<button onClick={logout} className="ml-4">로그아웃</button></div></div>;
   if (syncedCurrentUser.mustChangePassword || active === 'passwordChange') return <PasswordChange required={syncedCurrentUser.mustChangePassword} onDone={logout} onLogout={logout} />;
 
-  const safeActive = navItems.find((item) => item.id === active && item.visibleTo.includes(syncedCurrentUser.role)) ? active : "dashboard";
+  const safeActive = navItems.find((item) => item.id === active && item.visibleTo.includes(syncedCurrentUser.role)) ? active : "attack";
 
   return (
     <div className="min-h-screen bg-[#f6f7f9] font-sans text-zinc-950">
@@ -2332,33 +2322,6 @@ export default function App() {
           settings={settings}
         />
 
-        {safeActive === "dashboard" && (
-          <Dashboard
-            setActive={setActive}
-            currentUser={syncedCurrentUser}
-            users={users}
-            settings={settings}
-            setSettings={setSettings}
-          />
-        )}
-
-        {safeActive === "attackTips" && (
-          <AttackTipsPage
-            currentUser={syncedCurrentUser}
-            settings={settings}
-            setSettings={setSettings}
-          />
-        )}
-
-        {safeActive === "defense" && (
-          <DefensePage
-            currentUser={syncedCurrentUser}
-            defenseTeams={defenseTeams}
-            setDefenseTeams={setDefenseTeams}
-            reloadData={loadData}
-          />
-        )}
-
         {safeActive === "attack" && (
           <AttackPage
             currentUser={syncedCurrentUser}
@@ -2384,14 +2347,6 @@ export default function App() {
             currentUser={syncedCurrentUser}
             arenaTeams={arenaTeams}
             setArenaTeams={setArenaTeams}
-            reloadData={loadData}
-          />
-        )}
-
-        {safeActive === "notices" && (
-          <NoticesPage
-            currentUser={syncedCurrentUser}
-            notices={notices}
             reloadData={loadData}
           />
         )}
