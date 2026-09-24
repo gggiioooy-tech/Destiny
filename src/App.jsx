@@ -44,9 +44,6 @@ const FALLBACK_SETTINGS = {
 
 const navItems = [
   { id: "attack", label: "공격팀", icon: Swords, visibleTo: ["guest", "member", "admin"] },
-  { id: "passwordChange", label: "비밀번호 변경", icon: Lock, visibleTo: ["guest", "member", "admin"] },
-  { id: "content", label: "콘텐츠 문구 관리", icon: Pencil, visibleTo: ["admin"] },
-  { id: "backup", label: "백업", icon: Save, visibleTo: ["admin"] },
   { id: "members", label: "회원 관리", icon: Users, visibleTo: ["admin"] },
 ];
 
@@ -369,7 +366,7 @@ function PendingScreen({ user, logout, settings }) {
 }
 
 function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, settings }) {
-  const availableNav = navItems.filter((item) => item.visibleTo.includes(currentUser.role));
+  const availableNav = navItems.filter((item) => item.id !== "members" && item.visibleTo.includes(currentUser.role));
   return (
     <aside className={cx("fixed inset-y-0 left-0 z-40 w-64 border-r border-zinc-200 bg-white transition-transform duration-300 lg:translate-x-0", isOpen ? "translate-x-0" : "-translate-x-full")}>
       <div className="flex h-full flex-col">
@@ -402,6 +399,15 @@ function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, se
             <div className="mt-1 text-xs text-zinc-500">{roleLabel(currentUser.role)}</div>
           </div>
           <Button onClick={logout} variant="secondary" className="mt-3 w-full"><LogOut size={16} /> 로그아웃</Button>
+          {currentUser.role === "admin" && (
+            <button
+              onClick={() => { setActive("members"); setIsOpen(false); }}
+              aria-current={active === "members" ? "page" : undefined}
+              className={cx("mt-3 flex min-h-9 w-full items-center justify-center gap-1.5 rounded-lg text-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500", active === "members" ? "bg-zinc-100 text-zinc-700" : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-700")}
+            >
+              <Users size={13} /> 회원 관리
+            </button>
+          )}
         </div>
       </div>
     </aside>
@@ -2291,7 +2297,7 @@ export default function App() {
   if (!syncedCurrentUser) return <SecureAuth settings={settings} />;
   if (syncedCurrentUser.status === 'pending') return <PendingScreen user={syncedCurrentUser} logout={logout} settings={settings} />;
   if (syncedCurrentUser.status !== 'approved') return <div className="grid min-h-screen place-items-center"><div>이 계정은 이용할 수 없습니다.<button onClick={logout} className="ml-4">로그아웃</button></div></div>;
-  if (syncedCurrentUser.mustChangePassword || active === 'passwordChange') return <PasswordChange required={syncedCurrentUser.mustChangePassword} onDone={logout} onLogout={logout} />;
+  if (syncedCurrentUser.mustChangePassword) return <PasswordChange required={syncedCurrentUser.mustChangePassword} onDone={logout} onLogout={logout} />;
 
   const safeActive = navItems.find((item) => item.id === active && item.visibleTo.includes(syncedCurrentUser.role)) ? active : "attack";
 
@@ -2349,18 +2355,6 @@ export default function App() {
             setArenaTeams={setArenaTeams}
             reloadData={loadData}
           />
-        )}
-
-        {safeActive === "content" && syncedCurrentUser.role === "admin" && (
-          <ContentManagementPage
-            settings={settings}
-            setSettings={setSettings}
-            reloadData={loadData}
-          />
-        )}
-
-        {safeActive === "backup" && syncedCurrentUser.role === "admin" && (
-          <BackupPage />
         )}
 
         {safeActive === "members" && syncedCurrentUser.role === "admin" && (
