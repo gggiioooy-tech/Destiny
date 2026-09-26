@@ -3,7 +3,8 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "verify:security": "node scripts/verify-security.mjs anonymous"
+    "verify:security": "node scripts/verify-security.mjs anonymous",
+    "test:recognition": "node --test test/recognitionCorrections.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.105.4",

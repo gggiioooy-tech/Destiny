@@ -27,3 +27,9 @@ Deploy database migrations and the site-auth function only to the Supabase proje
 ## Security verification
 
 `npm run verify:security` checks anonymous read/write denial and branding against this project's API. The script also has explicit prepare/member/admin/rotation phases for controlled disposable-account integration testing. These phases create or modify live test data and require corresponding administrator setup between phases. Remove the exact test profile and Auth user afterward; never use the owner's account for these tests.
+
+## Guild-war screenshot recognition
+
+Approved members can upload a PNG, JPEG, or WebP in the attack page to recognize three defense heroes. The recognized team filters the existing defense/counter list; hero corrections immediately update the search. Corrections are stored in this browser only, under a Destiny-specific key. Shared Seori learning/admin RPCs and Android screenshot access are not connected.
+
+The engine and public reference pack were ported together from Seori v4.5.11. Keep `public/guildwar-recognition.worker.js`, `public/hero-recognition` in deployment output. Nickname recognition is intentionally disabled. Run `npm run test:recognition` for correction regressions.

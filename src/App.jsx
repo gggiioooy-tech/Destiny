@@ -1,3 +1,5 @@
+import GuildWarRecognition from "./components/GuildWarRecognition.jsx";
+import { canonicalizeHeroText } from "./lib/businessRules.js";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./lib/supabase.js";
 import { SecureAuth, PasswordChange } from "./components/SecureAuth.jsx";
@@ -858,6 +860,11 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
   const searchedDefenseTeams = [...baseEnemyDefenseTeams]
     .filter((team) => {
       if (!enemySearchKeyword) return currentUser.role === "admin" && showAllEnemyDefense;
+      const requestedHeroes = splitList(enemySearchKeyword);
+      if (requestedHeroes.length > 1) {
+        const teamHeroes = splitList(team.heroes).map(canonicalizeHeroText);
+        return requestedHeroes.every(hero => teamHeroes.includes(canonicalizeHeroText(hero)));
+      }
       const titleMatch = String(team.title || "").toLowerCase().includes(enemySearchKeyword.toLowerCase());
       const titleInitialMatch = getKoreanInitials(team.title || "").toLowerCase().includes(enemySearchKeyword.toLowerCase());
       const heroMatch = splitList(team.heroes).some((hero) => matchesHeroSearch(hero, enemySearchKeyword));
@@ -917,6 +924,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
             <p className="mt-2 text-xs leading-5 text-zinc-400">
               상대 방어팀에 들어간 영웅명이나 초성을 검색하면 해당 영웅이 포함된 방어팀 목록이 나옵니다.
             </p>
+            <GuildWarRecognition onHeroesChange={(heroes) => { setEnemyHeroSearch(heroes.filter(Boolean).join(", ")); setSelectedEnemyDefense(null); setFilter("전체"); }} />
           </div>
           <div>
             <div className="mb-2 flex items-center justify-between gap-3">
