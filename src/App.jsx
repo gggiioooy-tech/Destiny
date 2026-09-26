@@ -1,4 +1,4 @@
-import { ThemeToggle, MikuThemeToggle, AlyaThemeToggle, MarcianaThemeToggle, ElainaThemeToggle } from "./components/ThemeProvider.jsx";
+import { ThemeToggle, AnimeThemeMenu } from "./components/ThemeProvider.jsx";
 import GuildWarRecognition from "./components/GuildWarRecognition.jsx";
 import { matchesHeroSearch, matchesEnemyTeamSearch, searchTokens } from "./lib/heroSearch.js";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -354,7 +354,7 @@ function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, se
   const availableNav = navItems.filter((item) => item.visibleTo.includes(currentUser.role));
   return (
     <aside className={cx("fixed inset-y-0 left-0 z-40 w-64 border-r border-zinc-200 bg-white transition-transform duration-300 lg:translate-x-0", isOpen ? "translate-x-0" : "-translate-x-full")}>
-      <div className="flex h-full flex-col">
+      <div className="flex h-full flex-col overflow-y-auto">
         <div className="flex items-center justify-between border-b border-zinc-200 p-5 lg:justify-start">
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-zinc-950 text-white">
@@ -385,10 +385,7 @@ function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, se
           </div>
           <Button onClick={logout} variant="secondary" className="mt-3 w-full"><LogOut size={16} /> 로그아웃</Button>
           <ThemeToggle className="mt-3 w-full" />
-          <MikuThemeToggle className="mt-2 w-full" />
-          <AlyaThemeToggle className="mt-2 w-full" />
-          <MarcianaThemeToggle className="mt-2 w-full" />
-          <ElainaThemeToggle className="mt-2 w-full" />
+          <AnimeThemeMenu className="mt-2 w-full" />
         </div>
       </div>
     </aside>
@@ -401,7 +398,7 @@ function MobileHeader({ setIsOpen, currentUser, settings }) {
       <div className="flex items-center gap-2"><div className="grid h-9 w-9 place-items-center rounded-lg bg-zinc-950 text-white">
               <Snowflake size={24} strokeWidth={2.4} className="snow-sway-icon" />
             </div><div><div className="text-sm font-semibold">{renderRichText(settings.guild_name, "")}</div><div className="text-[11px] text-zinc-500">{currentUser.gameNickname}</div></div></div>
-      <div className="flex items-center gap-2"><ThemeToggle compact /><MikuThemeToggle compact /><AlyaThemeToggle compact /><MarcianaThemeToggle compact /><ElainaThemeToggle compact /><button aria-label="메뉴 열기" onClick={() => setIsOpen(true)} className="rounded-lg border border-zinc-200 bg-white p-2"><Menu size={20} /></button></div>
+      <div className="flex items-center gap-2"><ThemeToggle compact /><AnimeThemeMenu compact /><button aria-label="메뉴 열기" onClick={() => setIsOpen(true)} className="rounded-lg border border-zinc-200 bg-white p-2"><Menu size={20} /></button></div>
     </header>
   );
 }

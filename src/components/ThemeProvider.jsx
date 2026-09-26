@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useId } from 'react';
 import { Moon, Sun, Sparkles, Snowflake, Waves, WandSparkles } from 'lucide-react';
 const ThemeContext = createContext(null);
 const STORAGE_KEY = '15month_theme';
@@ -57,4 +57,21 @@ export function ElainaThemeToggle({ compact = false, className = '' }) {
   return <button type="button" onClick={toggleElaina} aria-pressed={selected} aria-label={selected ? '일레이나 테마 끄기' : '일레이나 테마'} title={selected ? '일레이나 테마 끄기' : '일레이나 테마'} className={`elaina-theme-toggle inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 ${className}`}>
     <WandSparkles size={17} />{!compact && (selected ? '일레이나 테마 켜짐' : '일레이나 테마')}
   </button>;
+}
+
+export function AnimeThemeMenu({ compact = false, className = '' }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  return <div className={`relative ${className}`}>
+    <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen(value => !value)}
+      className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 ${compact ? '' : 'w-full'}`}>
+      <Sparkles size={17} />씹덕모드<span aria-hidden="true">{open ? '▴' : '▾'}</span>
+    </button>
+    {open && <div id={id} className={compact ? 'absolute right-0 top-full z-50 mt-2 grid w-56 gap-2 rounded-2xl border border-zinc-200 bg-white p-3 shadow-lg' : 'mt-2 grid gap-2'}>
+      <MikuThemeToggle className="w-full" />
+      <AlyaThemeToggle className="w-full" />
+      <MarcianaThemeToggle className="w-full" />
+      <ElainaThemeToggle className="w-full" />
+    </div>}
+  </div>;
 }
