@@ -9,6 +9,7 @@
         var isDark = savedTheme ? savedTheme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
         document.documentElement.classList.toggle('dark', isDark);
         document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+        document.documentElement.classList.toggle('miku', savedTheme === 'miku');
       } catch {}
     </script>
     <title>15월 공략 사이트</title>

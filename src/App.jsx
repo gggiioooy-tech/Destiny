@@ -1,4 +1,4 @@
-import { ThemeToggle } from "./components/ThemeProvider.jsx";
+import { ThemeToggle, MikuThemeToggle } from "./components/ThemeProvider.jsx";
 import GuildWarRecognition from "./components/GuildWarRecognition.jsx";
 import { canonicalizeHeroText } from "./lib/businessRules.js";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -260,7 +260,7 @@ function PageShell({ children }) {
 
 function PageHeader({ eyebrow, title, desc, action }) {
   return (
-    <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div className="site-page-header mb-7 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">{eyebrow}</p>
         <h1 className="mt-2 break-keep text-2xl font-semibold tracking-tight text-zinc-950 sm:text-3xl md:text-4xl">{title}</h1>
@@ -405,6 +405,7 @@ function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, se
           </div>
           <Button onClick={logout} variant="secondary" className="mt-3 w-full"><LogOut size={16} /> 로그아웃</Button>
           <ThemeToggle className="mt-3 w-full" />
+          <MikuThemeToggle className="mt-2 w-full" />
         </div>
       </div>
     </aside>
@@ -417,7 +418,7 @@ function MobileHeader({ setIsOpen, currentUser, settings }) {
       <div className="flex items-center gap-2"><div className="grid h-9 w-9 place-items-center rounded-lg bg-zinc-950 text-white">
               <Snowflake size={24} strokeWidth={2.4} className="snow-sway-icon" />
             </div><div><div className="text-sm font-semibold">{renderRichText(settings.guild_name, "")}</div><div className="text-[11px] text-zinc-500">{currentUser.gameNickname}</div></div></div>
-      <div className="flex items-center gap-2"><ThemeToggle compact /><button aria-label="메뉴 열기" onClick={() => setIsOpen(true)} className="rounded-lg border border-zinc-200 bg-white p-2"><Menu size={20} /></button></div>
+      <div className="flex items-center gap-2"><ThemeToggle compact /><MikuThemeToggle compact /><button aria-label="메뉴 열기" onClick={() => setIsOpen(true)} className="rounded-lg border border-zinc-200 bg-white p-2"><Menu size={20} /></button></div>
     </header>
   );
 }
