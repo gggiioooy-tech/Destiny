@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Moon, Sun, Sparkles } from 'lucide-react';
+import { Moon, Sun, Sparkles, Snowflake } from 'lucide-react';
 const ThemeContext = createContext(null);
 const STORAGE_KEY = '15month_theme';
 function initialTheme() {
-  try { const saved = localStorage.getItem(STORAGE_KEY); if (saved === 'light' || saved === 'dark' || saved === 'miku') return saved; } catch {}
+  try { const saved = localStorage.getItem(STORAGE_KEY); if (saved === 'light' || saved === 'dark' || saved === 'miku' || saved === 'alya') return saved; } catch {}
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 export function ThemeProvider({ children }) {
@@ -11,10 +11,11 @@ export function ThemeProvider({ children }) {
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
     document.documentElement.classList.toggle('miku', theme === 'miku');
+    document.documentElement.classList.toggle('alya', theme === 'alya');
     document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
     try { localStorage.setItem(STORAGE_KEY, theme); } catch {}
   }, [theme]);
-  return <ThemeContext.Provider value={{ theme, toggleMiku: () => setTheme(value => value === 'miku' ? 'light' : 'miku'), toggle: () => setTheme(value => value === 'dark' ? 'light' : 'dark') }}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={{ theme, toggleAlya: () => setTheme(value => value === 'alya' ? 'light' : 'alya'), toggleMiku: () => setTheme(value => value === 'miku' ? 'light' : 'miku'), toggle: () => setTheme(value => value === 'dark' ? 'light' : 'dark') }}>{children}</ThemeContext.Provider>;
 }
 export function ThemeToggle({ compact = false, className = '' }) {
   const { theme, toggle } = useContext(ThemeContext);
@@ -29,5 +30,13 @@ export function MikuThemeToggle({ compact = false, className = '' }) {
   const selected = theme === 'miku';
   return <button type="button" onClick={toggleMiku} aria-pressed={selected} aria-label={selected ? '미쿠 테마 끄기' : '미쿠 테마'} title={selected ? '미쿠 테마 끄기' : '미쿠 테마'} className={`miku-theme-toggle inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 ${className}`}>
     <Sparkles size={17} />{!compact && (selected ? '미쿠 테마 켜짐' : '미쿠 테마')}
+  </button>;
+}
+
+export function AlyaThemeToggle({ compact = false, className = '' }) {
+  const { theme, toggleAlya } = useContext(ThemeContext);
+  const selected = theme === 'alya';
+  return <button type="button" onClick={toggleAlya} aria-pressed={selected} aria-label={selected ? '아랴 테마 끄기' : '아랴 테마'} title={selected ? '아랴 테마 끄기' : '아랴 테마'} className={`alya-theme-toggle inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 ${className}`}>
+    <Snowflake size={17} />{!compact && (selected ? '아랴 테마 켜짐' : '아랴 테마')}
   </button>;
 }
