@@ -8,4 +8,5 @@ try {
         document.documentElement.classList.toggle('marciana', savedTheme === 'marciana');
         document.documentElement.classList.toggle('elaina', savedTheme === 'elaina');
         document.documentElement.classList.toggle('yuno', savedTheme === 'yuno');
+        document.documentElement.classList.toggle('emilia', savedTheme === 'emilia');
       } catch {}
