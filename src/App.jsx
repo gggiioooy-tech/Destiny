@@ -1,4 +1,4 @@
-import { ThemeToggle, MikuThemeToggle, AlyaThemeToggle } from "./components/ThemeProvider.jsx";
+import { ThemeToggle, MikuThemeToggle, AlyaThemeToggle, MarcianaThemeToggle } from "./components/ThemeProvider.jsx";
 import GuildWarRecognition from "./components/GuildWarRecognition.jsx";
 import { canonicalizeHeroText } from "./lib/businessRules.js";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -407,6 +407,7 @@ function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, se
           <ThemeToggle className="mt-3 w-full" />
           <MikuThemeToggle className="mt-2 w-full" />
           <AlyaThemeToggle className="mt-2 w-full" />
+          <MarcianaThemeToggle className="mt-2 w-full" />
         </div>
       </div>
     </aside>
@@ -419,7 +420,7 @@ function MobileHeader({ setIsOpen, currentUser, settings }) {
       <div className="flex items-center gap-2"><div className="grid h-9 w-9 place-items-center rounded-lg bg-zinc-950 text-white">
               <Snowflake size={24} strokeWidth={2.4} className="snow-sway-icon" />
             </div><div><div className="text-sm font-semibold">{renderRichText(settings.guild_name, "")}</div><div className="text-[11px] text-zinc-500">{currentUser.gameNickname}</div></div></div>
-      <div className="flex items-center gap-2"><ThemeToggle compact /><MikuThemeToggle compact /><AlyaThemeToggle compact /><button aria-label="메뉴 열기" onClick={() => setIsOpen(true)} className="rounded-lg border border-zinc-200 bg-white p-2"><Menu size={20} /></button></div>
+      <div className="flex items-center gap-2"><ThemeToggle compact /><MikuThemeToggle compact /><AlyaThemeToggle compact /><MarcianaThemeToggle compact /><button aria-label="메뉴 열기" onClick={() => setIsOpen(true)} className="rounded-lg border border-zinc-200 bg-white p-2"><Menu size={20} /></button></div>
     </header>
   );
 }
