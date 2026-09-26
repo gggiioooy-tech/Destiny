@@ -1,6 +1,6 @@
 import { ThemeToggle, MikuThemeToggle, AlyaThemeToggle, MarcianaThemeToggle } from "./components/ThemeProvider.jsx";
 import GuildWarRecognition from "./components/GuildWarRecognition.jsx";
-import { canonicalizeHeroText } from "./lib/businessRules.js";
+import { matchesHeroSearch, matchesEnemyTeamSearch, searchTokens } from "./lib/heroSearch.js";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./lib/supabase.js";
 import { SecureAuth, PasswordChange } from "./components/SecureAuth.jsx";
@@ -161,26 +161,6 @@ function renderRichText(value, fallback = "미입력") {
       </span>
     );
   });
-}
-
-function getKoreanInitials(value) {
-  const initials = ["ㄱ", "ㄲ", "ㄴ", "ㄷ", "ㄸ", "ㄹ", "ㅁ", "ㅂ", "ㅃ", "ㅅ", "ㅆ", "ㅇ", "ㅈ", "ㅉ", "ㅊ", "ㅋ", "ㅌ", "ㅍ", "ㅎ"];
-  return String(value || "")
-    .split("")
-    .map((char) => {
-      const code = char.charCodeAt(0) - 44032;
-      if (code < 0 || code > 11171) return char;
-      return initials[Math.floor(code / 588)];
-    })
-    .join("");
-}
-
-function matchesHeroSearch(hero, query) {
-  const keyword = String(query || "").trim().toLowerCase();
-  if (!keyword) return false;
-  const heroText = String(hero || "").toLowerCase();
-  const heroInitials = getKoreanInitials(hero).toLowerCase();
-  return heroText.includes(keyword) || heroInitials.includes(keyword);
 }
 
 function mapProfile(row) {
@@ -1241,15 +1221,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
   const searchedDefenseTeams = [...baseEnemyDefenseTeams]
     .filter((team) => {
       if (!enemySearchKeyword) return currentUser.role === "admin" && showAllEnemyDefense;
-      const requestedHeroes = splitList(enemySearchKeyword);
-      if (requestedHeroes.length > 1) {
-        const teamHeroes = splitList(team.heroes).map(canonicalizeHeroText);
-        return requestedHeroes.every(hero => teamHeroes.includes(canonicalizeHeroText(hero)));
-      }
-      const titleMatch = String(team.title || "").toLowerCase().includes(enemySearchKeyword.toLowerCase());
-      const titleInitialMatch = getKoreanInitials(team.title || "").toLowerCase().includes(enemySearchKeyword.toLowerCase());
-      const heroMatch = splitList(team.heroes).some((hero) => matchesHeroSearch(hero, enemySearchKeyword));
-      return titleMatch || titleInitialMatch || heroMatch;
+      return matchesEnemyTeamSearch(team, enemySearchKeyword);
     })
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
@@ -1300,10 +1272,10 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
               label="상대 영웅 검색"
               value={enemyHeroSearch}
               onChange={setEnemyHeroSearch}
-              placeholder="예: 여포 또는 ㅇㅍ"
+              placeholder="예: 윤건 하연 오목 또는 ㅇㄱ ㅎㅇ ㅇㅁ"
             />
             <p className="mt-2 text-xs leading-5 text-zinc-400">
-              상대 방어팀에 들어간 영웅명이나 초성을 검색하면 해당 영웅이 포함된 방어팀 목록이 나옵니다.
+              영웅명·초성을 띄어쓰기나 쉼표로 구분해 입력하세요. 순서와 관계없이 입력한 영웅이 모두 포함된 방어팀을 찾습니다.
             </p>
             <GuildWarRecognition onHeroesChange={(heroes) => { setEnemyHeroSearch(heroes.filter(Boolean).join(", ")); setSelectedEnemyDefense(null); setFilter("전체"); }} />
           </div>
@@ -1363,7 +1335,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                             key={hero}
                             className={cx(
                               "rounded-md px-2 py-1 text-[11px] font-medium",
-                              matchesHeroSearch(hero, enemyHeroSearch) ? "bg-zinc-950 text-white" : "bg-white text-zinc-500 ring-1 ring-zinc-200"
+                              searchTokens(enemyHeroSearch).some(token => matchesHeroSearch(hero, token)) ? "bg-zinc-950 text-white" : "bg-white text-zinc-500 ring-1 ring-zinc-200"
                             )}
                           >
                             {hero}
