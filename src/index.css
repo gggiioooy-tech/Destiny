@@ -58,12 +58,12 @@ body {
 .dark .site-theme .site-page { background-color: #101014; }
 
 /* The supplied illustration is used as-is. Translucent panels reveal the artwork. */
-:is(.miku, .alya, .marciana, .elaina) .site-theme {
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme {
   background: #d7eeed;
   color: #183c43;
   isolation: isolate;
 }
-:is(.miku, .alya, .marciana, .elaina) .site-theme::before {
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme::before {
   content: "";
   position: fixed;
   inset: 0;
@@ -74,8 +74,8 @@ body {
   background-position: center, right center;
   background-repeat: no-repeat;
 }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .site-page { background: transparent; }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .site-page-header {
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .site-page { background: transparent; }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .site-page-header {
   min-height: 230px;
   padding: 28px;
   overflow: hidden;
@@ -88,43 +88,43 @@ body {
   background-position: right 18px center;
   box-shadow: 0 12px 40px rgb(25 89 96 / .09);
 }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .site-page-header > div { max-width: 65%; }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .bg-white { background-color: rgb(250 255 254 / .58); }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .bg-white\/90 { background-color: rgb(238 251 248 / .68); }
-:is(.miku, .alya, .marciana, .elaina) .site-theme aside.bg-white { background-color: rgb(235 250 248 / .68); }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .bg-zinc-50,
-:is(.miku, .alya, .marciana, .elaina) .site-theme .bg-zinc-50\/60 { background-color: rgb(230 246 245 / .48); }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .bg-zinc-100 { background-color: rgb(216 237 235 / .6); }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .bg-zinc-200 { background-color: rgb(192 226 223 / .65); }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .bg-zinc-950 { background-color: #176b71; color: #fff; box-shadow: 0 4px 14px rgb(23 107 113 / .15); }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .hover\:bg-zinc-800:hover { background-color: #12565c; }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .hover\:bg-white:hover,
-:is(.miku, .alya, .marciana, .elaina) .site-theme .hover\:bg-zinc-50:hover,
-:is(.miku, .alya, .marciana, .elaina) .site-theme .hover\:bg-zinc-100:hover,
-:is(.miku, .alya, .marciana, .elaina) .site-theme .hover\:bg-zinc-200:hover { background-color: #d9efec; }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .text-zinc-950,
-:is(.miku, .alya, .marciana, .elaina) .site-theme .text-zinc-900 { color: #153c44; }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .text-zinc-800,
-:is(.miku, .alya, .marciana, .elaina) .site-theme .text-zinc-700 { color: #28545c; }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .text-zinc-600,
-:is(.miku, .alya, .marciana, .elaina) .site-theme .text-zinc-500,
-:is(.miku, .alya, .marciana, .elaina) .site-theme .text-zinc-400 { color: #4e7077; }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .border-zinc-100,
-:is(.miku, .alya, .marciana, .elaina) .site-theme .border-zinc-200 { border-color: #c4dfdd; }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .border-zinc-300 { border-color: #98c8c5; }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .ring-zinc-200 { --tw-ring-color: #c4dfdd; }
-:is(.miku, .alya, .marciana, .elaina) .site-theme input::placeholder,
-:is(.miku, .alya, .marciana, .elaina) .site-theme textarea::placeholder { color: #66888d; }
-:is(.miku, .alya, .marciana, .elaina) .site-theme .miku-theme-toggle { background: #c9eeea; border-color: #71bdb6; color: #175e63; }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .site-page-header > div { max-width: 65%; }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .bg-white { background-color: rgb(250 255 254 / .58); }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .bg-white\/90 { background-color: rgb(238 251 248 / .68); }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme aside.bg-white { background-color: rgb(235 250 248 / .68); }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .bg-zinc-50,
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .bg-zinc-50\/60 { background-color: rgb(230 246 245 / .48); }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .bg-zinc-100 { background-color: rgb(216 237 235 / .6); }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .bg-zinc-200 { background-color: rgb(192 226 223 / .65); }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .bg-zinc-950 { background-color: #176b71; color: #fff; box-shadow: 0 4px 14px rgb(23 107 113 / .15); }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .hover\:bg-zinc-800:hover { background-color: #12565c; }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .hover\:bg-white:hover,
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .hover\:bg-zinc-50:hover,
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .hover\:bg-zinc-100:hover,
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .hover\:bg-zinc-200:hover { background-color: #d9efec; }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .text-zinc-950,
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .text-zinc-900 { color: #153c44; }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .text-zinc-800,
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .text-zinc-700 { color: #28545c; }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .text-zinc-600,
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .text-zinc-500,
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .text-zinc-400 { color: #4e7077; }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .border-zinc-100,
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .border-zinc-200 { border-color: #c4dfdd; }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .border-zinc-300 { border-color: #98c8c5; }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .ring-zinc-200 { --tw-ring-color: #c4dfdd; }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme input::placeholder,
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme textarea::placeholder { color: #66888d; }
+:is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .miku-theme-toggle { background: #c9eeea; border-color: #71bdb6; color: #175e63; }
 @media (max-width: 640px) {
-  :is(.miku, .alya, .marciana, .elaina) .site-theme .site-page-header {
+  :is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .site-page-header {
     min-height: 220px;
     padding: 20px;
     background-size: auto 145px;
     background-position: right 8px top 10px;
     background-image: url('/themes/miku-chibi.png');
   }
-  :is(.miku, .alya, .marciana, .elaina) .site-theme .site-page-header > div { max-width: 58%; }
+  :is(.miku, .alya, .marciana, .elaina, .yuno) .site-theme .site-page-header > div { max-width: 58%; }
 }
 
 /* Alya shares the translucent layout with a silver-blue palette. */
@@ -177,3 +177,22 @@ body {
 @media (max-width: 640px) {
   .elaina .site-theme .site-page-header { background-size: auto 145px; background-position: right 12px top 10px; }
 }
+
+/* Yuno shares the translucent layout with a silver-blue palette. */
+.yuno .site-theme { background-color: #dce5f5; color: #34394e; }
+.yuno .site-theme::before {
+  background-image: linear-gradient(90deg, rgb(235 239 250 / .35), rgb(232 243 255 / .16) 55%, rgb(235 237 249 / .06)), url('/themes/yuno-illustration.png');
+}
+.yuno .site-theme .site-page-header {
+  background-color: rgb(235 240 251 / .45);
+  background-image: url('/themes/yuno-chibi.png');
+  background-size: auto 94%;
+  background-position: right 28px center;
+}
+.yuno .site-theme .bg-zinc-950 { background-color: #355ba0; }
+.yuno .site-theme .yuno-theme-toggle { background: #dce8ff; border-color: #8babe0; color: #2c4f89; }
+@media (max-width: 640px) {
+  .yuno .site-theme .site-page-header { background-size: auto 145px; background-position: right 12px top 10px; }
+}
+
+.yuno .site-theme::before { background-size: cover, cover; background-position: center, center; }

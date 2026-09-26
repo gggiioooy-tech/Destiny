@@ -7,4 +7,5 @@ try {
         document.documentElement.classList.toggle('alya', savedTheme === 'alya');
         document.documentElement.classList.toggle('marciana', savedTheme === 'marciana');
         document.documentElement.classList.toggle('elaina', savedTheme === 'elaina');
+        document.documentElement.classList.toggle('yuno', savedTheme === 'yuno');
       } catch {}

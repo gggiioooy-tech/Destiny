@@ -3,7 +3,7 @@ import { Moon, Sun, Sparkles, Snowflake, Waves, WandSparkles } from 'lucide-reac
 const ThemeContext = createContext(null);
 const STORAGE_KEY = '15month_theme';
 function initialTheme() {
-  try { const saved = localStorage.getItem(STORAGE_KEY); if (saved === 'light' || saved === 'dark' || saved === 'miku' || saved === 'alya' || saved === 'marciana' || saved === 'elaina') return saved; } catch {}
+  try { const saved = localStorage.getItem(STORAGE_KEY); if (saved === 'light' || saved === 'dark' || saved === 'miku' || saved === 'alya' || saved === 'marciana' || saved === 'elaina' || saved === 'yuno') return saved; } catch {}
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 export function ThemeProvider({ children }) {
@@ -14,10 +14,11 @@ export function ThemeProvider({ children }) {
     document.documentElement.classList.toggle('alya', theme === 'alya');
     document.documentElement.classList.toggle('marciana', theme === 'marciana');
     document.documentElement.classList.toggle('elaina', theme === 'elaina');
+    document.documentElement.classList.toggle('yuno', theme === 'yuno');
     document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
     try { localStorage.setItem(STORAGE_KEY, theme); } catch {}
   }, [theme]);
-  return <ThemeContext.Provider value={{ theme, toggleElaina: () => setTheme(value => value === 'elaina' ? 'light' : 'elaina'), toggleMarciana: () => setTheme(value => value === 'marciana' ? 'light' : 'marciana'), toggleAlya: () => setTheme(value => value === 'alya' ? 'light' : 'alya'), toggleMiku: () => setTheme(value => value === 'miku' ? 'light' : 'miku'), toggle: () => setTheme(value => value === 'dark' ? 'light' : 'dark') }}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={{ theme, toggleYuno: () => setTheme(value => value === 'yuno' ? 'light' : 'yuno'), toggleElaina: () => setTheme(value => value === 'elaina' ? 'light' : 'elaina'), toggleMarciana: () => setTheme(value => value === 'marciana' ? 'light' : 'marciana'), toggleAlya: () => setTheme(value => value === 'alya' ? 'light' : 'alya'), toggleMiku: () => setTheme(value => value === 'miku' ? 'light' : 'miku'), toggle: () => setTheme(value => value === 'dark' ? 'light' : 'dark') }}>{children}</ThemeContext.Provider>;
 }
 export function ThemeToggle({ compact = false, className = '' }) {
   const { theme, toggle } = useContext(ThemeContext);
@@ -72,6 +73,15 @@ export function AnimeThemeMenu({ compact = false, className = '' }) {
       <AlyaThemeToggle className="w-full" />
       <MarcianaThemeToggle className="w-full" />
       <ElainaThemeToggle className="w-full" />
+      <YunoThemeToggle className="w-full" />
     </div>}
   </div>;
+}
+
+export function YunoThemeToggle({ compact = false, className = '' }) {
+  const { theme, toggleYuno } = useContext(ThemeContext);
+  const selected = theme === 'yuno';
+  return <button type="button" onClick={toggleYuno} aria-pressed={selected} aria-label={selected ? '유노 테마 끄기' : '유노 테마'} title={selected ? '유노 테마 끄기' : '유노 테마'} className={`yuno-theme-toggle inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 ${className}`}>
+    <Moon size={17} />{!compact && (selected ? '유노 테마 켜짐' : '유노 테마')}
+  </button>;
 }
