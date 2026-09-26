@@ -181,7 +181,7 @@ body {
 /* Yuno shares the translucent layout with a silver-blue palette. */
 .yuno .site-theme { background-color: #dce5f5; color: #34394e; }
 .yuno .site-theme::before {
-  background-image: linear-gradient(90deg, rgb(235 239 250 / .35), rgb(232 243 255 / .16) 55%, rgb(235 237 249 / .06)), url('/themes/yuno-illustration-refined.png');
+  background-image: linear-gradient(90deg, rgb(235 239 250 / .35), rgb(232 243 255 / .16) 55%, rgb(235 237 249 / .06)), url('/themes/yuno-illustration-natural.png');
 }
 .yuno .site-theme .site-page-header {
   background-color: rgb(235 240 251 / .45);
