@@ -1,0 +1,74 @@
+begin;
+create temp table trash_test_state(key text primary key, value text);
+create temp table trash_test_results(name text,passed boolean);
+grant all on trash_test_state,trash_test_results to authenticated;
+select set_config('request.jwt.claims',(select json_build_object('sub',p.auth_user_id,'role','authenticated','session_id',s.id)::text from public.profiles p join auth.sessions s on s.user_id=p.auth_user_id where not p.is_owner and p.role='admin' and p.status='approved' and (s.not_after is null or s.not_after>now()) limit 1),true);
+insert into trash_test_state values('admin',auth.uid()::text),('admin_claims',current_setting('request.jwt.claims'));
+set local role authenticated;
+do $$ declare team uuid; decks jsonb; baseline bigint; begin
+  if not private.is_admin() or private.is_owner() then raise exception 'Missing non-owner admin'; end if;
+  baseline:=public.my_weekly_counter_count();
+  insert into public.enemy_defense_teams(category,title,heroes,is_public,counter_decks) values('enemy','QA rollback only','윤건',false,'[{"title":"A","heroes":"연희"},{"title":"B","heroes":"동영"}]'::jsonb) returning id,counter_decks into team,decks;
+  insert into trash_test_state values('team',team::text),('baseline',baseline::text);
+  decks:=(decks#>>'{}')::jsonb;
+  update public.enemy_defense_teams set counter_decks=to_jsonb(jsonb_build_array(jsonb_set(decks->1,'{note}','"Keep this latest edit"'))::text) where id=team;
+  if exists(select 1 from public.deleted_counter_records where parent_id=team) then raise exception 'Non-owner can read archive'; end if;
+  if public.my_weekly_counter_count()<>baseline+2 then raise exception 'Personal count wrong'; end if;
+  insert into trash_test_results values('admin_can_delete_but_cannot_read_trash',true),('personal_counter_count',true);
+end $$;
+reset role;
+insert into trash_test_state select 'counter_record',id::text from public.deleted_counter_records where parent_id=(select value::uuid from trash_test_state where key='team') and kind='counter';
+set local role authenticated;
+do $$ begin
+  begin perform public.restore_deleted_counter((select value::uuid from trash_test_state where key='counter_record')); raise exception 'Non-owner restored';
+  exception when insufficient_privilege then insert into trash_test_results values('non_owner_restore_denied',true); end;
+end $$;
+reset role;
+select set_config('request.jwt.claims',(select json_build_object('sub',p.auth_user_id,'role','authenticated','session_id',s.id)::text from public.profiles p join auth.sessions s on s.user_id=p.auth_user_id where p.is_owner and (s.not_after is null or s.not_after>now()) limit 1),true);
+set local role authenticated;
+do $$ declare team uuid; decks jsonb; record_id uuid; baseline bigint; begin
+  if not private.is_owner() then raise exception 'Missing owner'; end if;
+  team:=(select value::uuid from trash_test_state where key='team');
+  record_id:=(select value::uuid from trash_test_state where key='counter_record');
+  baseline:=public.my_weekly_counter_count();
+  if not exists(select 1 from public.deleted_counter_records where id=record_id and deleted_by=(select value::uuid from trash_test_state where key='admin')) then raise exception 'Missing trusted deletion author'; end if;
+  perform public.restore_deleted_counter(record_id);
+  perform public.restore_deleted_counter(record_id);
+  select (counter_decks#>>'{}')::jsonb into decks from public.enemy_defense_teams where id=team;
+  if jsonb_array_length(decks)<>2 or not exists(select 1 from jsonb_array_elements(decks) d where d->>'note'='Keep this latest edit') then raise exception 'Restore lost edits or duplicated counter'; end if;
+  if public.my_weekly_counter_count()<>baseline then raise exception 'Restore inflated owner stats'; end if;
+  insert into trash_test_results values('owner_restore_preserves_edits_and_is_idempotent',true),('restore_does_not_add_writing_count',true);
+  -- Remove A again, then remove its parent: restoring A recreates only A; team restore merges B.
+  update public.enemy_defense_teams set counter_decks=to_jsonb((select jsonb_agg(d) from jsonb_array_elements(decks) d where d->>'title'='B')::text) where id=team;
+  select id into record_id from public.deleted_counter_records where parent_id=team and kind='counter' and restored_at is null;
+  delete from public.enemy_defense_teams where id=team;
+  perform public.restore_deleted_counter(record_id);
+  select (counter_decks#>>'{}')::jsonb into decks from public.enemy_defense_teams where id=team;
+  if jsonb_array_length(decks)<>1 or decks->0->>'title'<>'A' then raise exception 'Missing-parent restore resurrected wrong decks'; end if;
+  select id into record_id from public.deleted_counter_records where parent_id=team and kind='enemy_team' and restored_at is null;
+  perform public.restore_deleted_counter(record_id);
+  select (counter_decks#>>'{}')::jsonb into decks from public.enemy_defense_teams where id=team;
+  if jsonb_array_length(decks)<>2 then raise exception 'Team restore failed to merge'; end if;
+  if public.my_weekly_counter_count()<>baseline then raise exception 'Team restore inflated stats'; end if;
+  insert into trash_test_results values('missing_parent_and_full_team_restore',true);
+  insert into public.attack_teams(title,heroes,is_public) values('QA attack rollback','하연',false) returning id into team;
+  delete from public.attack_teams where id=team;
+  select id into record_id from public.deleted_counter_records where parent_id=team and kind='attack_team';
+  perform public.restore_deleted_counter(record_id);
+  if not exists(select 1 from public.attack_teams where id=team and heroes='하연') then raise exception 'Attack team restore failed'; end if;
+  insert into trash_test_results values('standalone_attack_team_restore',true);
+end $$;
+reset role;
+-- Member sees own count but cannot inspect other authors or deleted data.
+update public.profiles set role='member' where auth_user_id=(select value::uuid from trash_test_state where key='admin');
+select set_config('request.jwt.claims',(select value from trash_test_state where key='admin_claims'),true);
+set local role authenticated;
+do $$ begin
+  if public.my_weekly_counter_count()<>(select value::bigint+2 from trash_test_state where key='baseline') then raise exception 'Member count wrong'; end if;
+  if exists(select 1 from public.counter_deck_registry where author_auth_id<>auth.uid()) then raise exception 'Member sees other authors'; end if;
+  if exists(select 1 from public.deleted_counter_records) then raise exception 'Member sees trash'; end if;
+  insert into trash_test_results values('member_personal_count_without_other_data',true);
+end $$;
+reset role;
+select json_agg(trash_test_results) as checks from trash_test_results;
+rollback;

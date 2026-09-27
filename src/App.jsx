@@ -50,6 +50,7 @@ const navItems = [
   { id: "board", label: "자유게시판", icon: ScrollText, visibleTo: ["member", "admin"] },
   { id: "attack", label: "공격팀", icon: Swords, visibleTo: ["guest", "member", "admin"] },
   { id: "members", label: "회원 관리", icon: Users, visibleTo: ["admin"] },
+  { id: "deleted", label: "삭제정보관리", icon: Trash2, visibleTo: ["admin"], ownerOnly: true },
 ];
 
 const emptyDefense = { category: "attack", title: "", subtitle: "", power: "", heroes: "", rings: "", gears: "", pet: "", formation: "", speed_order: "", team_speed: "", skill_order: "", note: "", sort_order: 1, is_public: true };
@@ -352,7 +353,7 @@ function PendingScreen({ user, logout, settings }) {
 }
 
 function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, settings }) {
-  const availableNav = navItems.filter((item) => item.visibleTo.includes(currentUser.role));
+  const availableNav = navItems.filter((item) => item.visibleTo.includes(currentUser.role) && (!item.ownerOnly || currentUser.isOwner));
   return (
     <aside className={cx("fixed inset-y-0 left-0 z-40 w-64 border-r border-zinc-200 bg-white transition-transform duration-300 lg:translate-x-0", isOpen ? "translate-x-0" : "-translate-x-full")}>
       <div className="flex h-full flex-col overflow-y-auto">
@@ -383,6 +384,7 @@ function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, se
           <div className="rounded-xl bg-zinc-50 p-3">
             <div className="text-sm font-semibold text-zinc-950">{currentUser.gameNickname}</div>
             <div className="mt-1 text-xs text-zinc-500">{roleLabel(currentUser.role)}</div>
+            <WeeklyCounterSummary currentUser={currentUser} />
           </div>
           <Button onClick={logout} variant="secondary" className="mt-3 w-full"><LogOut size={16} /> 로그아웃</Button>
           <ThemeToggle className="mt-3 w-full" />
@@ -2306,6 +2308,102 @@ function Modal({ title, onClose, children }) {
   return <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-3 backdrop-blur-sm sm:p-4"><div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xl sm:p-6"><div className="mb-5 flex items-center justify-between"><h2 className="text-xl font-semibold text-zinc-950">{title}</h2><button onClick={onClose} className="rounded-lg bg-zinc-100 p-2 text-zinc-500 hover:text-zinc-950"><X size={18} /></button></div>{children}</div></div>;
 }
 
+function WeeklyCounterSummary({ currentUser }) {
+  const [count, setCount] = useState(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      if (!currentUser.authUserId) return;
+      const { data, error } = await supabase.rpc('my_weekly_counter_count');
+      if (active) { setFailed(Boolean(error)); setCount(error ? null : Number(data || 0)); }
+    };
+    refresh();
+    const timer = setInterval(refresh, 60000);
+    window.addEventListener('focus', refresh);
+    return () => { active = false; clearInterval(timer); window.removeEventListener('focus', refresh); };
+  }, [currentUser.authUserId]);
+  return <div className="mt-3 border-t border-zinc-200 pt-2 text-xs text-zinc-600">
+    <div>이번주 카운터 작성 횟수</div>
+    <div className="mt-1 font-semibold text-zinc-950" aria-live="polite">{failed ? '조회 실패' : count === null ? '—' : `${count}회`}</div>
+  </div>;
+}
+
+function DeletedCounterManagement({ reloadData }) {
+  const [records, setRecords] = useState([]);
+  const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [restoring, setRestoring] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [revision, setRevision] = useState(0);
+  useEffect(() => {
+    let active = true;
+    setLoading(true); setError('');
+    supabase.from('deleted_counter_records').select('*').is('restored_at', null)
+      .order('deleted_at', { ascending: false }).order('id', { ascending: false }).range(page * 50, page * 50 + 49)
+      .then(({ data, error: fetchError }) => {
+        if (!active) return;
+        if (fetchError) setError('삭제 기록을 불러오지 못했습니다.');
+        else setRecords(data || []);
+        setLoading(false);
+      });
+    return () => { active = false; };
+  }, [page, revision]);
+  const restore = async (record) => {
+    if (restoring) return;
+    setRestoring(record.id); setError('');
+    try {
+      const { error: restoreError } = await supabase.rpc('restore_deleted_counter', { record_id: record.id });
+      if (restoreError) throw restoreError;
+      setRecords(items => items.filter(item => item.id !== record.id));
+      await reloadData();
+    } catch { setError('복원하지 못했습니다. 새로고침 후 다시 시도해 주세요.'); }
+    finally { setRestoring(null); }
+  };
+  return <PageShell>
+    <PageHeader eyebrow="Owner" title="삭제정보관리" desc="삭제된 카운터와 팀을 확인하고 복원할 수 있습니다. 사이트 소유자만 이용할 수 있습니다."
+      action={<Button variant="secondary" onClick={() => setRevision(value => value + 1)} disabled={loading || Boolean(restoring)}>새로고침</Button>} />
+    <p className="mb-4 text-xs text-zinc-500">기능 적용 이후 삭제한 항목부터 보관됩니다. 복원은 기존 내용을 유지하며, 카운터 작성 횟수를 추가하지 않습니다.</p>
+    {error && <p role="alert" className="mb-4 text-sm text-red-600">{error}</p>}
+    {loading ? <p className="p-5 text-sm text-zinc-500">삭제 기록 불러오는 중…</p> : <div className="space-y-3">
+      {records.map(record => {
+        const team = record.payload?.team || {};
+        const counter = record.payload?.counter;
+        return <article key={record.id} className="rounded-2xl border border-zinc-200 bg-white p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs text-zinc-500">{record.kind === 'counter' ? '카운터 삭제' : record.kind === 'enemy_team' ? '상대 방어팀 삭제' : '공격팀 삭제'} · {record.deleted_by_name || '알 수 없음'} · {formatUpdatedAt(record.deleted_at)}</p>
+              <h2 className="mt-2 text-lg font-semibold text-zinc-950">{renderRichText(counter?.title || team.title || '제목 없음')}</h2>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-600">{renderRichText(counter?.heroes || team.heroes || '영웅 정보 없음')}</p>
+              {counter && <p className="mt-1 text-xs text-zinc-500">상대 방어팀: {team.title || team.heroes || '제목 없음'}</p>}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setPreview(record)}>내용 보기</Button>
+              <Button disabled={Boolean(restoring)} onClick={() => restore(record)}>{restoring === record.id ? '복원 중…' : '복원'}</Button>
+            </div>
+          </div>
+        </article>;
+      })}
+      {!records.length && !error && <EmptyState text="복원할 삭제 기록이 없습니다." />}
+    </div>}
+    <div className="mt-4 flex items-center justify-center gap-3">
+      <Button variant="secondary" disabled={page === 0 || loading || Boolean(restoring)} onClick={() => setPage(value => value - 1)}>이전</Button>
+      <span className="text-sm text-zinc-500">{page + 1}페이지</span>
+      <Button variant="secondary" disabled={records.length < 50 || loading || Boolean(restoring)} onClick={() => setPage(value => value + 1)}>다음</Button>
+    </div>
+    {preview && <Modal title="삭제된 내용" onClose={() => setPreview(null)}>
+      <div className="space-y-4 text-sm text-zinc-700">
+        <p>상대 / 팀: {renderRichText(preview.payload?.team?.title || preview.payload?.team?.heroes || '제목 없음')}</p>
+        {(preview.kind === 'counter' ? [preview.payload.counter] : preview.kind === 'enemy_team' ? parseCounterDecks(preview.payload?.team?.counter_decks) : [preview.payload.team]).map((deck, index) => <div key={index} className="rounded-xl bg-zinc-50 p-4">
+          <h3 className="mb-2 font-semibold">{renderRichText(deck.title || `카운터 ${index + 1}`)}</h3>
+          {Object.entries({영웅:deck.heroes,장비:deck.gears,반지:deck.rings,펫:deck.pet,진형:deck.formation,속공순서:deck.speed_order,팀속공:deck.team_speed,스킬순서:deck.skill_order,'영웅 1 장비':deck.gear_1,'영웅 2 장비':deck.gear_2,'영웅 3 장비':deck.gear_3,메모:deck.note}).filter(([,value]) => value).map(([label,value]) => <p key={label} className="mt-2 whitespace-pre-wrap"><b>{label}: </b>{renderRichText(value)}</p>)}
+        </div>)}
+      </div>
+    </Modal>}
+  </PageShell>;
+}
+
 function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, reloadData }) {
   const [selectedGuild, setSelectedGuild] = useState(null);
   const canEditMemo = currentUser.isOwner === true;
@@ -2408,7 +2506,7 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
   return (
     <PageShell>
       <PageHeader eyebrow="Admin" title="회원 관리" desc="게임 닉네임을 확인한 뒤 승인하세요." />
-      <p className="mb-4 text-xs text-zinc-500">이번 주 카운터: 한국시간 월요일 00:00부터 새로 등록한 덱 수입니다. 기능 적용 이후부터 집계하며, 수정·재저장은 제외합니다.</p>
+      <p className="mb-4 text-xs text-zinc-500">이번주 카운터 작성 횟수: 한국시간 월요일 00:00부터 새로 등록한 덱 수입니다. 기능 적용 이후부터 집계하며, 수정·재저장은 제외합니다.</p>
       {statsError && <p role="alert" className="mb-4 text-sm text-red-600">{statsError}</p>}
 
       <section className="mb-5 rounded-2xl border border-zinc-200 bg-white p-5">
@@ -2485,7 +2583,7 @@ function MemberTable({ list, pending, updateUser, deleteUser, currentUser, weekl
             <th className="px-3 py-3">상태</th>
             <th className="px-3 py-3">등급</th>
             <th className="px-3 py-3">마지막 접속</th>
-            <th className="px-3 py-3">이번 주 카운터</th>
+            <th className="px-3 py-3">이번주 카운터 작성 횟수</th>
             <th className="px-3 py-3">관리자 메모</th>
             <th className="px-3 py-3 text-right">관리</th>
           </tr>
@@ -2685,7 +2783,7 @@ export default function App() {
   if (syncedCurrentUser.status !== 'approved') return <div className="grid min-h-screen place-items-center"><div>이 계정은 이용할 수 없습니다.<button onClick={logout} className="ml-4">로그아웃</button></div></div>;
   if (syncedCurrentUser.mustChangePassword) return <PasswordChange required={syncedCurrentUser.mustChangePassword} onDone={logout} onLogout={logout} />;
 
-  const safeActive = navItems.find((item) => item.id === active && item.visibleTo.includes(syncedCurrentUser.role)) ? active : "attack";
+  const safeActive = navItems.find((item) => item.id === active && item.visibleTo.includes(syncedCurrentUser.role) && (!item.ownerOnly || syncedCurrentUser.isOwner)) ? active : "attack";
 
   return (
     <div className="site-theme min-h-screen bg-[#f6f7f9] font-sans text-zinc-950">
@@ -2744,6 +2842,8 @@ export default function App() {
             reloadData={loadData}
           />
         )}
+
+        {safeActive === "deleted" && syncedCurrentUser.isOwner && <DeletedCounterManagement reloadData={loadData} />}
 
         {safeActive === "members" && syncedCurrentUser.role === "admin" && (
           <MemberManagementPage
