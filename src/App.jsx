@@ -75,6 +75,7 @@ function splitList(value) {
 }
 
 function parseCounterDecks(value) {
+  if (Array.isArray(value)) return value;
   if (!value) return [];
   try {
     const parsed = JSON.parse(value);
@@ -1607,7 +1608,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
       }];
     }
 
-    return [{ ...emptyCounterDeck, title: "카운터덱 1" }];
+    return [{ ...emptyCounterDeck, counter_id: crypto.randomUUID(), title: "카운터덱 1" }];
   });
   const [saving, setSaving] = useState(false);
   const isNew = !item.id;
@@ -1617,7 +1618,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
   };
 
   const addDeck = () => {
-    setCounterDecks((prev) => [...prev, { ...emptyCounterDeck, title: `카운터덱 ${prev.length + 1}` }]);
+    setCounterDecks((prev) => [...prev, { ...emptyCounterDeck, counter_id: crypto.randomUUID(), title: `카운터덱 ${prev.length + 1}` }]);
   };
 
   const removeDeck = (index) => {
@@ -2307,6 +2308,22 @@ function Modal({ title, onClose, children }) {
 
 function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, reloadData }) {
   const [selectedGuild, setSelectedGuild] = useState(null);
+  const canEditMemo = currentUser.isOwner === true;
+  const [weeklyCounts, setWeeklyCounts] = useState(null);
+  const [statsError, setStatsError] = useState('');
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      const { data, error } = await supabase.rpc('weekly_counter_counts');
+      if (!active) return;
+      if (error) { setStatsError('작성 횟수를 불러오지 못했습니다.'); setWeeklyCounts(null); return; }
+      setStatsError('');
+      setWeeklyCounts(Object.fromEntries((data || []).map(row => [row.auth_user_id, Number(row.counter_count)])));
+    };
+    refresh();
+    const timer = setInterval(refresh, 60000);
+    return () => { active = false; clearInterval(timer); };
+  }, []);
   const pending = users.filter((u) => u.status === "pending" && !isHiddenUserId(u.id));
   const members = users.filter((u) => u.status !== "pending" && !isHiddenUserId(u.id));
 
@@ -2330,6 +2347,8 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
 
   const updateUser = async (user, patch) => {
     if (!user) return;
+    if (!canEditMemo && Object.prototype.hasOwnProperty.call(patch, 'memo')) return alert('관리자 메모는 사이트 소유자만 수정할 수 있습니다.');
+    if (!canEditMemo && user.role === 'admin' && ((patch.role && patch.role !== user.role) || (patch.status && patch.status !== user.status))) return alert('관리자 권한은 사이트 소유자만 변경할 수 있습니다.');
 
     const isOwner = isSuperAdminId(user.id);
 
@@ -2368,6 +2387,7 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
 
   const deleteUser = async (user) => {
     if (!user) return;
+    if (!canEditMemo && user.role === 'admin') return alert('관리자는 사이트 소유자만 삭제할 수 있습니다.');
     if (isSuperAdminId(user.id)) return alert("최고 관리자 계정은 삭제할 수 없습니다.");
 
     setUsers((prev) => prev.filter((u) => u.id !== user.id));
@@ -2388,6 +2408,8 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
   return (
     <PageShell>
       <PageHeader eyebrow="Admin" title="회원 관리" desc="게임 닉네임을 확인한 뒤 승인하세요." />
+      <p className="mb-4 text-xs text-zinc-500">이번 주 카운터: 한국시간 월요일 00:00부터 새로 등록한 덱 수입니다. 기능 적용 이후부터 집계하며, 수정·재저장은 제외합니다.</p>
+      {statsError && <p role="alert" className="mb-4 text-sm text-red-600">{statsError}</p>}
 
       <section className="mb-5 rounded-2xl border border-zinc-200 bg-white p-5">
         <div className="flex items-center justify-between gap-3">
@@ -2441,18 +2463,18 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
           <h2 className="text-lg font-semibold text-zinc-950">가입 승인 대기</h2>
           <span className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-semibold text-zinc-700">{pending.length}건</span>
         </div>
-        <MemberTable list={pending} pending updateUser={updateUser} deleteUser={deleteUser} />
+        <MemberTable currentUser={currentUser} weeklyCounts={weeklyCounts} list={pending} pending updateUser={updateUser} deleteUser={deleteUser} />
       </section>
 
       <section className="mt-5 rounded-2xl border border-zinc-200 bg-white p-5">
         <h2 className="text-lg font-semibold text-zinc-950">전체 회원</h2>
-        <MemberTable list={members} updateUser={updateUser} deleteUser={deleteUser} />
+        <MemberTable currentUser={currentUser} weeklyCounts={weeklyCounts} list={members} updateUser={updateUser} deleteUser={deleteUser} />
       </section>
     </PageShell>
   );
 }
 
-function MemberTable({ list, pending, updateUser, deleteUser }) {
+function MemberTable({ list, pending, updateUser, deleteUser, currentUser, weeklyCounts }) {
   return (
     <div className="mt-4 overflow-x-auto">
       <table className="w-full min-w-[1080px] text-left text-sm">
@@ -2463,6 +2485,7 @@ function MemberTable({ list, pending, updateUser, deleteUser }) {
             <th className="px-3 py-3">상태</th>
             <th className="px-3 py-3">등급</th>
             <th className="px-3 py-3">마지막 접속</th>
+            <th className="px-3 py-3">이번 주 카운터</th>
             <th className="px-3 py-3">관리자 메모</th>
             <th className="px-3 py-3 text-right">관리</th>
           </tr>
@@ -2470,13 +2493,13 @@ function MemberTable({ list, pending, updateUser, deleteUser }) {
         <tbody>
           {list.length === 0 ? (
             <tr>
-              <td colSpan={7} className="py-8 text-center text-zinc-400">
+              <td colSpan={8} className="py-8 text-center text-zinc-400">
                 표시할 회원이 없습니다.
               </td>
             </tr>
           ) : (
             list.map((u) => (
-              <MemberRow key={u.id} user={u} pending={pending} updateUser={updateUser} deleteUser={deleteUser} />
+              <MemberRow currentUser={currentUser} weeklyCount={weeklyCounts === null ? null : (weeklyCounts[u.authUserId] || 0)} key={u.id} user={u} pending={pending} updateUser={updateUser} deleteUser={deleteUser} />
             ))
           )}
         </tbody>
@@ -2485,7 +2508,9 @@ function MemberTable({ list, pending, updateUser, deleteUser }) {
   );
 }
 
-function MemberRow({ user: u, pending, updateUser, deleteUser }) {
+function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, weeklyCount }) {
+  const canEditMemo = currentUser.isOwner === true;
+  const protectedAdmin = u.isOwner || isSuperAdminId(u.id) || (!canEditMemo && u.role === "admin");
   const [memo, setMemo] = useState(u.memo || "");
   useEffect(() => setMemo(u.memo || ""), [u.memo]);
 
@@ -2500,16 +2525,20 @@ function MemberRow({ user: u, pending, updateUser, deleteUser }) {
       <td className="px-3 py-4"><StatusBadge status={u.status} /></td>
       <td className="px-3 py-4"><RoleBadge role={u.role} /></td>
       <td className="px-3 py-4 text-xs text-zinc-500">{formatLastSeen(u.lastSeenAt)}</td>
+      <td className="px-3 py-4 font-semibold text-zinc-950">{weeklyCount === null ? "—" : `${weeklyCount}회`}</td>
       <td className="px-3 py-4">
         <div className="flex min-w-[220px] gap-2">
           <input
+            readOnly={!canEditMemo}
+            aria-label="관리자 메모"
+            title={canEditMemo ? "관리자 메모" : "사이트 소유자만 수정할 수 있습니다"}
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && saveMemo()}
+            onKeyDown={(e) => canEditMemo && e.key === "Enter" && saveMemo()}
             placeholder="예: 15월 , Guest"
             className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-950 outline-none focus:ring-4 focus:ring-zinc-200/70"
           />
-          <Button onClick={saveMemo} variant="secondary" className="shrink-0 px-3 py-2 text-xs">저장</Button>
+          {canEditMemo && <Button onClick={saveMemo} variant="secondary" className="shrink-0 px-3 py-2 text-xs">저장</Button>}
         </div>
       </td>
       <td className="px-3 py-4">
@@ -2526,7 +2555,7 @@ function MemberRow({ user: u, pending, updateUser, deleteUser }) {
           ) : (
             <>
               <select
-                disabled={isSuperAdminId(u.id)}
+                disabled={protectedAdmin}
                 value={u.role}
                 onChange={(e) => updateUser(u, { role: e.target.value, status: "approved" })}
                 className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 outline-none focus:ring-4 focus:ring-zinc-200/70 disabled:cursor-not-allowed disabled:opacity-50"
@@ -2535,9 +2564,7 @@ function MemberRow({ user: u, pending, updateUser, deleteUser }) {
                 <option value="member">일반회원</option>
                 <option value="admin">관리자</option>
               </select>
-              <DeleteButton onConfirm={() => deleteUser(u)} className={isSuperAdminId(u.id) ? "pointer-events-none opacity-50" : ""}>
-                삭제
-              </DeleteButton>
+              {!protectedAdmin && <DeleteButton onConfirm={() => deleteUser(u)}>삭제</DeleteButton>}
             </>
           )}
         </div>

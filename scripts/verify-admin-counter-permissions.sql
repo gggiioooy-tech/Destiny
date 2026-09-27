@@ -1,0 +1,71 @@
+begin;
+create temp table check_results(name text, passed boolean);
+grant select,insert on check_results to authenticated,anon;
+select set_config('request.jwt.claims',(select json_build_object('sub',p.auth_user_id,'role','authenticated','session_id',s.id)::text from public.profiles p join auth.sessions s on s.user_id=p.auth_user_id where not p.is_owner and p.role='admin' and p.status='approved' and (s.not_after is null or s.not_after>now()) limit 1),true);
+set local role authenticated;
+do $$ declare target text; team uuid; value jsonb; baseline bigint; n bigint; cid uuid; begin
+  if not private.is_admin() or private.is_owner() then raise exception 'Missing non-owner admin test identity'; end if;
+  select user_id into target from public.profiles where role='admin' and not is_owner and auth_user_id<>auth.uid() limit 1;
+  if target is null then raise exception 'Missing peer admin'; end if;
+  begin update public.profiles set memo=coalesce(memo,'')||'qa' where user_id=target; raise exception 'Memo write unexpectedly permitted';
+  exception when insufficient_privilege then insert into check_results values('non_owner_memo_denied',true); end;
+  begin update public.profiles set role='member' where user_id=target; raise exception 'Demotion unexpectedly permitted';
+  exception when insufficient_privilege then insert into check_results values('peer_admin_demotion_denied',true); end;
+  begin update public.profiles set status='blocked' where user_id=target; raise exception 'Blocking unexpectedly permitted';
+  exception when insufficient_privilege then insert into check_results values('peer_admin_block_denied',true); end;
+  begin delete from public.profiles where user_id=target; raise exception 'Delete unexpectedly permitted';
+  exception when insufficient_privilege then insert into check_results values('peer_admin_delete_denied',true); end;
+  select coalesce(sum(counter_count),0) into baseline from public.weekly_counter_counts() where auth_user_id=auth.uid();
+  insert into public.enemy_defense_teams(category,title,heroes,counter_decks,is_public)
+  values('enemy','transaction-only QA','test','[{"heroes":"윤건,하연,오목"},{"heroes":""}]'::jsonb,false) returning id,counter_decks into team,value;
+  select coalesce(sum(counter_count),0) into n from public.weekly_counter_counts() where auth_user_id=auth.uid();
+  if n<>baseline+1 then raise exception 'Expected one real deck, blank excluded'; end if;
+  update public.enemy_defense_teams set counter_decks=value where id=team;
+  value := (value#>>'{}')::jsonb;
+  cid := (value->0->>'counter_id')::uuid;
+  value := jsonb_set(value,'{0,note}','"edited"');
+  update public.enemy_defense_teams set counter_decks=value where id=team;
+  select coalesce(sum(counter_count),0) into n from public.weekly_counter_counts() where auth_user_id=auth.uid();
+  if n<>baseline+1 then raise exception 'Resave or edit duplicated count'; end if;
+  value := jsonb_set(value,'{1,heroes}','"연희,스쿨드,동영"');
+  update public.enemy_defense_teams set counter_decks=value where id=team;
+  select coalesce(sum(counter_count),0) into n from public.weekly_counter_counts() where auth_user_id=auth.uid();
+  if n<>baseline+2 then raise exception 'Filling blank deck not counted'; end if;
+  update public.enemy_defense_teams set counter_decks='[]'::jsonb where id=team;
+  update public.enemy_defense_teams set counter_decks=value where id=team;
+  select coalesce(sum(counter_count),0) into n from public.weekly_counter_counts() where auth_user_id=auth.uid();
+  if n<>baseline+2 then raise exception 'Restoring deck duplicated count'; end if;
+  insert into check_results values('new_counter_count_and_no_duplicate_edits',true);
+  begin insert into public.counter_deck_registry(counter_id,enemy_team_id,author_auth_id,created_at) values(gen_random_uuid(),team,auth.uid(),now()); raise exception 'Counter forgery permitted';
+  exception when insufficient_privilege then insert into check_results values('direct_counter_forgery_denied',true); end;
+  delete from public.enemy_defense_teams where id=team;
+  select coalesce(sum(counter_count),0) into n from public.weekly_counter_counts() where auth_user_id=auth.uid();
+  if n<>baseline+2 then raise exception 'Deletion erased count'; end if;
+  insert into check_results values('deletion_preserves_authored_count',true);
+end $$;
+reset role;
+select set_config('request.jwt.claims',(select json_build_object('sub',p.auth_user_id,'role','authenticated','session_id',s.id)::text from public.profiles p join auth.sessions s on s.user_id=p.auth_user_id where p.is_owner and (s.not_after is null or s.not_after>now()) limit 1),true);
+set local role authenticated;
+do $$ declare target text; begin
+  if not private.is_owner() then raise exception 'Missing owner identity'; end if;
+  select user_id into target from public.profiles where not is_owner and role='admin' limit 1;
+  update public.profiles set memo=coalesce(memo,'')||'qa',role='member' where user_id=target;
+  if not found then raise exception 'Owner update did not affect row'; end if;
+  update public.profiles set role='admin' where user_id=target;
+  insert into check_results values('owner_memo_and_role_edit_allowed',true);
+end $$;
+reset role;
+-- Freeze the same KST week boundary used by the RPC; counts exclude older weeks.
+do $$ declare start_at timestamptz; begin
+  start_at := date_trunc('week',now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul';
+  if extract(isodow from start_at at time zone 'Asia/Seoul')<>1 or (start_at at time zone 'Asia/Seoul')::time<>'00:00'::time then raise exception 'Week boundary incorrect'; end if;
+  insert into check_results values('week_starts_monday_midnight_korea',true);
+end $$;
+set local role anon;
+do $$ begin
+  begin perform * from public.weekly_counter_counts(); raise exception 'Anonymous stats permitted';
+  exception when insufficient_privilege then insert into check_results values('anonymous_stats_denied',true); end;
+end $$;
+reset role;
+select json_agg(check_results) as checks from check_results;
+rollback;
