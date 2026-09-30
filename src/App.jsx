@@ -1427,7 +1427,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                       <div>
                         <p className="text-xs font-semibold text-zinc-950">카운터덱 #{deckIndex + 1}</p>
                         <p className="mt-1 text-sm text-zinc-950">
-                          작성자: {counterAuthors?.teamId !== selectedEnemyDefense.id ? "불러오는 중…" : counterAuthors.error ? "확인 실패" : counterAuthors.names[deck.counter_id] || "기록 없음"}
+                          작성자: {counterAuthors?.teamId !== selectedEnemyDefense.id ? "불러오는 중…" : counterAuthors.error ? "확인 실패" : counterAuthors.names[deck.counter_id] || "15월"}
                         </p>
                         {counterAuthors?.teamId === selectedEnemyDefense.id && (counterAuthors.edits[deck.counter_id] || []).map((edit, index) => (
                           <p key={edit.id} className="mt-1 text-xs text-zinc-950">수정{index + 1} ({edit.nickname})</p>
