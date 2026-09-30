@@ -75,6 +75,16 @@ function splitList(value) {
     .filter(Boolean);
 }
 
+function counterRingSlots(value) {
+  // New values keep blank slots and multiline notes; legacy comma/line lists still load.
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) return Array.from({ length: 3 }, (_, i) => String(parsed[i] ?? ""));
+  } catch { /* Legacy plain text. */ }
+  const rings = splitList(value);
+  return Array.from({ length: 3 }, (_, i) => rings[i] || "");
+}
+
 function parseCounterDecks(value) {
   if (Array.isArray(value)) return value;
   if (!value) return [];
@@ -1443,7 +1453,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
             ) : (
               selectedCounterDecks.map((deck, deckIndex) => {
                 const counterHeroes = splitList(deck.heroes);
-                const counterRings = splitList(deck.rings);
+                const counterRings = counterRingSlots(deck.rings);
                 const counterGears = [deck.gear_1 || "", deck.gear_2 || "", deck.gear_3 || ""];
 
                 return (
@@ -1476,7 +1486,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                             counterHeroes.map((hero, index) => (
                               <div key={`${hero}-${index}`} className="rounded-lg border border-zinc-200 bg-white px-3 py-2">
                                 <div className="text-xs font-semibold text-zinc-800">{renderRichText(hero, "")}</div>
-                                <div className="mt-1 text-[11px] text-zinc-950">반지: {counterRings[index] || "미입력"}</div>
+                                <div className="mt-1 whitespace-pre-wrap text-[11px] text-zinc-950">반지: {counterRings[index] || "미입력"}</div>
                               </div>
                             ))
                           )}
@@ -1637,7 +1647,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
   const [form, setForm] = useState({ ...emptyEnemyDefense, ...item });
   const [counterDecks, setCounterDecks] = useState(() => {
     const parsed = parseCounterDecks(item.counter_decks);
-    if (parsed.length > 0) return parsed;
+    if (parsed.length > 0) return parsed.map((deck) => ({ ...deck, heroes: splitList(deck.heroes).join("\n") }));
 
     // 예전 단일 카운터 방식으로 저장된 데이터가 있으면 1개 카운터덱으로 변환
     if (item.counter_heroes || item.counter_rings || item.counter_speed_order || item.counter_team_speed || item.counter_gear_1 || item.counter_note) {
@@ -1677,13 +1687,18 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
   };
 
   const save = async () => {
+    if (counterDecks.some((deck) => splitList(deck.heroes).length > 3)) return alert("카운터 영웅은 한 덱에 최대 3명까지 입력해 주세요.");
     setSaving(true);
     const payload = {
       category: "enemy",
       title: form.title || "",
       heroes: form.heroes || "",
       note: form.note || "",
-      counter_decks: stringifyCounterDecks(counterDecks.map((deck) => ({ ...deck, formation: normalizedFormation(deck.formation) }))),
+      counter_decks: stringifyCounterDecks(counterDecks.map((deck) => {
+        const original = parseCounterDecks(item.counter_decks).find((old) => old.counter_id === deck.counter_id);
+        const heroes = original && JSON.stringify(splitList(original.heroes)) === JSON.stringify(splitList(deck.heroes)) ? original.heroes : deck.heroes;
+        return { ...deck, heroes, formation: normalizedFormation(deck.formation) };
+      })),
       sort_order: Number(form.sort_order) || 1,
       is_public: form.is_public !== false && form.is_public !== "false",
       updated_at: new Date().toISOString(),
@@ -1735,18 +1750,27 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
                   <div className="grid gap-4">
                     <Input label="카운터덱 이름" value={deck.title} onChange={(v) => updateDeck(deckIndex, { title: v })} />
                     <Input label="추천도 / 10점 만점" value={deck.power} onChange={(v) => updateDeck(deckIndex, { power: v })} placeholder="예: 9" />
-                    <TextArea label="추천 카운터 영웅" value={deck.heroes} onChange={(v) => updateDeck(deckIndex, { heroes: v })} rows={3} />
-                    <TextArea label="추천 카운터 반지" value={deck.rings} onChange={(v) => updateDeck(deckIndex, { rings: v })} rows={3} />
+                    <TextArea label="추천 카운터 영웅 (한 줄에 한 명, 최대 3명)" value={deck.heroes} onChange={(v) => updateDeck(deckIndex, { heroes: v })} placeholder={"카일\n란드그리드\n칼 헤론"} rows={3} />
+                    {counterHeroes.length > 3 && <p role="alert" className="text-sm text-red-600">카운터 영웅은 최대 3명까지 입력해 주세요.</p>}
+                    <div className="grid gap-4 md:grid-cols-3">
+                      {[0, 1, 2].map((heroIndex) => {
+                        const hero = counterHeroes[heroIndex] || `${heroIndex + 1}번 영웅`;
+                        return <div key={heroIndex} className="min-w-0 space-y-3 rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+                          <h5 className="text-sm font-semibold text-zinc-950">{hero}</h5>
+                          <TextArea label={`${hero} 반지`} value={counterRingSlots(deck.rings)[heroIndex]} onChange={(v) => {
+                            const rings = counterRingSlots(deck.rings);
+                            rings[heroIndex] = v;
+                            updateDeck(deckIndex, { rings: JSON.stringify(rings) });
+                          }} rows={2} />
+                          <TextArea label={`${hero} 장비세팅`} value={deck[`gear_${heroIndex + 1}`]} onChange={(v) => updateDeck(deckIndex, { [`gear_${heroIndex + 1}`]: v })} rows={4} />
+                        </div>;
+                      })}
+                    </div>
                     <Input label="추천 카운터 펫" value={deck.pet} onChange={(v) => updateDeck(deckIndex, { pet: v })} placeholder="예: 연지" />
                     <FormationField label="추천 카운터 진형" value={deck.formation} onChange={(v) => updateDeck(deckIndex, { formation: v })} />
                     <TextArea label="추천 속공순서" value={deck.speed_order} onChange={(v) => updateDeck(deckIndex, { speed_order: v })} rows={3} />
                     <Input label="추천 카운터 팀속공" value={deck.team_speed} onChange={(v) => updateDeck(deckIndex, { team_speed: v })} />
                     <TextArea label="추천 카운터 스킬순서" value={deck.skill_order} onChange={(v) => updateDeck(deckIndex, { skill_order: v })} placeholder="예: 여포1스 파이2스 여포2스" rows={3} />
-                    <div className="grid gap-4 md:grid-cols-3">
-                      <TextArea label={`추천 카운터 장비세팅 ${counterHeroes[0] || "1번 영웅"}`} value={deck.gear_1} onChange={(v) => updateDeck(deckIndex, { gear_1: v })} rows={3} />
-                      <TextArea label={`추천 카운터 장비세팅 ${counterHeroes[1] || "2번 영웅"}`} value={deck.gear_2} onChange={(v) => updateDeck(deckIndex, { gear_2: v })} rows={3} />
-                      <TextArea label={`추천 카운터 장비세팅 ${counterHeroes[2] || "3번 영웅"}`} value={deck.gear_3} onChange={(v) => updateDeck(deckIndex, { gear_3: v })} rows={3} />
-                    </div>
                     <TextArea label="그외 참고사항" value={deck.note} onChange={(v) => updateDeck(deckIndex, { note: v })} rows={4} />
                   </div>
                 </div>
@@ -2445,7 +2469,7 @@ function DeletedCounterManagement({ reloadData }) {
         <p>상대 / 팀: {renderRichText(preview.payload?.team?.title || preview.payload?.team?.heroes || '제목 없음')}</p>
         {(preview.kind === 'counter' ? [preview.payload.counter] : preview.kind === 'enemy_team' ? parseCounterDecks(preview.payload?.team?.counter_decks) : [preview.payload.team]).map((deck, index) => <div key={index} className="rounded-xl bg-zinc-50 p-4">
           <h3 className="mb-2 font-semibold">{renderRichText(deck.title || `카운터 ${index + 1}`)}</h3>
-          {Object.entries({영웅:deck.heroes,장비:deck.gears,반지:deck.rings,펫:deck.pet,진형:deck.formation,속공순서:deck.speed_order,팀속공:deck.team_speed,스킬순서:deck.skill_order,'영웅 1 장비':deck.gear_1,'영웅 2 장비':deck.gear_2,'영웅 3 장비':deck.gear_3,메모:deck.note}).filter(([,value]) => value).map(([label,value]) => <p key={label} className="mt-2 whitespace-pre-wrap"><b>{label}: </b>{renderRichText(value)}</p>)}
+          {Object.entries({영웅:deck.heroes,장비:deck.gears,반지:String(deck.rings || "").startsWith("[") ? counterRingSlots(deck.rings).map((ring,i) => ring ? `${splitList(deck.heroes)[i] || (i + 1) + "번 영웅"}: ${ring}` : "").filter(Boolean).join("\n") : deck.rings,펫:deck.pet,진형:deck.formation,속공순서:deck.speed_order,팀속공:deck.team_speed,스킬순서:deck.skill_order,'영웅 1 장비':deck.gear_1,'영웅 2 장비':deck.gear_2,'영웅 3 장비':deck.gear_3,메모:deck.note}).filter(([,value]) => value).map(([label,value]) => <p key={label} className="mt-2 whitespace-pre-wrap"><b>{label}: </b>{renderRichText(value)}</p>)}
         </div>)}
       </div>
     </Modal>}
