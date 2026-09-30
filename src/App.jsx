@@ -261,7 +261,7 @@ function Button({ children, onClick, variant = "primary", className = "", disabl
     danger: "bg-red-50 text-red-700 hover:bg-red-100",
   };
   return (
-    <button disabled={disabled} onClick={onClick} className={cx("inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50", styles[variant], className)}>
+    <button disabled={disabled} onClick={onClick} className={cx("site-button inline-flex max-w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50", styles[variant], className)}>
       {children}
     </button>
   );
@@ -426,7 +426,7 @@ function MobileHeader({ setIsOpen, currentUser, settings }) {
       <div className="flex items-center gap-2"><div className="grid h-9 w-9 place-items-center rounded-lg bg-zinc-950 text-white">
               <Snowflake size={24} strokeWidth={2.4} className="snow-sway-icon" />
             </div><div><div className="text-sm font-semibold">{renderRichText(settings.guild_name, "")}</div><div className="text-[11px] text-zinc-500">{currentUser.gameNickname}</div></div></div>
-      <div className="flex items-center gap-2"><ThemeToggle compact /><AnimeThemeMenu compact /><button aria-label="메뉴 열기" onClick={() => setIsOpen(true)} className="rounded-lg border border-zinc-200 bg-white p-2"><Menu size={20} /></button></div>
+      <div className="ml-auto flex shrink-0 items-center gap-2"><ThemeToggle compact /><AnimeThemeMenu compact /><button aria-label="메뉴 열기" onClick={() => setIsOpen(true)} className="rounded-lg border border-zinc-200 bg-white p-2"><Menu size={20} /></button></div>
     </header>
   );
 }
@@ -450,7 +450,7 @@ function Dashboard({ setActive, currentUser, users, settings, setSettings }) {
   return (
     <div>
       <section className="border-b border-zinc-200 bg-white px-4 py-8 sm:px-5 sm:py-10 md:px-8 md:py-14">
-        <div className="grid gap-6 xl:grid-cols-[1fr_360px] xl:items-start">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
           <div className="max-w-5xl">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">{renderRichText(settings.footer_text, "")}</p>
           <h1 className="mt-4 max-w-5xl break-keep text-3xl font-semibold leading-tight tracking-[-0.04em] text-zinc-950 sm:text-4xl md:text-6xl">{renderRichText(settings.site_title, "")}</h1>
@@ -974,7 +974,7 @@ function AttackTipsPage({ currentUser, settings, setSettings }) {
         <div className="space-y-4">
           {items.map((item, index) => (
             <div key={index} className="rounded-2xl border border-zinc-200 bg-white p-5 sm:p-6">
-              <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="text-sm font-semibold text-zinc-950">{index + 1}</div>
                 {items.length > 1 && <DeleteButton onConfirm={() => removeItem(index)} className="px-3 py-1.5 text-xs">삭제</DeleteButton>}
               </div>
@@ -1066,8 +1066,8 @@ function DefensePage({ currentUser, defenseTeams, setDefenseTeams, reloadData })
       </div>
       <div className="space-y-3">
         {list.map((team, index) => (
-          <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white lg:grid-cols-[220px_1fr]">
-            <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 lg:border-b-0 lg:border-r">
+          <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white xl:grid-cols-[220px_minmax(0,1fr)]">
+            <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 xl:border-b-0 xl:border-r">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold text-zinc-400">#{team.sort_order || index + 1}</p>
                 {currentUser.role === "admin" && team.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}
@@ -1087,7 +1087,7 @@ function DefensePage({ currentUser, defenseTeams, setDefenseTeams, reloadData })
                 <span>최근 수정 <b className="ml-1 text-zinc-700">{formatUpdatedAt(team.updated_at || team.created_at)}</b></span>
               </div>
             </div>
-            <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[1fr_220px] lg:items-center">
+            <div className="grid gap-5 p-4 sm:p-5 2xl:grid-cols-[minmax(0,1fr)_220px] lg:items-center">
               <div>
                 <div className="flex flex-wrap items-center gap-3"><span className="text-xs font-semibold text-zinc-950">영웅 구성</span></div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -1199,7 +1199,7 @@ function DefenseEditor({ item, onClose, onSaved }) {
           onChange={(v) => setForm({ ...form, is_public: v === "true" })}
           options={[["true", "공개"], ["false", "비공개"]]}
         />
-        <div className="flex justify-between gap-2">
+        <div className="flex flex-wrap justify-between gap-2">
           <Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>
           {!isNew && <DeleteButton onConfirm={remove}>삭제</DeleteButton>}
         </div>
@@ -1309,7 +1309,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
       />
 
       <div className="mb-5 rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5">
-        <div className="grid gap-4 lg:grid-cols-[320px_1fr] lg:items-start">
+        <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)] xl:items-start">
           <div>
             <Input
               label="상대 영웅 검색"
@@ -1323,7 +1323,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
             <GuildWarRecognition onHeroesChange={(heroes) => { setEnemyHeroSearch(heroes.filter(Boolean).join(", ")); setSelectedEnemyDefense(null); setFilter("전체"); }} />
           </div>
           <div>
-            <div className="mb-2 flex items-center justify-between gap-3">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
               <div className="text-xs font-semibold text-zinc-400">
                 {currentUser.role === "admin" && !enemyHeroSearch.trim() && showAllEnemyDefense ? "등록된 방어팀" : "검색된 방어팀"}
               </div>
@@ -1346,11 +1346,11 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
             {!enemyHeroSearch.trim() && currentUser.role !== "admin" ? null : !enemyHeroSearch.trim() && currentUser.role === "admin" && !showAllEnemyDefense ? null : searchedDefenseTeams.length === 0 ? (
               <div className="rounded-xl bg-zinc-50 p-4 text-sm text-zinc-950">검색된 방어팀이 없습니다.</div>
             ) : (
-              <div className="grid gap-2 lg:grid-cols-2">
+              <div className="defense-results-grid grid gap-3">
                 {searchedDefenseTeams.map((team) => (
                   <div
                     key={team.id}
-                    className="rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-left transition hover:border-zinc-300 hover:bg-white"
+                    className="defense-result-card min-w-0 rounded-xl border border-zinc-200 bg-zinc-50 p-4 text-left transition hover:border-zinc-300 hover:bg-white"
                   >
                     <button
                       onClick={() => {
@@ -1359,7 +1359,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                       }}
                       className="w-full text-left"
                     >
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="font-semibold text-zinc-950">{team.title}</div>
                         <div className="flex items-center gap-2">
                           {currentUser.role === "admin" && team.is_public === false && (
@@ -1387,7 +1387,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                       </div>
                     </button>
                     {currentUser.role === "admin" && (
-                      <div className="mt-3 flex gap-2">
+                      <div className="mt-3 flex flex-wrap gap-2">
                         <Button onClick={() => setEnemyDefenseEditing(team)} variant="secondary" className="px-3 py-1.5 text-xs">
                           <Pencil size={13} /> 수정
                         </Button>
@@ -1466,7 +1466,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                       </div>
                     </div>
 
-                    <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_260px]">
+                    <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_260px]">
                       <div>
                         <div className="text-xs font-semibold text-zinc-950">추천 카운터 영웅</div>
                         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -1542,8 +1542,8 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
 
       <div className="space-y-3">
         {list.map((team, index) => (
-          <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white lg:grid-cols-[220px_1fr]">
-            <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 lg:border-b-0 lg:border-r">
+          <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white xl:grid-cols-[220px_minmax(0,1fr)]">
+            <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 xl:border-b-0 xl:border-r">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold text-zinc-400">#{team.sort_order || index + 1}</p>
                 {currentUser.role === "admin" && team.is_public === false && (
@@ -1566,7 +1566,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
               )}
             </div>
 
-            <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[1fr_220px] lg:items-center">
+            <div className="grid gap-5 p-4 sm:p-5 2xl:grid-cols-[minmax(0,1fr)_220px] lg:items-center">
               <div>
                 <div className="text-xs font-semibold text-zinc-400">영웅 구성</div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -1714,7 +1714,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
         <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} />
 
         <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-          <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-semibold text-zinc-950">추천 카운터덱</h3>
               <p className="mt-1 text-xs text-zinc-500">한 상대 방어팀에 카운터덱을 여러 개 등록할 수 있습니다.</p>
@@ -1727,7 +1727,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
               const counterHeroes = splitList(deck.heroes);
               return (
                 <div key={deckIndex} className="rounded-2xl border border-zinc-200 bg-white p-4">
-                  <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <h4 className="text-sm font-semibold text-zinc-950">카운터덱 #{deckIndex + 1}</h4>
                     {counterDecks.length > 1 && <DeleteButton onConfirm={() => removeDeck(deckIndex)} className="px-3 py-1.5 text-xs">삭제</DeleteButton>}
                   </div>
@@ -1755,7 +1755,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
           </div>
         </div>
 
-        <div className="flex justify-between gap-2">
+        <div className="flex flex-wrap justify-between gap-2">
           <Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>
           {!isNew && <DeleteButton onConfirm={remove}>삭제</DeleteButton>}
         </div>
@@ -1822,7 +1822,7 @@ function AttackTeamEditor({ item, onClose, onSaved }) {
         <TextArea label="공격 핵심 메모" value={form.note} onChange={(v) => setForm({ ...form, note: v })} rows={4} />
         <Input label="정렬 순서" value={form.sort_order} onChange={(v) => setForm({ ...form, sort_order: v })} />
         <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} />
-        <div className="flex justify-between gap-2">
+        <div className="flex flex-wrap justify-between gap-2">
           <Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>
           {!isNew && <DeleteButton onConfirm={remove}>삭제</DeleteButton>}
         </div>
@@ -1876,8 +1876,8 @@ function TotalWarPage({ currentUser, totalWarTeams, setTotalWarTeams, reloadData
 
       <div className="space-y-3">
         {list.map((team, index) => (
-          <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white lg:grid-cols-[220px_1fr]">
-            <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 lg:border-b-0 lg:border-r">
+          <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white xl:grid-cols-[220px_minmax(0,1fr)]">
+            <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 xl:border-b-0 xl:border-r">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold text-zinc-400">#{team.sort_order || index + 1}</p>
                 {currentUser.role === "admin" && team.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}
@@ -1894,7 +1894,7 @@ function TotalWarPage({ currentUser, totalWarTeams, setTotalWarTeams, reloadData
               )}
             </div>
 
-            <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[1fr_240px] lg:items-start">
+            <div className="grid gap-5 p-4 sm:p-5 2xl:grid-cols-[minmax(0,1fr)_240px] lg:items-start">
               <div>
                 <div className="text-xs font-semibold text-zinc-400">영웅 구성</div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -1994,7 +1994,7 @@ function TotalWarEditor({ item, onClose, onSaved }) {
         <TextArea label="특징/메모" value={form.note} onChange={(v) => setForm({ ...form, note: v })} rows={3} />
         <Input label="정렬 순서" value={form.sort_order} onChange={(v) => setForm({ ...form, sort_order: v })} />
         <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} />
-        <div className="flex justify-between gap-2">
+        <div className="flex flex-wrap justify-between gap-2">
           <Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>
           {!isNew && <DeleteButton onConfirm={remove}>삭제</DeleteButton>}
         </div>
@@ -2048,8 +2048,8 @@ function ArenaPage({ currentUser, arenaTeams, setArenaTeams, reloadData }) {
 
       <div className="space-y-3">
         {list.map((team, index) => (
-          <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white lg:grid-cols-[220px_1fr]">
-            <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 lg:border-b-0 lg:border-r">
+          <div key={team.id} className="grid overflow-hidden rounded-2xl border border-zinc-200 bg-white xl:grid-cols-[220px_minmax(0,1fr)]">
+            <div className="border-b border-zinc-200 bg-zinc-50 p-4 sm:p-5 xl:border-b-0 xl:border-r">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-semibold text-zinc-400">#{team.sort_order || index + 1}</p>
                 {currentUser.role === "admin" && team.is_public === false && <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[10px] font-semibold text-zinc-600">비공개</span>}
@@ -2066,7 +2066,7 @@ function ArenaPage({ currentUser, arenaTeams, setArenaTeams, reloadData }) {
               )}
             </div>
 
-            <div className="grid gap-5 p-4 sm:p-5 lg:grid-cols-[1fr_240px] lg:items-start">
+            <div className="grid gap-5 p-4 sm:p-5 2xl:grid-cols-[minmax(0,1fr)_240px] lg:items-start">
               <div>
                 <div className="text-xs font-semibold text-zinc-400">영웅 구성</div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -2166,7 +2166,7 @@ function ArenaEditor({ item, onClose, onSaved }) {
         <TextArea label="특징/메모" value={form.note} onChange={(v) => setForm({ ...form, note: v })} rows={3} />
         <Input label="정렬 순서" value={form.sort_order} onChange={(v) => setForm({ ...form, sort_order: v })} />
         <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} />
-        <div className="flex justify-between gap-2">
+        <div className="flex flex-wrap justify-between gap-2">
           <Button onClick={save}><Save size={16} /> {saving ? "저장 중" : "저장"}</Button>
           {!isNew && <DeleteButton onConfirm={remove}>삭제</DeleteButton>}
         </div>
@@ -2209,7 +2209,7 @@ function NoticeEditor({ item, onClose, onSaved }) {
     if (error) return alert(error.message);
     onSaved();
   };
-  return <Modal title={isNew ? "공지 작성" : "공지 수정"} onClose={onClose}><div className="grid gap-4"><Input label="제목" value={form.title} onChange={(v) => setForm({ ...form, title: v })} /><TextArea label="내용" value={form.body} onChange={(v) => setForm({ ...form, body: v })} rows={8} /><Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} /><div className="flex justify-between gap-2"><Button onClick={save}><Save size={16} /> 저장</Button>{!isNew && <DeleteButton onConfirm={remove}>삭제</DeleteButton>}</div></div></Modal>;
+  return <Modal title={isNew ? "공지 작성" : "공지 수정"} onClose={onClose}><div className="grid gap-4"><Input label="제목" value={form.title} onChange={(v) => setForm({ ...form, title: v })} /><TextArea label="내용" value={form.body} onChange={(v) => setForm({ ...form, body: v })} rows={8} /><Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} /><div className="flex flex-wrap justify-between gap-2"><Button onClick={save}><Save size={16} /> 저장</Button>{!isNew && <DeleteButton onConfirm={remove}>삭제</DeleteButton>}</div></div></Modal>;
 }
 
 function ContentManagementPage({ settings, setSettings, reloadData }) {
@@ -2353,7 +2353,7 @@ function BackupPage() {
 }
 
 function Modal({ title, onClose, children }) {
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-3 backdrop-blur-sm sm:p-4"><div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xl sm:p-6"><div className="mb-5 flex items-center justify-between"><h2 className="text-xl font-semibold text-zinc-950">{title}</h2><button onClick={onClose} className="rounded-lg bg-zinc-100 p-2 text-zinc-500 hover:text-zinc-950"><X size={18} /></button></div>{children}</div></div>;
+  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-3 backdrop-blur-sm sm:p-4"><div className="site-modal max-h-[92dvh] w-full min-w-0 max-w-2xl overflow-y-auto rounded-2xl border border-zinc-200 bg-white p-4 shadow-2xl sm:p-6"><div className="mb-5 flex items-center justify-between"><h2 className="min-w-0 text-xl font-semibold text-zinc-950">{title}</h2><button aria-label="닫기" onClick={onClose} className="shrink-0 rounded-lg bg-zinc-100 p-2 text-zinc-500 hover:text-zinc-950"><X size={18} /></button></div>{children}</div></div>;
 }
 
 function WeeklyCounterSummary({ currentUser }) {
@@ -2558,7 +2558,7 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
       {statsError && <p role="alert" className="mb-4 text-sm text-red-600">{statsError}</p>}
 
       <section className="mb-5 rounded-2xl border border-zinc-200 bg-white p-5">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-zinc-950">그룹별 인원</h2>
           <span className="text-xs font-semibold text-zinc-400">관리자 메모 기준</span>
         </div>
@@ -2584,7 +2584,7 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
 
         {selectedGuild && (
           <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
               <div className="text-sm font-semibold text-zinc-950">{selectedGuild} 회원 목록</div>
               <button
                 onClick={() => setSelectedGuild(null)}
@@ -2622,8 +2622,8 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
 
 function MemberTable({ list, pending, updateUser, deleteUser, currentUser, weeklyCounts }) {
   return (
-    <div className="mt-4 overflow-x-auto">
-      <table className="w-full min-w-[1080px] text-left text-sm">
+    <div className="member-table-region mt-4">
+      <table className="member-table w-full text-left text-sm">
         <thead>
           <tr className="border-b border-zinc-200 text-xs font-semibold uppercase text-zinc-400">
             <th className="px-3 py-3">게임 닉네임</th>
@@ -2666,14 +2666,14 @@ function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, week
 
   return (
     <tr className="border-b border-zinc-100 align-top">
-      <td className="px-3 py-4 font-semibold text-zinc-950">{u.gameNickname}</td>
-      <td className="px-3 py-4 text-zinc-600">{u.id}</td>
-      <td className="px-3 py-4"><StatusBadge status={u.status} /></td>
-      <td className="px-3 py-4"><RoleBadge role={u.role} /></td>
-      <td className="px-3 py-4 text-xs text-zinc-500">{formatLastSeen(u.lastSeenAt)}</td>
-      <td className="px-3 py-4 font-semibold text-zinc-950">{weeklyCount === null ? "—" : `${weeklyCount}회`}</td>
-      <td className="px-3 py-4">
-        <div className="flex min-w-[220px] gap-2">
+      <td data-label="게임 닉네임" className="px-3 py-4 font-semibold text-zinc-950">{u.gameNickname}</td>
+      <td data-label="아이디" className="px-3 py-4 text-zinc-600">{u.id}</td>
+      <td data-label="상태" className="px-3 py-4"><StatusBadge status={u.status} /></td>
+      <td data-label="등급" className="px-3 py-4"><RoleBadge role={u.role} /></td>
+      <td data-label="마지막 접속" className="px-3 py-4 text-xs text-zinc-500">{formatLastSeen(u.lastSeenAt)}</td>
+      <td data-label="이번주 카운터 작성 횟수" className="px-3 py-4 font-semibold text-zinc-950">{weeklyCount === null ? "—" : `${weeklyCount}회`}</td>
+      <td data-label="관리자 메모" className="px-3 py-4">
+        <div className="member-memo flex min-w-0 gap-2">
           <input
             readOnly={!canEditMemo}
             aria-label="관리자 메모"
@@ -2687,7 +2687,7 @@ function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, week
           {canEditMemo && <Button onClick={saveMemo} variant="secondary" className="shrink-0 px-3 py-2 text-xs">저장</Button>}
         </div>
       </td>
-      <td className="px-3 py-4">
+      <td data-label="관리" className="px-3 py-4">
         <div className="flex flex-wrap justify-end gap-2">
           {pending ? (
             <>
@@ -2721,9 +2721,9 @@ function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, week
 
 function StatusBadge({ status }) {
   const style = { pending: "bg-amber-50 text-amber-700 ring-amber-200", approved: "bg-emerald-50 text-emerald-700 ring-emerald-200", rejected: "bg-zinc-100 text-zinc-600 ring-zinc-200", blocked: "bg-red-50 text-red-700 ring-red-200" }[status] || "bg-zinc-100 text-zinc-600 ring-zinc-200";
-  return <span className={cx("rounded-full px-2.5 py-1 text-xs font-medium ring-1", style)}>{statusLabel(status)}</span>;
+  return <span className={cx("inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ring-1", style)}>{statusLabel(status)}</span>;
 }
-function RoleBadge({ role }) { return <span className={cx("rounded-full px-2.5 py-1 text-xs font-medium ring-1", role === "admin" ? "bg-zinc-950 text-white ring-zinc-950" : "bg-white text-zinc-600 ring-zinc-200")}>{roleLabel(role)}</span>; }
+function RoleBadge({ role }) { return <span className={cx("inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ring-1", role === "admin" ? "bg-zinc-950 text-white ring-zinc-950" : "bg-white text-zinc-600 ring-zinc-200")}>{roleLabel(role)}</span>; }
 function EmptyState({ text }) { return <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center text-sm text-zinc-400">{text}</div>; }
 function PlaceholderPage({ title, desc }) { return <PageShell><PageHeader eyebrow="Coming Soon" title={title} desc={desc} /><EmptyState text="여기는 다음 단계에서 내용을 추가하면 됩니다." /></PageShell>; }
 

@@ -11,6 +11,37 @@ body {
   word-break: keep-all;
 }
 
+/* Let content shrink inside nested grids without clipping text or controls. */
+.site-theme { overflow-wrap: anywhere; }
+.site-theme :is(.grid, .flex) > * { min-width: 0; }
+.site-theme :is(input, textarea, select) { min-width: 0; max-width: 100%; }
+.site-theme :is(button, a) { overflow-wrap: anywhere; }
+.site-button { flex-shrink: 0; }
+.site-button svg { flex-shrink: 0; }
+.site-modal { overscroll-behavior: contain; }
+.site-modal > .flex:first-child { gap: 1rem; }
+.defense-results-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
+.defense-result-card .site-button { flex: 1 1 auto; }
+.member-table-region { container-type: inline-size; }
+.member-table { table-layout: fixed; }
+.member-table th:nth-child(7) { width: 23%; }
+.member-table th:nth-child(8) { width: 15%; }
+.member-table th:nth-child(3), .member-table th:nth-child(4) { width: 9%; }
+.member-table td { overflow-wrap: anywhere; }
+.member-memo input { flex: 1 1 0; width: 0; }
+@container (max-width: 1100px) {
+  .member-table, .member-table tbody { display: block; width: 100%; }
+  .member-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .member-table tbody { display: grid; gap: 1rem; }
+  .member-table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: .75rem; border: 1px solid #c4dfdd; border-radius: 1rem; }
+  .member-table td { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: .5rem; padding: .6rem; }
+  .member-table td::before { content: attr(data-label); font-size: .7rem; font-weight: 600; color: inherit; opacity: .7; }
+  .member-table td:nth-child(7), .member-table td:nth-child(8), .member-table td[colspan] { grid-column: 1 / -1; }
+  .member-table td > div { width: 100%; }
+  .member-table td:last-child > div { justify-content: flex-start; }
+  .member-table td[colspan]::before { display: none; }
+}
+
 /* Preserve the original Seori layout while applying the 15월 theme to site content. */
 .dark .site-theme { background: #101014; color: #f4f4f5; color-scheme: dark; }
 .dark .site-theme .bg-white { background-color: #18181b; }
@@ -212,4 +243,14 @@ body {
 .emilia .site-theme .emilia-theme-toggle { background: #eee1fa; border-color: #b59ace; color: #684188; }
 @media (max-width: 640px) {
   .emilia .site-theme .site-page-header { background-size: auto 145px; background-position: right 12px top 10px; }
+}
+
+@media (max-width: 480px) {
+  :is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .site-page-header {
+    min-height: 0;
+    padding-top: 150px;
+    background-size: auto 130px;
+    background-position: right 12px top 10px;
+  }
+  :is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .site-page-header > div { max-width: 100%; }
 }
