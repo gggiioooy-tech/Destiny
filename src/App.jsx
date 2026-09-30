@@ -334,6 +334,31 @@ function Select({ label, value, onChange, options }) {
   );
 }
 
+const formationOptions = ["기본진형", "밸런스진형", "공격진형", "보호진형"];
+
+function splitFormation(value = "") {
+  const text = String(value || "").trimStart();
+  const match = text.match(/^(기본|밸런스|공격|보호)\s*진[형헝]\s*/);
+  return match ? { type: `${match[1]}진형`, detail: text.slice(match[0].length) } : { type: "", detail: text };
+}
+
+function normalizedFormation(value) {
+  const { type, detail } = splitFormation(value);
+  return [type, detail].filter(Boolean).join(" ").trim();
+}
+
+function FormationField({ label = "진형", value, onChange }) {
+  const { type, detail } = splitFormation(value);
+  return (
+    <div className="grid gap-3">
+      <Select label={label} value={type} onChange={(next) => onChange([next, detail].filter(Boolean).join(" "))}
+        options={[["", "진형 선택"], ...formationOptions.map((name) => [name, name])]} />
+      <Input label="진형 배치 메모 (선택)" value={detail}
+        onChange={(next) => onChange(type ? `${type} ${next}` : next)} placeholder="예: 앞열 / 후열 선란, 브란즈&브란셀" />
+    </div>
+  );
+}
+
 function InfoChip({ title, desc }) {
   return <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4"><p className="text-sm font-semibold text-white">{title}</p><p className="mt-1 text-xs text-zinc-500">{desc}</p></div>;
 }
@@ -1468,7 +1493,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
 
                         <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs font-medium text-zinc-950">
                           <span>펫 <b className="ml-1 text-sm font-semibold text-zinc-800">{deck.pet || "미입력"}</b></span>
-                          <span>진형 <b className="ml-1 text-sm font-semibold text-zinc-800">{deck.formation || "미입력"}</b></span>
+                          <span>진형 <b className="ml-1 text-sm font-semibold text-zinc-800">{normalizedFormation(deck.formation) || "미입력"}</b></span>
                         </div>
 
                         <div className="mt-4 grid gap-2 sm:grid-cols-3">
@@ -1658,7 +1683,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
       title: form.title || "",
       heroes: form.heroes || "",
       note: form.note || "",
-      counter_decks: stringifyCounterDecks(counterDecks),
+      counter_decks: stringifyCounterDecks(counterDecks.map((deck) => ({ ...deck, formation: normalizedFormation(deck.formation) }))),
       sort_order: Number(form.sort_order) || 1,
       is_public: form.is_public !== false && form.is_public !== "false",
       updated_at: new Date().toISOString(),
@@ -1713,7 +1738,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
                     <TextArea label="추천 카운터 영웅" value={deck.heroes} onChange={(v) => updateDeck(deckIndex, { heroes: v })} rows={3} />
                     <TextArea label="추천 카운터 반지" value={deck.rings} onChange={(v) => updateDeck(deckIndex, { rings: v })} rows={3} />
                     <Input label="추천 카운터 펫" value={deck.pet} onChange={(v) => updateDeck(deckIndex, { pet: v })} placeholder="예: 연지" />
-                    <Input label="추천 카운터 진형" value={deck.formation} onChange={(v) => updateDeck(deckIndex, { formation: v })} placeholder="예: 공격진형 / 보호진형" />
+                    <FormationField label="추천 카운터 진형" value={deck.formation} onChange={(v) => updateDeck(deckIndex, { formation: v })} />
                     <TextArea label="추천 속공순서" value={deck.speed_order} onChange={(v) => updateDeck(deckIndex, { speed_order: v })} rows={3} />
                     <Input label="추천 카운터 팀속공" value={deck.team_speed} onChange={(v) => updateDeck(deckIndex, { team_speed: v })} />
                     <TextArea label="추천 카운터 스킬순서" value={deck.skill_order} onChange={(v) => updateDeck(deckIndex, { skill_order: v })} placeholder="예: 여포1스 파이2스 여포2스" rows={3} />
@@ -1740,7 +1765,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
 }
 
 function AttackTeamEditor({ item, onClose, onSaved }) {
-  const [form, setForm] = useState({ ...emptyAttackTeam, ...item });
+  const [form, setForm] = useState({ ...emptyAttackTeam, ...item, formation: normalizedFormation(item.formation) });
   const [saving, setSaving] = useState(false);
   const isNew = !item.id;
 
@@ -1790,7 +1815,7 @@ function AttackTeamEditor({ item, onClose, onSaved }) {
         <TextArea label="영웅별 반지" value={form.rings} onChange={(v) => setForm({ ...form, rings: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} />
         <TextArea label="영웅별 장비세팅" value={form.gears} onChange={(v) => setForm({ ...form, gears: v })} placeholder="영웅 순서에 맞춰 쉼표 또는 줄바꿈으로 입력" rows={3} />
         <Input label="펫" value={form.pet} onChange={(v) => setForm({ ...form, pet: v })} placeholder="예: 연지" />
-        <Input label="진형" value={form.formation} onChange={(v) => setForm({ ...form, formation: v })} placeholder="예: 공격진형 / 보호진형" />
+        <FormationField value={form.formation} onChange={(v) => setForm({ ...form, formation: v })} />
         <TextArea label="속공순서 추천" value={form.speed_order} onChange={(v) => setForm({ ...form, speed_order: v })} placeholder="예: 여포 → 칼헤론 → 란드그리드" rows={3} />
         <TextArea label="팀속공 추천" value={form.team_speed} onChange={(v) => setForm({ ...form, team_speed: v })} placeholder="예: 팀속공 232 이상" rows={3} />
         <TextArea label="스킬순서" value={form.skill_order} onChange={(v) => setForm({ ...form, skill_order: v })} placeholder="예: 여포1스 파이2스 여포2스" rows={3} />
