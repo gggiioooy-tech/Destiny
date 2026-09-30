@@ -1,5 +1,7 @@
 import { ThemeToggle, AnimeThemeMenu } from "./components/ThemeProvider.jsx";
 import GuildWarRecognition from "./components/GuildWarRecognition.jsx";
+import { CounterOrderFields, CounterOrderDisplay } from "./components/CounterOrderFields.jsx";
+import { parseCounterOrder, describeCounterOrder } from "./lib/counterOrders.js";
 import { matchesHeroSearch, matchesEnemyTeamSearch, searchTokens } from "./lib/heroSearch.js";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./lib/supabase.js";
@@ -1507,17 +1509,17 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                         </div>
 
                         <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                          <div className="rounded-xl bg-white p-4 text-sm leading-6 text-zinc-950 ring-1 ring-zinc-200">
+                          <div className="sm:col-span-3 rounded-xl bg-white p-4 text-sm leading-6 text-zinc-950 ring-1 ring-zinc-200">
                             <div className="mb-1 text-xs font-semibold text-zinc-950">추천 속공순서</div>
-                            <div className="whitespace-pre-wrap">{renderRichText(deck.speed_order, "미입력")}</div>
+                            <CounterOrderDisplay heroes={counterHeroes} value={deck.speed_order} kind="speed" />
                           </div>
                           <div className="rounded-xl bg-white p-4 text-sm leading-6 text-zinc-950 ring-1 ring-zinc-200">
                             <div className="mb-1 text-xs font-semibold text-zinc-950">추천 카운터 팀속공</div>
                             <div className="whitespace-pre-wrap">{renderRichText(deck.team_speed, "미입력")}</div>
                           </div>
-                          <div className="rounded-xl bg-white p-4 text-sm leading-6 text-zinc-950 ring-1 ring-zinc-200">
+                          <div className="sm:col-span-3 rounded-xl bg-white p-4 text-sm leading-6 text-zinc-950 ring-1 ring-zinc-200">
                             <div className="mb-1 text-xs font-semibold text-zinc-950">추천 카운터 스킬순서</div>
-                            <div className="whitespace-pre-wrap">{renderRichText(deck.skill_order, "미입력")}</div>
+                            <CounterOrderDisplay heroes={counterHeroes} value={deck.skill_order} kind="skill" />
                           </div>
                         </div>
                       </div>
@@ -1688,6 +1690,14 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
 
   const save = async () => {
     if (counterDecks.some((deck) => splitList(deck.heroes).length > 3)) return alert("카운터 영웅은 한 덱에 최대 3명까지 입력해 주세요.");
+    for (const deck of counterDecks) {
+      const heroes = splitList(deck.heroes);
+      const speed = parseCounterOrder(deck.speed_order, heroes, "speed").steps.filter(Boolean);
+      const skills = parseCounterOrder(deck.skill_order, heroes, "skill").steps;
+      if (speed.some(hero => !heroes.includes(hero)) || new Set(speed).size !== speed.length || skills.some(step => (step.hero && !heroes.includes(step.hero)) || Boolean(step.hero) !== Boolean(step.skill))) {
+        return alert("입력한 카운터 영웅에 맞게 속공·스킬순서를 확인해 주세요. 스킬순서는 영웅과 스킬을 함께 선택해야 합니다.");
+      }
+    }
     setSaving(true);
     const payload = {
       category: "enemy",
@@ -1768,9 +1778,9 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
                     </div>
                     <Input label="추천 카운터 펫" value={deck.pet} onChange={(v) => updateDeck(deckIndex, { pet: v })} placeholder="예: 연지" />
                     <FormationField label="추천 카운터 진형" value={deck.formation} onChange={(v) => updateDeck(deckIndex, { formation: v })} />
-                    <TextArea label="추천 속공순서" value={deck.speed_order} onChange={(v) => updateDeck(deckIndex, { speed_order: v })} rows={3} />
+                    <CounterOrderFields heroes={counterHeroes.slice(0, 3)} value={deck.speed_order} kind="speed" onChange={(v) => updateDeck(deckIndex, { speed_order: v })} />
                     <Input label="추천 카운터 팀속공" value={deck.team_speed} onChange={(v) => updateDeck(deckIndex, { team_speed: v })} />
-                    <TextArea label="추천 카운터 스킬순서" value={deck.skill_order} onChange={(v) => updateDeck(deckIndex, { skill_order: v })} placeholder="예: 여포1스 파이2스 여포2스" rows={3} />
+                    <CounterOrderFields heroes={counterHeroes.slice(0, 3)} value={deck.skill_order} kind="skill" onChange={(v) => updateDeck(deckIndex, { skill_order: v })} />
                     <TextArea label="그외 참고사항" value={deck.note} onChange={(v) => updateDeck(deckIndex, { note: v })} rows={4} />
                   </div>
                 </div>
@@ -2469,7 +2479,7 @@ function DeletedCounterManagement({ reloadData }) {
         <p>상대 / 팀: {renderRichText(preview.payload?.team?.title || preview.payload?.team?.heroes || '제목 없음')}</p>
         {(preview.kind === 'counter' ? [preview.payload.counter] : preview.kind === 'enemy_team' ? parseCounterDecks(preview.payload?.team?.counter_decks) : [preview.payload.team]).map((deck, index) => <div key={index} className="rounded-xl bg-zinc-50 p-4">
           <h3 className="mb-2 font-semibold">{renderRichText(deck.title || `카운터 ${index + 1}`)}</h3>
-          {Object.entries({영웅:deck.heroes,장비:deck.gears,반지:String(deck.rings || "").startsWith("[") ? counterRingSlots(deck.rings).map((ring,i) => ring ? `${splitList(deck.heroes)[i] || (i + 1) + "번 영웅"}: ${ring}` : "").filter(Boolean).join("\n") : deck.rings,펫:deck.pet,진형:deck.formation,속공순서:deck.speed_order,팀속공:deck.team_speed,스킬순서:deck.skill_order,'영웅 1 장비':deck.gear_1,'영웅 2 장비':deck.gear_2,'영웅 3 장비':deck.gear_3,메모:deck.note}).filter(([,value]) => value).map(([label,value]) => <p key={label} className="mt-2 whitespace-pre-wrap"><b>{label}: </b>{renderRichText(value)}</p>)}
+          {Object.entries({영웅:deck.heroes,장비:deck.gears,반지:String(deck.rings || "").startsWith("[") ? counterRingSlots(deck.rings).map((ring,i) => ring ? `${splitList(deck.heroes)[i] || (i + 1) + "번 영웅"}: ${ring}` : "").filter(Boolean).join("\n") : deck.rings,펫:deck.pet,진형:deck.formation,속공순서:describeCounterOrder(deck.speed_order,splitList(deck.heroes),"speed"),팀속공:deck.team_speed,스킬순서:describeCounterOrder(deck.skill_order,splitList(deck.heroes),"skill"),'영웅 1 장비':deck.gear_1,'영웅 2 장비':deck.gear_2,'영웅 3 장비':deck.gear_3,메모:deck.note}).filter(([,value]) => value).map(([label,value]) => <p key={label} className="mt-2 whitespace-pre-wrap"><b>{label}: </b>{renderRichText(value)}</p>)}
         </div>)}
       </div>
     </Modal>}
