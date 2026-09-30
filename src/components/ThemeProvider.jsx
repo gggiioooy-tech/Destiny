@@ -2,12 +2,25 @@ import React, { createContext, useContext, useEffect, useState, useId } from 're
 import { Moon, Sun, Sparkles, Snowflake, Waves, WandSparkles } from 'lucide-react';
 const ThemeContext = createContext(null);
 const STORAGE_KEY = '15month_theme';
+const TRANSPARENCY_KEY = '15month_transparency';
+function initialTransparency() {
+  try {
+    const saved = localStorage.getItem(TRANSPARENCY_KEY);
+    if (saved !== null && saved.trim() !== '' && Number.isFinite(Number(saved))) return Math.min(100, Math.max(0, Math.round(Number(saved))));
+  } catch {}
+  return 40;
+}
 function initialTheme() {
   try { const saved = localStorage.getItem(STORAGE_KEY); if (saved === 'light' || saved === 'dark' || saved === 'miku' || saved === 'alya' || saved === 'marciana' || saved === 'elaina' || saved === 'yuno' || saved === 'emilia') return saved; } catch {}
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(initialTheme);
+  const [transparency, setTransparency] = useState(initialTransparency);
+  useEffect(() => {
+    document.documentElement.style.setProperty('--panel-alpha', String(1 - transparency / 100));
+    try { localStorage.setItem(TRANSPARENCY_KEY, String(transparency)); } catch {}
+  }, [transparency]);
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
     document.documentElement.classList.toggle('miku', theme === 'miku');
@@ -19,7 +32,19 @@ export function ThemeProvider({ children }) {
     document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
     try { localStorage.setItem(STORAGE_KEY, theme); } catch {}
   }, [theme]);
-  return <ThemeContext.Provider value={{ theme, toggleEmilia: () => setTheme(value => value === 'emilia' ? 'light' : 'emilia'), toggleYuno: () => setTheme(value => value === 'yuno' ? 'light' : 'yuno'), toggleElaina: () => setTheme(value => value === 'elaina' ? 'light' : 'elaina'), toggleMarciana: () => setTheme(value => value === 'marciana' ? 'light' : 'marciana'), toggleAlya: () => setTheme(value => value === 'alya' ? 'light' : 'alya'), toggleMiku: () => setTheme(value => value === 'miku' ? 'light' : 'miku'), toggle: () => setTheme(value => value === 'dark' ? 'light' : 'dark') }}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={{ theme, transparency, setTransparency, toggleEmilia: () => setTheme(value => value === 'emilia' ? 'light' : 'emilia'), toggleYuno: () => setTheme(value => value === 'yuno' ? 'light' : 'yuno'), toggleElaina: () => setTheme(value => value === 'elaina' ? 'light' : 'elaina'), toggleMarciana: () => setTheme(value => value === 'marciana' ? 'light' : 'marciana'), toggleAlya: () => setTheme(value => value === 'alya' ? 'light' : 'alya'), toggleMiku: () => setTheme(value => value === 'miku' ? 'light' : 'miku'), toggle: () => setTheme(value => value === 'dark' ? 'light' : 'dark') }}>{children}</ThemeContext.Provider>;
+}
+export function TransparencyControl({ className = '' }) {
+  const { transparency, setTransparency } = useContext(ThemeContext);
+  const id = useId();
+  return <div className={`rounded-xl border border-zinc-200 bg-white p-3 ${className}`}>
+    <div className="flex items-center justify-between gap-2 text-xs font-semibold text-zinc-700">
+      <label htmlFor={id}>배경 투명도</label><output htmlFor={id}>{transparency}%</output>
+    </div>
+    <input id={id} type="range" min="0" max="100" step="1" value={transparency} onChange={e => setTransparency(Number(e.target.value))}
+      className="mt-3 block w-full cursor-pointer accent-blue-600" />
+    <div className="mt-1 flex justify-between text-[10px] text-zinc-500"><span>불투명</span><span>투명</span></div>
+  </div>;
 }
 export function ThemeToggle({ compact = false, className = '' }) {
   const { theme, toggle } = useContext(ThemeContext);
@@ -70,6 +95,7 @@ export function AnimeThemeMenu({ compact = false, className = '' }) {
       <Sparkles size={17} />씹덕모드<span aria-hidden="true">{open ? '▴' : '▾'}</span>
     </button>
     {open && <div id={id} className={compact ? 'absolute right-0 top-full z-50 mt-2 grid max-h-[70vh] overflow-y-auto w-56 gap-2 rounded-2xl border border-zinc-200 bg-white p-3 shadow-lg' : 'mt-2 grid gap-2'}>
+      {compact && <TransparencyControl />}
       <MikuThemeToggle className="w-full" />
       <AlyaThemeToggle className="w-full" />
       <MarcianaThemeToggle className="w-full" />

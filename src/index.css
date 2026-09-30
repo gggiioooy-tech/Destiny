@@ -254,3 +254,14 @@ body {
   }
   :is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .site-page-header > div { max-width: 100%; }
 }
+
+/* Change panel fills only: text, icons and theme illustrations stay fully visible. */
+:root { --panel-alpha: .6; --panel-rgb: 255 255 255; --muted-panel-rgb: 244 244 245; --header-panel-rgb: 255 255 255; }
+:root.dark { --panel-rgb: 24 24 27; --muted-panel-rgb: 39 39 42; --header-panel-rgb: 24 24 27; }
+:root:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) { --panel-rgb: 250 255 254; --muted-panel-rgb: 230 246 245; --header-panel-rgb: 235 240 251; }
+:root .site-theme :is(.bg-white, .bg-white\/90),
+:root .site-theme aside.bg-white { background-color: rgb(var(--panel-rgb) / var(--panel-alpha)); }
+:root .site-theme :is(.bg-zinc-50, .bg-zinc-50\/60, .bg-zinc-100, .bg-zinc-200) { background-color: rgb(var(--muted-panel-rgb) / var(--panel-alpha)); }
+:root .site-theme .site-page-header { background-color: rgb(var(--header-panel-rgb) / var(--panel-alpha)); }
+/* Native option menus must remain legible while a transparent select is open. */
+.site-theme select option { background-color: rgb(var(--panel-rgb)); }

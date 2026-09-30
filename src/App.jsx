@@ -1,4 +1,4 @@
-import { ThemeToggle, AnimeThemeMenu } from "./components/ThemeProvider.jsx";
+import { ThemeToggle, AnimeThemeMenu, TransparencyControl } from "./components/ThemeProvider.jsx";
 import GuildWarRecognition from "./components/GuildWarRecognition.jsx";
 import { CounterOrderFields, CounterOrderDisplay } from "./components/CounterOrderFields.jsx";
 import { parseCounterOrder, describeCounterOrder } from "./lib/counterOrders.js";
@@ -424,6 +424,7 @@ function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, se
             <WeeklyCounterSummary currentUser={currentUser} />
           </div>
           <Button onClick={logout} variant="secondary" className="mt-3 w-full"><LogOut size={16} /> 로그아웃</Button>
+          <TransparencyControl className="mt-3" />
           <ThemeToggle className="mt-3 w-full" />
           <AnimeThemeMenu className="mt-2 w-full" />
         </div>
