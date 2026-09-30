@@ -1205,12 +1205,13 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
     let cancelled = false;
     setCounterAuthors(null);
     if (!selectedEnemyDefense?.id) return;
-    supabase.rpc("counter_author_nicknames", { team_id: selectedEnemyDefense.id })
+    supabase.rpc("counter_attribution", { team_id: selectedEnemyDefense.id })
       .then(({ data, error }) => {
         if (!cancelled) setCounterAuthors({
           teamId: selectedEnemyDefense.id,
           error: Boolean(error),
           names: Object.fromEntries((data || []).map((row) => [row.counter_id, row.nickname])),
+          edits: Object.fromEntries((data || []).map((row) => [row.counter_id, row.edits || []])),
         });
       });
     return () => { cancelled = true; };
@@ -1428,6 +1429,9 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                         <p className="mt-1 text-sm text-zinc-950">
                           작성자: {counterAuthors?.teamId !== selectedEnemyDefense.id ? "불러오는 중…" : counterAuthors.error ? "확인 실패" : counterAuthors.names[deck.counter_id] || "기록 없음"}
                         </p>
+                        {counterAuthors?.teamId === selectedEnemyDefense.id && (counterAuthors.edits[deck.counter_id] || []).map((edit, index) => (
+                          <p key={edit.id} className="mt-1 text-xs text-zinc-950">수정{index + 1} ({edit.nickname})</p>
+                        ))}
                         <h3 className="mt-1 text-lg font-semibold text-zinc-950">
                           {renderRichText(deck.title || `카운터덱 ${deckIndex + 1}`, "")}
                         </h3>
