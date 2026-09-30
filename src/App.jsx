@@ -1199,6 +1199,22 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
   const [showAllEnemyDefense, setShowAllEnemyDefense] = useState(false);
   const [enemyDefenseEditing, setEnemyDefenseEditing] = useState(null);
   const [selectedEnemyDefense, setSelectedEnemyDefense] = useState(null);
+  const [counterAuthors, setCounterAuthors] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCounterAuthors(null);
+    if (!selectedEnemyDefense?.id) return;
+    supabase.rpc("counter_author_nicknames", { team_id: selectedEnemyDefense.id })
+      .then(({ data, error }) => {
+        if (!cancelled) setCounterAuthors({
+          teamId: selectedEnemyDefense.id,
+          error: Boolean(error),
+          names: Object.fromEntries((data || []).map((row) => [row.counter_id, row.nickname])),
+        });
+      });
+    return () => { cancelled = true; };
+  }, [selectedEnemyDefense, currentUser.authUserId]);
 
   const enemyTypes = ["전체", ...Array.from(new Set(attackTeams.map((team) => team.enemy_type).filter(Boolean)))];
   const list = attackTeams
@@ -1409,6 +1425,9 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-xs font-semibold text-zinc-950">카운터덱 #{deckIndex + 1}</p>
+                        <p className="mt-1 text-sm text-zinc-950">
+                          작성자: {counterAuthors?.teamId !== selectedEnemyDefense.id ? "불러오는 중…" : counterAuthors.error ? "확인 실패" : counterAuthors.names[deck.counter_id] || "기록 없음"}
+                        </p>
                         <h3 className="mt-1 text-lg font-semibold text-zinc-950">
                           {renderRichText(deck.title || `카운터덱 ${deckIndex + 1}`, "")}
                         </h3>
