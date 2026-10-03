@@ -3,6 +3,7 @@ import GuildWarRecognition from "./components/GuildWarRecognition.jsx";
 import { CounterOrderFields, CounterOrderDisplay } from "./components/CounterOrderFields.jsx";
 import { parseCounterOrder, describeCounterOrder } from "./lib/counterOrders.js";
 import { matchesHeroSearch, matchesEnemyTeamSearch, searchTokens } from "./lib/heroSearch.js";
+import { sortByRecommendation } from "./lib/recommendationSort.js";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./lib/supabase.js";
 import { SecureAuth, PasswordChange } from "./components/SecureAuth.jsx";
@@ -1290,7 +1291,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
   const selectedCounterDecks = selectedEnemyDefense
     ? (() => {
         const parsed = parseCounterDecks(selectedEnemyDefense.counter_decks);
-        if (parsed.length > 0) return parsed;
+        if (parsed.length > 0) return sortByRecommendation(parsed);
         return [];
       })()
     : [];
