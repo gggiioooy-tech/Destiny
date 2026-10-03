@@ -1492,7 +1492,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
 
                 return (
                   <div key={deckIndex} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="grid items-center gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
                       <div className="min-w-0">
                         <p className="text-xs font-semibold text-zinc-950">카운터덱 #{deckIndex + 1}</p>
                         <p className="mt-1 text-sm text-zinc-950">
@@ -1508,7 +1508,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                           추천도 <span className="text-zinc-800">{deck.power || "0"}/10</span>
                         </p>
                       </div>
-                      <p className="ml-auto max-w-full break-keep text-right text-lg font-semibold leading-relaxed text-zinc-950 sm:max-w-[65%] sm:text-xl">
+                      <p className="break-keep px-3 py-3 text-center text-lg font-normal leading-relaxed tracking-[-0.02em] text-zinc-700 sm:px-6 sm:py-5 sm:text-xl">
                         {splitList(selectedEnemyDefense.heroes).join(" ") || selectedEnemyDefense.title || "상대 방어팀"} 카운터치는 법
                       </p>
                     </div>
