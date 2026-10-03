@@ -1508,7 +1508,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                           추천도 <span className="text-zinc-800">{deck.power || "0"}/10</span>
                         </p>
                       </div>
-                      <p className="break-keep px-3 py-3 text-center text-lg font-normal leading-relaxed tracking-[-0.02em] text-zinc-700 sm:px-6 sm:py-5 sm:text-xl">
+                      <p className="counter-guide-heading break-keep px-3 py-3 text-center text-lg font-normal leading-relaxed text-zinc-700 sm:px-6 sm:py-5 sm:text-xl">
                         {splitList(selectedEnemyDefense.heroes).join(" ") || selectedEnemyDefense.title || "상대 방어팀"} 카운터치는 법
                       </p>
                     </div>
