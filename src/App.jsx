@@ -1244,6 +1244,26 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
   const [enemyDefenseEditing, setEnemyDefenseEditing] = useState(null);
   const [selectedEnemyDefense, setSelectedEnemyDefense] = useState(null);
   const [counterAuthors, setCounterAuthors] = useState(null);
+  const [promoting, setPromoting] = useState(null);
+  const [promotionMessage, setPromotionMessage] = useState("");
+  const promoteTeam = async (team, kind = "enemy") => {
+    if (promoting) return;
+    setPromoting(team.id);
+    setPromotionMessage("");
+    try {
+      const { data, error } = await supabase.rpc("promote_temporary_attack_team", { team_id: team.id, team_kind: kind });
+      if (error) throw error;
+      setSelectedEnemyDefense(null);
+      await reloadData();
+      setPromotionMessage(data?.merged
+        ? `공격팀으로 승급했습니다. 기존 카운터덱은 유지하고 ${data.added_count}개의 카운터덱을 추가했습니다.`
+        : "공격팀으로 승급했습니다.");
+    } catch (error) {
+      alert(`승급 실패: ${error.message}`);
+    } finally {
+      setPromoting(null);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -1327,6 +1347,9 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
         desc={pageDescription}
       />
 
+      {temporary && <p className="mb-4 text-sm text-zinc-500">승급하면 공격팀으로 이동합니다. 같은 상대 영웅 구성의 방어팀이 있으면 기존 카운터덱을 유지하고 추가합니다.</p>}
+      {promotionMessage && <div role="status" className="mb-4 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{promotionMessage}</div>}
+
       <div className="mb-5 rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5">
         <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)] xl:items-start">
           <div>
@@ -1407,6 +1430,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                     </button>
                     {currentUser.role === "admin" && (
                       <div className="mt-3 flex flex-wrap gap-2">
+                        {temporary && <Button onClick={() => promoteTeam(team)} disabled={Boolean(promoting)} className="px-3 py-1.5 text-xs">{promoting === team.id ? "승급 중…" : "승급"}</Button>}
                         <Button onClick={() => setEnemyDefenseEditing(team)} variant="secondary" className="px-3 py-1.5 text-xs">
                           <Pencil size={13} /> 수정
                         </Button>
@@ -1579,6 +1603,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
               </div>
               {currentUser.role === "admin" && (
                 <div className="mt-4 flex flex-wrap gap-2">
+                  {temporary && <Button onClick={() => promoteTeam(team, "attack")} disabled={Boolean(promoting)}>{promoting === team.id ? "승급 중…" : "승급"}</Button>}
                   <Button onClick={() => setEditing(team)} variant="secondary"><Pencil size={14} /> 수정</Button>
                   <DeleteButton onConfirm={() => deleteAttackTeam(team)}>삭제</DeleteButton>
                 </div>
@@ -1745,7 +1770,6 @@ function EnemyDefenseEditor({ item, onClose, onSaved, temporary = false }) {
     <Modal title={isNew ? "상대 방어팀 추가" : "상대 방어팀 수정"} onClose={onClose}>
       <div className="grid gap-4">
         <Input label="상대 방어팀" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="예: 여포 방어팀" />
-        <Select label="게시 위치" value={String(form.is_temporary === true)} onChange={(v) => setForm({ ...form, is_temporary: v === "true" })} options={[["false", "공격팀"], ["true", "임시 공격팀"]]} />
         <TextArea label="상대 영웅" value={form.heroes} onChange={(v) => setForm({ ...form, heroes: v })} placeholder="쉼표 또는 줄바꿈으로 구분" rows={3} />
         <Input label="상대 속공" value={form.note} onChange={(v) => setForm({ ...form, note: v })} placeholder="예: 232" />
         <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} />
@@ -1856,7 +1880,6 @@ function AttackTeamEditor({ item, onClose, onSaved, temporary = false }) {
     <Modal title={isNew ? "공격팀 추가" : "공격팀 수정"} onClose={onClose}>
       <div className="grid gap-4">
         <Input label="상대 방어팀" value={form.enemy_type} onChange={(v) => setForm({ ...form, enemy_type: v })} placeholder="예: 오공덱" />
-        <Select label="게시 위치" value={String(form.is_temporary === true)} onChange={(v) => setForm({ ...form, is_temporary: v === "true" })} options={[["false", "공격팀"], ["true", "임시 공격팀"]]} />
         <Input label="제목" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="예: 오공덱 상대 공덱" />
         <Input label="추천도 / 10점 만점" value={form.power} onChange={(v) => setForm({ ...form, power: v })} placeholder="예: 9" />
         <TextArea label="공격 영웅명" value={form.heroes} onChange={(v) => setForm({ ...form, heroes: v })} placeholder="쉼표 또는 줄바꿈으로 구분" rows={3} />
