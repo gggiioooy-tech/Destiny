@@ -52,7 +52,7 @@ const FALLBACK_SETTINGS = {
 const navItems = [
   { id: "board", label: "자유게시판", icon: ScrollText, visibleTo: ["member", "admin"] },
   { id: "attack", label: "공격팀", icon: Swords, visibleTo: ["guest", "member", "admin"] },
-  { id: "temporaryAttack", label: "임시 공격팀", icon: Swords, visibleTo: ["guest", "member", "admin"] },
+  { id: "temporaryAttack", label: "휴지통", icon: Trash2, visibleTo: ["guest", "member", "admin"] },
   { id: "members", label: "회원 관리", icon: Users, visibleTo: ["admin"] },
   { id: "deleted", label: "삭제정보관리", icon: Trash2, visibleTo: ["admin"], ownerOnly: true },
 ];
@@ -1224,10 +1224,10 @@ function DefenseEditor({ item, onClose, onSaved }) {
 }
 
 function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeams, setEnemyDefenseTeams, reloadData, temporary = false }) {
-  const pageTitle = temporary ? "임시 공격팀" : "공격팀";
-  const pageEyebrow = temporary ? "Temporary Attack Team" : "Attack Team";
+  const pageTitle = temporary ? "휴지통" : "공격팀";
+  const pageEyebrow = temporary ? "Recycle Bin" : "Attack Team";
   const pageDescription = temporary
-    ? "상대 방어팀별 공격 조합을 임시로 기재하는 페이지입니다. 테스트 후 정식 공격팀으로 옮겨지거나 삭제될 수 있습니다."
+    ? "공격팀에서 폐기한 카운터덱을 보관하는 페이지입니다. 승급하면 기존 카운터덱을 유지한 채 공격팀으로 복구됩니다."
     : "상대 방어팀별 공격 조합과 속공 기준을 정리하는 페이지입니다.";
   if (isGuest(currentUser)) {
     return (
@@ -1241,7 +1241,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
   const [filter, setFilter] = useState("전체");
   const [editing, setEditing] = useState(null);
   const [enemyHeroSearch, setEnemyHeroSearch] = useState("");
-  const [showAllEnemyDefense, setShowAllEnemyDefense] = useState(false);
+  const [showAllEnemyDefense, setShowAllEnemyDefense] = useState(temporary);
   const [enemyDefenseEditing, setEnemyDefenseEditing] = useState(null);
   const [selectedEnemyDefense, setSelectedEnemyDefense] = useState(null);
   const [counterAuthors, setCounterAuthors] = useState(null);
@@ -1252,15 +1252,39 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
     setPromoting(team.id);
     setPromotionMessage("");
     try {
-      const { data, error } = await supabase.rpc("promote_temporary_attack_team", { team_id: team.id, team_kind: kind });
+      const { data, error } = kind === "enemy"
+        ? await supabase.rpc("recycle_counter_deck", { team_id: team.id, restore: true })
+        : await supabase.rpc("promote_temporary_attack_team", { team_id: team.id, team_kind: kind });
       if (error) throw error;
       setSelectedEnemyDefense(null);
       await reloadData();
-      setPromotionMessage(data?.merged
-        ? `공격팀으로 승급했습니다. 기존 카운터덱은 유지하고 ${data.added_count}개의 카운터덱을 추가했습니다.`
+      setPromotionMessage(kind === "enemy"
+        ? `공격팀으로 승급했습니다. 기존 카운터덱은 유지하고 ${data.moved_count}개의 카운터덱을 복구했습니다.`
         : "공격팀으로 승급했습니다.");
     } catch (error) {
       alert(`승급 실패: ${error.message}`);
+    } finally {
+      setPromoting(null);
+    }
+  };
+
+  const moveCounterDeck = async (team, deck) => {
+    if (promoting) return;
+    setPromoting(deck.counter_id);
+    setPromotionMessage("");
+    try {
+      const { data, error } = await supabase.rpc("recycle_counter_deck", {
+        team_id: team.id, deck_id: deck.counter_id, restore: temporary,
+      });
+      if (error) throw error;
+      const { data: refreshedTeam, error: refreshError } = await supabase.from("enemy_defense_teams").select("*").eq("id", team.id).maybeSingle();
+      setSelectedEnemyDefense(refreshError || data.remaining_count === 0 ? null : refreshedTeam);
+      await reloadData();
+      setPromotionMessage(temporary
+        ? "카운터덱을 공격팀으로 승급했습니다. 기존 카운터덱은 그대로 유지됩니다."
+        : "카운터덱을 휴지통으로 옮겼습니다. 공격팀 검색에서 제외되며, 휴지통에서 승급하면 복구할 수 있습니다.");
+    } catch (error) {
+      alert(`${temporary ? "승급" : "폐기"} 실패: ${error.message}`);
     } finally {
       setPromoting(null);
     }
@@ -1303,7 +1327,8 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
 
   const searchedDefenseTeams = [...baseEnemyDefenseTeams]
     .filter((team) => {
-      if (!enemySearchKeyword) return currentUser.role === "admin" && showAllEnemyDefense;
+      if (!enemySearchKeyword) return temporary || (currentUser.role === "admin" && showAllEnemyDefense);
+      if (!temporary && parseCounterDecks(team.counter_decks).length === 0) return false;
       return matchesEnemyTeamSearch(team, enemySearchKeyword);
     })
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
@@ -1348,7 +1373,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
         desc={pageDescription}
       />
 
-      {temporary && <p className="mb-4 text-sm text-zinc-500">승급하면 공격팀으로 이동합니다. 같은 상대 영웅 구성의 방어팀이 있으면 기존 카운터덱을 유지하고 추가합니다.</p>}
+      {temporary && <p className="mb-4 text-sm text-zinc-500">카운터덱별로 승급하면 공격팀으로 복구됩니다. 전체 승급은 해당 상대 방어팀의 카운터덱을 모두 복구합니다.</p>}
       {promotionMessage && <div role="status" className="mb-4 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{promotionMessage}</div>}
 
       <div className="mb-5 rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5">
@@ -1368,26 +1393,26 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
           <div>
             <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
               <div className="text-xs font-semibold text-zinc-400">
-                {currentUser.role === "admin" && !enemyHeroSearch.trim() && showAllEnemyDefense ? "등록된 방어팀" : "검색된 방어팀"}
+                {temporary ? "폐기된 카운터덱" : currentUser.role === "admin" && !enemyHeroSearch.trim() && showAllEnemyDefense ? "등록된 방어팀" : "검색된 방어팀"}
               </div>
               {currentUser.role === "admin" && (
                 <div className="flex flex-wrap gap-2">
-                  <Button onClick={() => setShowAllEnemyDefense((v) => !v)} variant="secondary" className="px-3 py-1.5 text-xs">
+                  {!temporary && <Button onClick={() => setShowAllEnemyDefense((v) => !v)} variant="secondary" className="px-3 py-1.5 text-xs">
                     {showAllEnemyDefense ? "상대방어팀 일괄보기 닫기" : "상대방어팀 일괄보기"}
-                  </Button>
-                  <Button
+                  </Button>}
+                  {!temporary && <Button
                     onClick={() => setEnemyDefenseEditing({ ...emptyEnemyDefense, sort_order: enemyDefenseTeams.length + 1 })}
                     variant="secondary"
                     className="px-3 py-1.5 text-xs"
                   >
                     <Plus size={14} /> 상대 방어팀 추가
-                  </Button>
+                  </Button>}
                 </div>
               )}
             </div>
 
-            {!enemyHeroSearch.trim() && currentUser.role !== "admin" ? null : !enemyHeroSearch.trim() && currentUser.role === "admin" && !showAllEnemyDefense ? null : searchedDefenseTeams.length === 0 ? (
-              <div className="rounded-xl bg-zinc-50 p-4 text-sm text-zinc-950">검색된 방어팀이 없습니다.</div>
+            {!temporary && !enemyHeroSearch.trim() && currentUser.role !== "admin" ? null : !enemyHeroSearch.trim() && currentUser.role === "admin" && !showAllEnemyDefense ? null : searchedDefenseTeams.length === 0 ? (
+              <div className="rounded-xl bg-zinc-50 p-4 text-sm text-zinc-950">{temporary ? enemySearchKeyword ? "검색된 폐기 카운터덱이 없습니다." : "휴지통이 비어 있습니다." : "검색된 방어팀이 없습니다."}</div>
             ) : (
               <div className="defense-results-grid grid gap-3">
                 {searchedDefenseTeams.map((team) => (
@@ -1431,7 +1456,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                     </button>
                     {currentUser.role === "admin" && (
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {temporary && <Button onClick={() => promoteTeam(team)} disabled={Boolean(promoting)} className="px-3 py-1.5 text-xs">{promoting === team.id ? "승급 중…" : "승급"}</Button>}
+                        {temporary && <Button onClick={() => promoteTeam(team)} disabled={Boolean(promoting)} className="px-3 py-1.5 text-xs">{promoting === team.id ? "승급 중…" : "전체 승급"}</Button>}
                         <Button onClick={() => setEnemyDefenseEditing(team)} variant="secondary" className="px-3 py-1.5 text-xs">
                           <Pencil size={13} /> 수정
                         </Button>
@@ -1507,6 +1532,15 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                         <p className="mt-1 text-xs font-semibold text-zinc-950">
                           추천도 <span className="text-zinc-800">{deck.power || "0"}/10</span>
                         </p>
+                        {currentUser.role === "admin" && <Button
+                          onClick={() => moveCounterDeck(selectedEnemyDefense, deck)}
+                          disabled={Boolean(promoting)}
+                          variant="secondary"
+                          className="mt-3 px-3 py-1.5 text-xs"
+                        >
+                          {temporary ? <CheckCircle2 size={13} /> : <Trash2 size={13} />}
+                          {promoting === deck.counter_id ? "이동 중…" : temporary ? "승급" : "폐기"}
+                        </Button>}
                       </div>
                       <p className="counter-guide-heading break-keep px-3 py-3 text-center text-lg font-normal leading-relaxed text-zinc-700 sm:px-6 sm:py-5 sm:text-xl">
                         {splitList(selectedEnemyDefense.heroes).join(" ") || selectedEnemyDefense.title || "상대 방어팀"} 카운터치는 법
