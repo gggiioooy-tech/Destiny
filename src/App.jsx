@@ -51,6 +51,7 @@ const FALLBACK_SETTINGS = {
 const navItems = [
   { id: "board", label: "자유게시판", icon: ScrollText, visibleTo: ["member", "admin"] },
   { id: "attack", label: "공격팀", icon: Swords, visibleTo: ["guest", "member", "admin"] },
+  { id: "temporaryAttack", label: "임시 공격팀", icon: Swords, visibleTo: ["guest", "member", "admin"] },
   { id: "members", label: "회원 관리", icon: Users, visibleTo: ["admin"] },
   { id: "deleted", label: "삭제정보관리", icon: Trash2, visibleTo: ["admin"], ownerOnly: true },
 ];
@@ -1221,11 +1222,16 @@ function DefenseEditor({ item, onClose, onSaved }) {
   );
 }
 
-function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeams, setEnemyDefenseTeams, reloadData }) {
+function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeams, setEnemyDefenseTeams, reloadData, temporary = false }) {
+  const pageTitle = temporary ? "임시 공격팀" : "공격팀";
+  const pageEyebrow = temporary ? "Temporary Attack Team" : "Attack Team";
+  const pageDescription = temporary
+    ? "상대 방어팀별 공격 조합을 임시로 기재하는 페이지입니다. 테스트 후 정식 공격팀으로 옮겨지거나 삭제될 수 있습니다."
+    : "상대 방어팀별 공격 조합과 속공 기준을 정리하는 페이지입니다.";
   if (isGuest(currentUser)) {
     return (
       <PageShell>
-        <PageHeader eyebrow="Attack Team" title="공격팀" desc="상대 방어팀별 공격 조합과 속공 기준을 정리하는 페이지입니다." />
+        <PageHeader eyebrow={pageEyebrow} title={pageTitle} desc={pageDescription} />
         <GuestLockedContent />
       </PageShell>
     );
@@ -1316,9 +1322,9 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
   return (
     <PageShell>
       <PageHeader
-        eyebrow="Attack Team"
-        title="공격팀"
-        desc="상대 방어팀별 공격 조합과 속공 기준을 정리하는 페이지입니다."
+        eyebrow={pageEyebrow}
+        title={pageTitle}
+        desc={pageDescription}
       />
 
       <div className="mb-5 rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5">
@@ -1625,6 +1631,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
       {editing && (
         <AttackTeamEditor
           item={editing}
+          temporary={temporary}
           onClose={() => setEditing(null)}
           onSaved={async () => {
             setEditing(null);
@@ -1635,9 +1642,11 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
       {enemyDefenseEditing && (
         <EnemyDefenseEditor
           item={enemyDefenseEditing}
+          temporary={temporary}
           onClose={() => setEnemyDefenseEditing(null)}
           onSaved={async () => {
             setEnemyDefenseEditing(null);
+            setSelectedEnemyDefense(null);
             await reloadData();
           }}
         />
@@ -1646,8 +1655,8 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
   );
 }
 
-function EnemyDefenseEditor({ item, onClose, onSaved }) {
-  const [form, setForm] = useState({ ...emptyEnemyDefense, ...item });
+function EnemyDefenseEditor({ item, onClose, onSaved, temporary = false }) {
+  const [form, setForm] = useState({ ...emptyEnemyDefense, is_temporary: temporary, ...item });
   const [counterDecks, setCounterDecks] = useState(() => {
     const parsed = parseCounterDecks(item.counter_decks);
     if (parsed.length > 0) return parsed.map((deck) => ({ ...deck, heroes: splitList(deck.heroes).join("\n") }));
@@ -1702,6 +1711,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
     setSaving(true);
     const payload = {
       category: "enemy",
+      is_temporary: form.is_temporary === true,
       title: form.title || "",
       heroes: form.heroes || "",
       note: form.note || "",
@@ -1735,6 +1745,7 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
     <Modal title={isNew ? "상대 방어팀 추가" : "상대 방어팀 수정"} onClose={onClose}>
       <div className="grid gap-4">
         <Input label="상대 방어팀" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="예: 여포 방어팀" />
+        <Select label="게시 위치" value={String(form.is_temporary === true)} onChange={(v) => setForm({ ...form, is_temporary: v === "true" })} options={[["false", "공격팀"], ["true", "임시 공격팀"]]} />
         <TextArea label="상대 영웅" value={form.heroes} onChange={(v) => setForm({ ...form, heroes: v })} placeholder="쉼표 또는 줄바꿈으로 구분" rows={3} />
         <Input label="상대 속공" value={form.note} onChange={(v) => setForm({ ...form, note: v })} placeholder="예: 232" />
         <Select label="공개 상태" value={String(form.is_public !== false)} onChange={(v) => setForm({ ...form, is_public: v === "true" })} options={[["true", "공개"], ["false", "비공개"]]} />
@@ -1799,8 +1810,8 @@ function EnemyDefenseEditor({ item, onClose, onSaved }) {
   );
 }
 
-function AttackTeamEditor({ item, onClose, onSaved }) {
-  const [form, setForm] = useState({ ...emptyAttackTeam, ...item, formation: normalizedFormation(item.formation) });
+function AttackTeamEditor({ item, onClose, onSaved, temporary = false }) {
+  const [form, setForm] = useState({ ...emptyAttackTeam, is_temporary: temporary, ...item, formation: normalizedFormation(item.formation) });
   const [saving, setSaving] = useState(false);
   const isNew = !item.id;
 
@@ -1808,6 +1819,7 @@ function AttackTeamEditor({ item, onClose, onSaved }) {
     setSaving(true);
     const payload = {
       enemy_type: form.enemy_type || "",
+      is_temporary: form.is_temporary === true,
       title: form.title || "",
       power: form.power || "",
       heroes: form.heroes || "",
@@ -1844,6 +1856,7 @@ function AttackTeamEditor({ item, onClose, onSaved }) {
     <Modal title={isNew ? "공격팀 추가" : "공격팀 수정"} onClose={onClose}>
       <div className="grid gap-4">
         <Input label="상대 방어팀" value={form.enemy_type} onChange={(v) => setForm({ ...form, enemy_type: v })} placeholder="예: 오공덱" />
+        <Select label="게시 위치" value={String(form.is_temporary === true)} onChange={(v) => setForm({ ...form, is_temporary: v === "true" })} options={[["false", "공격팀"], ["true", "임시 공격팀"]]} />
         <Input label="제목" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="예: 오공덱 상대 공덱" />
         <Input label="추천도 / 10점 만점" value={form.power} onChange={(v) => setForm({ ...form, power: v })} placeholder="예: 9" />
         <TextArea label="공격 영웅명" value={form.heroes} onChange={(v) => setForm({ ...form, heroes: v })} placeholder="쉼표 또는 줄바꿈으로 구분" rows={3} />
@@ -2897,12 +2910,14 @@ export default function App() {
 
         {safeActive === "board" && <GuildBoardPage key={syncedCurrentUser.id} currentUser={syncedCurrentUser} users={users} />}
 
-        {safeActive === "attack" && (
+        {(safeActive === "attack" || safeActive === "temporaryAttack") && (
           <AttackPage
+            key={safeActive}
+            temporary={safeActive === "temporaryAttack"}
             currentUser={syncedCurrentUser}
-            attackTeams={attackTeams}
+            attackTeams={attackTeams.filter((team) => (team.is_temporary === true) === (safeActive === "temporaryAttack"))}
             setAttackTeams={setAttackTeams}
-            enemyDefenseTeams={enemyDefenseTeams}
+            enemyDefenseTeams={enemyDefenseTeams.filter((team) => (team.is_temporary === true) === (safeActive === "temporaryAttack"))}
             setEnemyDefenseTeams={setEnemyDefenseTeams}
             reloadData={loadData}
           />
