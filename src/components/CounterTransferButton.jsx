@@ -16,7 +16,7 @@ export default function CounterTransferButton({ supabase, target, teamId, deck }
     body:JSON.stringify({team_id:teamId,deck}),signal:AbortSignal.timeout(40000)});
    const result=await response.json();
    if(!response.ok) throw new Error(result.error||'전송에 실패했습니다.');
-   setMessage(result.duplicate?'이미 보낸 카운터입니다. 중복 추가하지 않았어요.':targets[target].name+'에 카운터를 추가했어요.');
+   setMessage(result.duplicate?'이미 보낸 카운터입니다. 중복 추가하지 않았어요.':'보냈습니다.');
   } catch(error) {setFailed(true);setMessage(error.name==='TimeoutError'?'응답이 지연됐어요. 다시 눌러도 중복 등록되지 않습니다.':error.message||'전송에 실패했습니다.');}
   finally {lock.current=false;setBusy(false);}
  }
