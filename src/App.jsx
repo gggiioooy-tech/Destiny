@@ -1,3 +1,4 @@
+import CounterTransferButton from "./components/CounterTransferButton.jsx";
 import { ThemeToggle, AnimeThemeMenu, TransparencyControl } from "./components/ThemeProvider.jsx";
 import GuildWarRecognition from "./components/GuildWarRecognition.jsx";
 import { CounterOrderFields, CounterOrderDisplay } from "./components/CounterOrderFields.jsx";
@@ -1520,6 +1521,7 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
                     <div className="grid items-center gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
                       <div className="min-w-0">
                         <p className="text-xs font-semibold text-zinc-950">카운터덱 #{deckIndex + 1}</p>
+                        {currentUser.role === "admin" && <CounterTransferButton supabase={supabase} target="seori" teamId={selectedEnemyDefense.id} deck={deck} />}
                         <p className="mt-1 text-sm text-zinc-950">
                           작성자: {counterAuthors?.teamId !== selectedEnemyDefense.id ? "불러오는 중…" : counterAuthors.error ? "확인 실패" : counterAuthors.names[deck.counter_id] || "15월"}
                         </p>
