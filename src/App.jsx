@@ -1,3 +1,4 @@
+import AccountWatermark from "./components/AccountWatermark.jsx";
 import CounterTransferButton from "./components/CounterTransferButton.jsx";
 import { ThemeToggle, AnimeThemeMenu, TransparencyControl } from "./components/ThemeProvider.jsx";
 import GuildWarRecognition from "./components/GuildWarRecognition.jsx";
@@ -2946,6 +2947,7 @@ export default function App() {
 
   return (
     <div className="site-theme min-h-screen bg-[#f6f7f9] font-sans text-zinc-950">
+      <AccountWatermark nickname={syncedCurrentUser.gameNickname} siteName="15월사이트" />
       <style>{"@keyframes snowSway{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}.snow-sway-icon{animation:snowSway 3.8s ease-in-out infinite;transform-origin:center}"}</style>
       {menuOpen && (
         <div
