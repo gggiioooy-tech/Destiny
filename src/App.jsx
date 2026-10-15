@@ -1,3 +1,5 @@
+import GuildWarPage, { AddGuildWarTab } from "./components/GuildWarPage.jsx";
+import { guildTabId } from "./lib/guildWar.js";
 import AccountWatermark from "./components/AccountWatermark.jsx";
 import CounterTransferButton from "./components/CounterTransferButton.jsx";
 import { ThemeToggle, AnimeThemeMenu, TransparencyControl } from "./components/ThemeProvider.jsx";
@@ -58,6 +60,14 @@ const navItems = [
   { id: "members", label: "회원 관리", icon: Users, visibleTo: ["admin"] },
   { id: "deleted", label: "삭제정보관리", icon: Trash2, visibleTo: ["admin"], ownerOnly: true },
 ];
+
+function guildNavigation(tabs) {
+  const result = [...navItems];
+  result.splice(result.findIndex(item => item.id === "attack") + 1, 0,
+    ...tabs.map(tab => ({ id: guildTabId(tab.name), label: tab.name + " 길드전", icon: Shield, visibleTo: ["member", "admin"] })),
+    { id: "guildWarAdd", label: "길드 추가하기", icon: Plus, visibleTo: ["admin"] });
+  return result;
+}
 
 const emptyDefense = { category: "attack", title: "", subtitle: "", power: "", heroes: "", rings: "", gears: "", pet: "", formation: "", speed_order: "", team_speed: "", skill_order: "", note: "", sort_order: 1, is_public: true };
 const emptyTotalWar = { title: "", heroes: "", rings: "", gears: "", pet: "", formation: "", speed_order: "", team_speed: "", skill_order: "", note: "", sort_order: 1, is_public: true };
@@ -393,8 +403,8 @@ function PendingScreen({ user, logout, settings }) {
   );
 }
 
-function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, settings }) {
-  const availableNav = navItems.filter((item) => item.visibleTo.includes(currentUser.role) && (!item.ownerOnly || currentUser.isOwner));
+function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, settings, guildTabs = [] }) {
+  const availableNav = guildNavigation(guildTabs).filter((item) => item.visibleTo.includes(currentUser.role) && (!item.ownerOnly || currentUser.isOwner));
   return (
     <aside className={cx("fixed inset-y-0 left-0 z-40 w-64 border-r border-zinc-200 bg-white transition-transform duration-300 lg:translate-x-0", isOpen ? "translate-x-0" : "-translate-x-full")}>
       <div className="flex h-full flex-col overflow-y-auto">
@@ -2841,6 +2851,7 @@ function PlaceholderPage({ title, desc }) { return <PageShell><PageHeader eyebro
 
 export default function App() {
   const [users, setUsers] = useState([]);
+  const [guildTabs, setGuildTabs] = useState([]);
   const [settings, setSettings] = useState(FALLBACK_SETTINGS);
   const [defenseTeams, setDefenseTeams] = useState([]);
   const [enemyDefenseTeams, setEnemyDefenseTeams] = useState([]);
@@ -2895,7 +2906,7 @@ export default function App() {
       const nextSettings = { ...FALLBACK_SETTINGS };
       for (const row of settingsRes.data || []) nextSettings[row.key] = row.value;
       setSettings(nextSettings);
-      setUsers([]); setCurrentUser(null);
+      setUsers([]); setCurrentUser(null); setGuildTabs([]);
       setDefenseTeams([]); setEnemyDefenseTeams([]); setAttackTeams([]); setNotices([]); setTotalWarTeams([]); setArenaTeams([]);
       if (!authUserId) return;
       const profileRes = await supabase.from('profiles').select('*').eq('auth_user_id', authUserId).maybeSingle();
@@ -2916,11 +2927,13 @@ export default function App() {
         supabase.from('notices').select('*').order('created_at', { ascending: false }),
         supabase.from('total_war_teams').select('*').order('sort_order'),
         supabase.from('arena_teams').select('*').order('sort_order'),
+        profile.role === 'guest' ? Promise.resolve({data:[]}) : supabase.from('guild_war_tabs').select('*').order('created_at').order('name'),
       ]);
       if (version !== loadVersion.current) return;
       const failed = results.find(result => result.error);
       if (failed) throw failed.error;
       setUsers((results[0].data || []).map(mapProfile));
+      setGuildTabs((results[7].data || []).sort((a,b) => ({"철폐":0,"서리":1}[a.name] ?? 2) - ({"철폐":0,"서리":1}[b.name] ?? 2)));
       [setDefenseTeams,setEnemyDefenseTeams,setAttackTeams,setNotices,setTotalWarTeams,setArenaTeams]
         .forEach((setter,index) => setter(results[index+1].data || []));
     } catch {
@@ -2943,7 +2956,7 @@ export default function App() {
   if (syncedCurrentUser.status !== 'approved') return <div className="grid min-h-screen place-items-center"><div>이 계정은 이용할 수 없습니다.<button onClick={logout} className="ml-4">로그아웃</button></div></div>;
   if (syncedCurrentUser.mustChangePassword) return <PasswordChange required={syncedCurrentUser.mustChangePassword} onDone={logout} onLogout={logout} />;
 
-  const safeActive = navItems.find((item) => item.id === active && item.visibleTo.includes(syncedCurrentUser.role) && (!item.ownerOnly || syncedCurrentUser.isOwner)) ? active : "attack";
+  const safeActive = guildNavigation(guildTabs).find((item) => item.id === active && item.visibleTo.includes(syncedCurrentUser.role) && (!item.ownerOnly || syncedCurrentUser.isOwner)) ? active : "attack";
 
   return (
     <div className="site-theme min-h-screen bg-[#f6f7f9] font-sans text-zinc-950">
@@ -2957,6 +2970,7 @@ export default function App() {
       )}
 
       <Sidebar
+        guildTabs={guildTabs}
         active={safeActive}
         setActive={setActive}
         isOpen={menuOpen}
@@ -2974,6 +2988,9 @@ export default function App() {
         />
 
         {safeActive === "board" && <GuildBoardPage key={syncedCurrentUser.id} currentUser={syncedCurrentUser} users={users} />}
+
+        {safeActive === "guildWarAdd" && syncedCurrentUser.role === "admin" && <AddGuildWarTab users={users} tabs={guildTabs} onAdded={async name => { await loadData(); setActive(guildTabId(name)); }} />}
+        {guildTabs.some(tab => guildTabId(tab.name) === safeActive) && <GuildWarPage key={safeActive} guild={guildTabs.find(tab => guildTabId(tab.name) === safeActive).name} counterTeams={enemyDefenseTeams.filter(team => !team.is_temporary && isVisibleItem(team, syncedCurrentUser)).map(team => ({...team, decks: parseCounterDecks(team.counter_decks)}))} />}
 
         {(safeActive === "attack" || safeActive === "temporaryAttack") && (
           <AttackPage
