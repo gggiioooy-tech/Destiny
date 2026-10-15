@@ -8,9 +8,9 @@ update public.profiles set role='member',status='approved',must_change_password=
 select set_config('request.jwt.claims',(select json_build_object('sub',uid,'session_id',sid,'role','authenticated')::text from guild_test_identity where kind='member'),true);
 set local role authenticated;
 do $$declare r jsonb;begin
- r=public.submit_guild_war_observation('battle','QA-guild-routing-test',now(),'{"attacker":{},"defender":{},"guild":"철폐"}');
+ r=public.submit_guild_war_observation('battle','QA-guild-routing-test',now(),'{"warDate":"2026-10-15","direction":"attack","attacker":{},"defender":{},"guild":"철폐"}');
  if r->>'guild'<>'서리' or r->>'status'<>'recorded' then raise exception 'Profile routing failed';end if;
- r=public.submit_guild_war_observation('battle','QA-guild-routing-test',now(),'{"attacker":{},"defender":{}}');
+ r=public.submit_guild_war_observation('battle','QA-guild-routing-test',now(),'{"warDate":"2026-10-15","direction":"attack","attacker":{},"defender":{}}');
  if r->>'status'<>'duplicate' then raise exception 'Duplicate failed';end if;
  begin perform public.add_guild_war_tab('서리');raise exception 'MEMBER_ADD_ALLOWED';exception when insufficient_privilege then null;end;
  begin insert into public.guild_war_tabs(name) values('QA-forged');raise exception 'DIRECT_ADD_ALLOWED';exception when insufficient_privilege then null;end;
@@ -20,7 +20,7 @@ reset role;
 update public.profiles set memo='QA보류길드' where auth_user_id=(select uid from guild_test_identity where kind='member');
 set local role authenticated;
 do $$declare r jsonb;begin
- r=public.submit_guild_war_observation('battle','QA-held-test',now(),'{"attacker":{},"defender":{}}');
+ r=public.submit_guild_war_observation('battle','QA-held-test',now(),'{"warDate":"2026-10-15","direction":"attack","attacker":{},"defender":{}}');
  if r->>'status'<>'held' then raise exception 'Unregistered not held';end if;
  if exists(select 1 from public.guild_war_observations where source_key='QA-held-test') then raise exception 'Held record leaked';end if;
 end$$;
@@ -39,7 +39,7 @@ update public.profiles set memo='서리,철폐' where auth_user_id=(select uid f
 select set_config('request.jwt.claims',(select json_build_object('sub',uid,'session_id',sid,'role','authenticated')::text from guild_test_identity where kind='member'),true);
 set local role authenticated;
 do $$declare r jsonb;begin
- r=public.submit_guild_war_observation('battle','QA-ambiguous-test',now(),'{"attacker":{},"defender":{}}');
+ r=public.submit_guild_war_observation('battle','QA-ambiguous-test',now(),'{"warDate":"2026-10-15","direction":"attack","attacker":{},"defender":{}}');
  if r->>'status'<>'held' or r->>'guild' is not null then raise exception 'Ambiguous memo routed';end if;
 end$$;
 reset role;
@@ -47,13 +47,13 @@ update public.profiles set role='guest' where auth_user_id=(select uid from guil
 set local role authenticated;
 do $$begin
  if exists(select 1 from public.guild_war_tabs) or exists(select 1 from public.guild_war_observations) then raise exception 'Guest read allowed';end if;
- begin perform public.submit_guild_war_observation('battle','QA-guest',now(),'{"attacker":{},"defender":{}}');raise exception 'Guest submit allowed';exception when insufficient_privilege then null;end;
+ begin perform public.submit_guild_war_observation('battle','QA-guest',now(),'{"warDate":"2026-10-15","direction":"attack","attacker":{},"defender":{}}');raise exception 'Guest submit allowed';exception when insufficient_privilege then null;end;
 end$$;
 reset role;
 select set_config('request.jwt.claims','{"role":"authenticated"}',true);
 set local role authenticated;
 do $$begin
- begin perform public.submit_guild_war_observation('battle','QA-no-session',now(),'{"attacker":{},"defender":{}}');raise exception 'Missing session allowed';exception when insufficient_privilege then null;end;
+ begin perform public.submit_guild_war_observation('battle','QA-no-session',now(),'{"warDate":"2026-10-15","direction":"attack","attacker":{},"defender":{}}');raise exception 'Missing session allowed';exception when insufficient_privilege then null;end;
 end$$;
 reset role;
 rollback;

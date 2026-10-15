@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
-import { groupDefenses, heroKey, heroNames, memoGuilds, uniqueBattles } from '../lib/guildWar.js';
+import { groupDefenses, heroKey, heroNames, memoGuilds } from '../lib/guildWar.js';
 import { sortByRecommendation } from '../lib/recommendationSort.js';
 import { CounterOrderDisplay } from './CounterOrderFields.jsx';
 
@@ -51,46 +51,85 @@ function BattleSide({ title, side }) {
   </div>;
 }
 
+const castles = ['외성1','외성2','외성3','외성4','외성5','내성1','내성2','내성3','본성'];
+const warTitle = value => { const [y,m,d] = value.split('-'); return `${y}년 ${Number(m)}월 ${Number(d)}일 길드전 이력`; };
+
+function DefenseGroups({ snapshot, counterTeams, castle, search }) {
+  const keyword=search.replace(/\s/g,'').toLowerCase();
+  const groups=groupDefenses(snapshot?.payload?.defenses).filter(g=>(!castle||g.castle===castle)&&(!keyword||[...g.heroes,g.pet,...g.members].join(' ').replace(/\s/g,'').toLowerCase().includes(keyword)));
+  return <div className="space-y-3">
+    {snapshot&&<p className="text-xs text-zinc-500">수집 시각: {date(snapshot.occurred_at)} · 수집 {Array.isArray(snapshot.payload.defenses)?snapshot.payload.defenses.length:0}개 / 전체 {Number.isInteger(snapshot.payload.total)?snapshot.payload.total:'미확인'}개</p>}
+    {!groups.length&&<div className={box}><p>{snapshot?'조건에 맞는 상대 방어팀이 없습니다.':'아직 수집된 상대 방어팀이 없습니다.'}</p>{!snapshot&&<p className="mt-2 text-sm text-zinc-500">PC 수집기 연결 후 전장 정보를 수신하면 표시됩니다.</p>}</div>}
+    {groups.map(group=>{
+      const decks=sortByRecommendation(counterTeams.filter(t=>heroKey(t.heroes)===heroKey(group.heroes)).flatMap(t=>t.decks||[]));
+      return <article key={group.key} className={`${box} grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]`}>
+        <div><p className="text-xs text-zinc-500">{group.castle}</p><h3 className="mt-1 font-semibold">{group.heroes.join(' · ')} <span>×{group.count}</span></h3><p className="mt-2 text-sm">펫: {group.pet||'미확인'}</p><details className="mt-3 text-sm"><summary className="cursor-pointer">상대 목록</summary><p>{group.members.join(' · ')}</p></details></div>
+        <div className="min-w-0 space-y-2"><h4 className="text-sm font-semibold">추천 카운터</h4><p className="text-xs text-zinc-500">상대 영웅 조합 기준 · 펫별 적합성은 확인해 주세요.</p>{decks.length?decks.map((deck,i)=><CounterDetails key={i} deck={deck}/>):<p className="text-sm text-zinc-500">저장된 카운터 없음</p>}</div>
+      </article>;
+    })}
+  </div>;
+}
+
 export default function GuildWarPage({ guild, counterTeams }) {
-  const [snapshot,setSnapshot]=useState(null);const [battles,setBattles]=useState([]);const [error,setError]=useState('');const [loading,setLoading]=useState(true);const [revision,setRevision]=useState(0);
+  const [mode,setMode]=useState('current');const [historyDate,setHistoryDate]=useState('');const [dates,setDates]=useState([]);
+  const [section,setSection]=useState('teams');const [castle,setCastle]=useState('');const [search,setSearch]=useState('');const [query,setQuery]=useState('');
+  const [snapshot,setSnapshot]=useState(null);const [battles,setBattles]=useState([]);const [error,setError]=useState('');const [datesError,setDatesError]=useState('');
+  const [loading,setLoading]=useState(false);const [datesLoading,setDatesLoading]=useState(true);const [revision,setRevision]=useState(0);
+  const period=mode==='current'?(dates[0]||''):historyDate;
+  const requestKey=JSON.stringify([guild,period,section,castle,query,revision]);
+  const [loadedKey,setLoadedKey]=useState('');
+  useEffect(()=>{const timer=setTimeout(()=>setQuery(search.trim()),300);return()=>clearTimeout(timer);},[search]);
+  useEffect(()=>{
+    let active=true;let running=false;
+    async function loadDates(){
+      if(running)return;running=true;
+      try{const {data,error}=await supabase.rpc('guild_war_dates',{p_guild:guild});if(error)throw error;if(active){setDates((data||[]).map(row=>row.war_date));setDatesError('');}}
+      catch(e){if(active)setDatesError(e.message||'길드전 날짜를 불러오지 못했습니다.');}finally{running=false;if(active)setDatesLoading(false);}
+    }
+    loadDates();const timer=setInterval(()=>{if(!document.hidden)loadDates();},15000);return()=>{active=false;clearInterval(timer);};
+  },[guild,revision]);
   useEffect(()=>{
     let active=true;let running=false;
     async function load(){
-      if(running)return;running=true;
-      try {
-        const [s,b]=await Promise.all([
-          supabase.from('guild_war_observations').select('id,payload,occurred_at').eq('guild_name',guild).eq('kind','defense_snapshot').order('occurred_at',{ascending:false}).limit(1),
-          supabase.from('guild_war_observations').select('id,source_key,payload,occurred_at').eq('guild_name',guild).eq('kind','battle').order('occurred_at',{ascending:false}).limit(200),
-        ]);
-        if(s.error||b.error)throw s.error||b.error;
-        if(active){setSnapshot(s.data?.[0]||null);setBattles(uniqueBattles(b.data||[]));setError('');}
-      }catch(e){if(active)setError(e.message||'기록을 불러오지 못했습니다.');}finally{running=false;if(active)setLoading(false);}
+      if(running||!period)return;running=true;
+      try{
+        if(section==='teams'){
+          const {data,error}=await supabase.from('guild_war_observations').select('id,payload,occurred_at').eq('guild_name',guild).eq('war_date',period).eq('kind','defense_snapshot').order('occurred_at',{ascending:false}).limit(1);
+          if(error)throw error;if(active)setSnapshot(data?.[0]||null);
+        }else{
+          const {data,error}=await supabase.rpc('guild_war_battles',{p_guild:guild,p_war_date:period,p_direction:section,p_castle:castle,p_search:query});
+          if(error)throw error;if(active)setBattles(data||[]);
+        }
+        if(active)setError('');
+      }catch(e){if(active)setError(e.message||'기록을 불러오지 못했습니다.');}finally{running=false;if(active){setLoading(false);setLoadedKey(requestKey);}}
     }
-    setLoading(true);setSnapshot(null);setBattles([]);load();
-    const timer=setInterval(()=>{if(!document.hidden)load();},15000);
-    return()=>{active=false;clearInterval(timer);};
-  },[guild,revision]);
-  const groups=groupDefenses(snapshot?.payload?.defenses);
-  return <section className="mx-auto max-w-7xl space-y-6 p-4 sm:p-8">
-    <header className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-bold">{guild} 길드전</h1><p className="mt-2 text-sm text-zinc-500">상대 방어 조합과 전투 기록을 확인하세요.</p></div><button className={button} onClick={()=>setRevision(v=>v+1)}>새로고침</button></header>
-    {error&&<p role="alert" className="text-red-600">{error}</p>}
-    {loading?<p role="status">기록 불러오는 중…</p>:<>
-      <section className="space-y-3"><h2 className="text-lg font-semibold">상대 방어팀</h2>
-        {snapshot&&<p className="text-xs text-zinc-500">수집 시각: {date(snapshot.occurred_at)} · 수집 {Array.isArray(snapshot.payload.defenses)?snapshot.payload.defenses.length:0}개 / 전체 {Number.isInteger(snapshot.payload.total)?snapshot.payload.total:'미확인'}개</p>}
-        {!groups.length&&<div className={box}><p>아직 수집된 상대 방어팀이 없습니다.</p><p className="mt-2 text-sm text-zinc-500">PC 수집기 연결 후 전장 정보를 수신하면 표시됩니다.</p></div>}
-        {groups.map(group=>{
-          const matches=counterTeams.filter(t=>heroKey(t.heroes)===heroKey(group.heroes));
-          const decks=sortByRecommendation(matches.flatMap(t=>t.decks||[]));
-          return <article key={group.key} className={`${box} grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]`}>
-            <div><p className="text-xs text-zinc-500">{group.castle}</p><h3 className="mt-1 font-semibold">{group.heroes.join(' · ')} <span>×{group.count}</span></h3><p className="mt-2 text-sm">펫: {group.pet||'미확인'}</p><details className="mt-3 text-sm"><summary className="cursor-pointer">상대 목록</summary><p>{group.members.join(' · ')}</p></details></div>
-            <div className="min-w-0 space-y-2"><h4 className="text-sm font-semibold">추천 카운터</h4><p className="text-xs text-zinc-500">상대 영웅 조합 기준 · 펫별 적합성은 확인해 주세요.</p>{decks.length?decks.map((deck,i)=><CounterDetails key={i} deck={deck}/>):<p className="text-sm text-zinc-500">저장된 카운터 없음</p>}</div>
-          </article>;
-        })}
-      </section>
-      <section className="space-y-3"><h2 className="text-lg font-semibold">전투 기록 <span className="text-sm font-normal text-zinc-500">최근 최대 200건</span></h2>
-        {!battles.length&&<div className={box}>아직 등록된 전투 기록이 없습니다.</div>}
-        {battles.map(row=><article key={row.id} className={box}><div className="mb-3 flex flex-wrap justify-between gap-2 text-sm"><span>{plain(row.payload.castle)||'위치 미확인'} · {date(row.occurred_at)}</span><span>{row.payload.attackerWon===true?'공격자 승리':row.payload.attackerWon===false?'방어자 승리':'결과 미확인'}</span></div><div className="grid gap-3 md:grid-cols-2"><BattleSide title="공격자" side={row.payload.attacker}/><BattleSide title="방어자" side={row.payload.defender}/></div></article>)}
-      </section>
+    setSnapshot(null);setBattles([]);setError('');setLoading(!!period);load();
+    const timer=setInterval(()=>{if(!document.hidden)load();},15000);return()=>{active=false;clearInterval(timer);};
+  },[guild,period,section,castle,query,revision]);
+  function chooseSection(next){setSection(next);setCastle('');setSearch('');setQuery('');}
+  const title=section==='teams'?'상대 방어팀':section==='attack'?'공격 기록':'방어 기록';
+  return <section className="mx-auto max-w-7xl space-y-5 p-4 sm:p-8">
+    <header className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl font-bold">{guild} 길드전</h1><button className={button} onClick={()=>setRevision(v=>v+1)}>새로고침</button></header>
+    <div className="flex flex-wrap gap-2" aria-label="길드전 분류">{[['current','현재 길드전'],['history','지난 길드전 이력']].map(([value,label])=><button key={value} type="button" aria-pressed={mode===value} className={`${button} ${mode===value?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>{setMode(value);chooseSection('teams');}}>{label}</button>)}</div>
+    {datesError&&<p role="alert" className="text-red-600">{datesError}</p>}
+    {datesLoading?<p role="status">길드전 목록 불러오는 중…</p>:<>
+      {mode==='history'&&<section className={box}><h2 className="mb-3 font-semibold">날짜별 길드전 이력</h2><div className="flex flex-wrap gap-2">{dates.map(value=><button key={value} className={`${button} ${historyDate===value?'ring-2 ring-blue-500':''}`} aria-pressed={historyDate===value} onClick={()=>{setHistoryDate(value);chooseSection('teams');}}>{warTitle(value)}</button>)}</div>{!dates.length&&<p className="text-sm text-zinc-500">저장된 길드전 이력이 없습니다.</p>}</section>}
+      {mode==='current'&&!period&&<div className={box}>아직 수집된 현재 길드전 정보가 없습니다.</div>}
+      {mode==='history'&&dates.length>0&&!period&&<p className="text-sm text-zinc-500">확인할 길드전 날짜를 선택해 주세요.</p>}
+      {(period||mode==='current')&&<>
+        {period&&<p className="text-sm text-zinc-500">{warTitle(period)}{mode==='current'?' · 가장 최근 수집된 길드전':''}</p>}
+        <div className="flex flex-wrap gap-2" aria-label="기록 종류">{[['teams','상대 방어팀'],['attack','공격 기록'],['defense','방어 기록']].map(([value,label])=><button key={value} aria-pressed={section===value} className={`${button} ${section===value?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>chooseSection(value)}>{label}</button>)}</div>
+        <div className={`${box} grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]`}>
+          <label className="text-sm">성별 분류<select aria-label="성별 분류" className="mt-2 w-full rounded-xl border border-zinc-200 bg-white p-3 text-zinc-950" value={castle} onChange={e=>setCastle(e.target.value)}><option value="">전체</option>{castles.map(value=><option key={value} value={value}>{value}{section==='attack'?' 공격':section==='defense'?' 방어':''}</option>)}</select></label>
+          <label className="text-sm">검색<input aria-label="길드전 기록 검색" className="mt-2 w-full rounded-xl border border-zinc-200 bg-white p-3 text-zinc-950" value={search} onChange={e=>setSearch(e.target.value)} placeholder="닉네임, 영웅 이름, 펫 검색" /></label>
+        </div>
+        <h2 className="text-lg font-semibold">{mode==='current'?'현재 길드전 ':''}{title}{section!=='teams'&&<span className="ml-2 text-sm font-normal text-zinc-500">{battles.length}건 · 조건에 맞는 최근 최대 150건</span>}</h2>
+        {error&&<p role="alert" className="text-red-600">{error}</p>}
+        {loading||(!!period&&loadedKey!==requestKey)?<p role="status">기록 불러오는 중…</p>:section==='teams'?<DefenseGroups snapshot={snapshot} counterTeams={counterTeams} castle={castle} search={query}/>:<div className="space-y-3">
+          {!battles.length&&<div className={box}>{castle||query?'조건에 맞는 기록이 없습니다.':`아직 등록된 ${title}이 없습니다.`}</div>}
+          {battles.map(row=><article key={row.id} className={box}><div className="mb-3 flex flex-wrap justify-between gap-2 text-sm"><span>{plain(row.payload.castle)||'위치 미확인'} · {date(row.occurred_at)}</span><span>{typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'우리 길드 승리':'우리 길드 패배'):'결과 미확인'}</span></div><div className="grid gap-3 md:grid-cols-2"><BattleSide title={section==='attack'?'공격자 · 우리 길드':'공격자 · 상대 길드'} side={row.payload.attacker}/><BattleSide title={section==='defense'?'방어자 · 우리 길드':'방어자 · 상대 길드'} side={row.payload.defender}/></div></article>)}
+        </div>}
+      </>}
     </>}
   </section>;
 }
