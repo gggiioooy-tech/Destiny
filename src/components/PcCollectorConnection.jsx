@@ -44,19 +44,22 @@ export default function PcCollectorConnection({ currentUser }) {
     window.addEventListener('message',receive);
     const timer=setInterval(()=>{
       const c=connection.current;if(!c)return;
-      if(c.popup.closed||Date.now()-c.lastSeen>15000){setState(null);setWaiting(false);setError('PC 수집기를 실행하고 다시 연결해 주세요.');connection.current=null;}
+      if(c.popup.closed||Date.now()-c.lastSeen>45000){setState(null);setWaiting(false);setError('연결되지 않았습니다. 처음 쓰는 PC라면 아래 설치 안내를 확인하세요. 설치했다면 프로그램 열기를 허용하고 다시 연결하세요.');connection.current=null;}
     },2000);
     return()=>{active=false;window.removeEventListener('message',receive);clearInterval(timer);connection.current=null;};
   },[currentUser?.id,currentUser?.memo]);
-  function connect(){
+  function connect(launch=true){
     const nonce=Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,'0')).join('');
-    const popup=window.open(`${LOCAL_ORIGIN}/connect#${new URLSearchParams({nonce,origin:location.origin})}`,'15month-pc-collector','width=640,height=720');
+    const url=launch?`/pc-connect.html#${new URLSearchParams({nonce})}`:`${LOCAL_ORIGIN}/connect#${new URLSearchParams({nonce,origin:location.origin})}`;
+    const popup=window.open(url,'15month-pc-collector','width=640,height=720');
     if(!popup){setError('팝업을 허용한 뒤 다시 연결해 주세요.');return;}
     connection.current={popup,nonce,lastSeen:Date.now(),done:new Set()};setError('');setWaiting(true);setState(null);setSaved(0);
+    if(launch)window.location.href='month15-collector://start';
   }
   return <div className="min-w-0 rounded-2xl border border-zinc-200 bg-white p-4">
-    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">PC 수집기 <span className="text-sm font-normal text-zinc-500">연결 시험</span></h2><button type="button" className="site-button rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm" onClick={connect}>{state?'PC 수집기 다시 연결':'PC 수집기 연결'}</button></div>
-    <p className="mt-2 text-sm text-zinc-500">PC 수집기를 실행한 뒤 연결하세요. 연결 창과 이 사이트를 열어 두세요.</p>
+    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">PC 수집기 <span className="text-sm font-normal text-zinc-500">연결 시험</span></h2><button type="button" className="site-button rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm" onClick={()=>connect()}>{state?'PC 수집기 다시 연결':'PC 수집기 연결'}</button></div>
+    <p className="mt-2 text-sm text-zinc-500">설치한 PC에서는 버튼으로 프로그램을 실행합니다. 브라우저에서 물으면 ‘열기’를 선택하고 연결 창과 사이트를 열어 두세요.</p>
+    <details className="mt-3 text-sm"><summary className="cursor-pointer">처음 쓰는 PC / 연결이 안 될 때</summary><div className="mt-2 space-y-2"><p>Windows 10·11에서 아래 파일을 내려받고 압축을 푼 뒤 install.cmd를 실행하세요. PC마다 최초 1회 설치합니다.</p><a className="inline-block underline" href="/downloads/15month-pc-connect.zip" download>Windows 연결 프로그램 설치</a><p>연결 프로그램 설치와 게임 수집 설정은 별도입니다. 현재 시험 버전은 준비된 수집 자료를 전송하며, 새 PC의 게임 자동 수집은 아직 지원하지 않습니다.</p><p>게임 수집에는 <a className="underline" href="https://npcap.com/#download" target="_blank" rel="noreferrer">Npcap 공식 설치 프로그램</a>도 필요합니다.</p><button type="button" className="underline" onClick={()=>connect(false)}>프로그램이 이미 켜져 있어요 — 바로 연결</button></div></details>
     {waiting&&<p role="status" className="mt-2 text-sm">PC 연결 확인 중…</p>}
     {error&&<p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
     {state&&<div role="status" className="mt-3 space-y-1 text-sm"><p className="font-semibold">PC 연결됨 · 공격 {state.attack}건 · 방어 {state.defense}건 수신</p><p>저장 확인 {saved}건 (기존 기록 포함) · 확인 대기 {state.held}건</p><p>{state.reason}</p>{state.updatedAt&&<p className="text-zinc-500">마지막 수신: {new Date(state.updatedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})}</p>}</div>}

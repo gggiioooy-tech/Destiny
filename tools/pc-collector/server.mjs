@@ -24,7 +24,7 @@ const server=http.createServer((req,res)=>{
     try {
       const data=JSON.parse(fs.readFileSync(path.join(stateDir,'status.json'),'utf8'));
       return send(200,'application/json; charset=utf-8',JSON.stringify(data));
-    }catch{return send(200,'application/json; charset=utf-8',JSON.stringify({attack:0,defense:0,held:0,reason:'수집 대기',updatedAt:null,groups:[],records:[]}));}
+    }catch{return send(200,'application/json; charset=utf-8',JSON.stringify({attack:0,defense:0,held:0,reason:fs.existsSync(path.join(stateDir,'config.json'))?'수집 대기':'연결 프로그램 설치 완료 · 이 PC의 게임 수집 설정이 아직 필요합니다.',updatedAt:null,groups:[],records:[]}));}
   }
   const assets={'/connect':['connect.html','text/html; charset=utf-8'],'/connect.js':['connect.js','text/javascript; charset=utf-8'],'/connect.css':['connect.css','text/css; charset=utf-8']};
   const asset=assets[url.pathname];
