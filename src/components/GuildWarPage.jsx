@@ -9,6 +9,8 @@ const box = 'min-w-0 rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5';
 const button = 'site-button rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm disabled:opacity-50';
 const date = value => new Date(value).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
 const plain = value => typeof value === 'string' ? value : '';
+// Skill codes confirmed by the site owner; apply to historical records too.
+const skillLabel = skill => ({2:'1스',3:'2스',7:'각성기'}[skill?.skillType] || plain(skill?.skill) || '스킬 미확인');
 
 export function AddGuildWarTab({ users, tabs, onAdded }) {
   const [busy,setBusy] = useState(''); const [error,setError] = useState('');
@@ -48,7 +50,7 @@ function CounterDetails({ deck }) {
 
 function BattleSide({ title, side }) {
   return <div className="min-w-0 rounded-xl bg-zinc-50 p-3"><p className="text-xs text-zinc-500">{title}</p><p className="mt-1 font-semibold">{plain(side?.nickname)||'닉네임 미확인'}</p><p className="text-sm">{heroNames(side?.heroes).join(' · ')||'영웅 미확인'}</p><p className="text-sm">펫: {plain(side?.pet)||'미확인'}</p>
-    {side?.namesResolved === false && <p className="mt-2 text-xs text-amber-700">영웅·펫 이름 확인 중 · 원본 번호 보존</p>}<p className="mt-2 text-xs text-zinc-500">시작 예약 스킬</p><p className="text-sm">{Array.isArray(side?.skills)&&side.skills.length ? side.skills.map(s=>`${plain(s?.hero)||'영웅 미확인'} ${plain(s?.skill)||'스킬 미확인'}`).join(' → ') : '미수집'}</p>
+    {side?.namesResolved === false && <p className="mt-2 text-xs text-amber-700">영웅·펫 이름 확인 중 · 원본 번호 보존</p>}<p className="mt-2 text-xs text-zinc-500">시작 예약 스킬</p><p className="text-sm">{Array.isArray(side?.skills)&&side.skills.length ? side.skills.map(s=>`${plain(s?.hero)||'영웅 미확인'} ${skillLabel(s)}`).join(' → ') : '미수집'}</p>
   </div>;
 }
 
