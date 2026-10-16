@@ -12,7 +12,7 @@ if (-not (Test-Path -LiteralPath $runtime) -or (Get-FileHash -LiteralPath $runti
     if ((Get-FileHash -LiteralPath $download -Algorithm SHA256).Hash.ToLowerInvariant() -ne $hashes[$arch]) { throw '실행 파일 검증에 실패했습니다. 설치를 중단합니다.' }
     Move-Item -LiteralPath $download -Destination $runtime -Force
 }
-$files = @('start.ps1','server.mjs','watch.mjs','summarize.py','normalize.py','replay_skills.py','connect.html','connect.js','connect.css','uninstall.ps1')
+$files = @('start.ps1','desktop.ps1','server.mjs','watch.mjs','summarize.py','normalize.py','replay_skills.py','connect.html','connect.js','connect.css','uninstall.ps1')
 foreach ($file in $files) { Copy-Item -LiteralPath (Join-Path $PSScriptRoot $file) -Destination (Join-Path $installRoot $file) -Force }
 $scheme = 'HKCU:\Software\Classes\month15-collector'
 New-Item -Path $scheme -Force | Out-Null
@@ -25,8 +25,9 @@ $command = '"' + $powershell + '" -NoProfile -WindowStyle Hidden -ExecutionPolic
 Set-Item -Path $commandKey.PSPath -Value $command
 $shortcut = (New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path ([Environment]::GetFolderPath('Desktop')) '15월 PC 연결.lnk'))
 $shortcut.TargetPath = $powershell
-$shortcut.Arguments = '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + (Join-Path $installRoot 'start.ps1') + '"'
-$shortcut.WindowStyle = 7
+$shortcut.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "' + (Join-Path $installRoot 'desktop.ps1') + '"'
+$shortcut.WorkingDirectory = $installRoot
+$shortcut.WindowStyle = 1
 $shortcut.Save()
 Write-Output '설치 완료. 15월사이트에서 PC 수집기 연결을 누르세요.'
 & (Join-Path $installRoot 'start.ps1')
