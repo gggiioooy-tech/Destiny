@@ -7,7 +7,7 @@ history.replaceState(null,'','/connect');
 if(paired)document.getElementById('connection').textContent='15월사이트와 연결 중입니다.';
 window.addEventListener('message',event=>{
   if(!paired||event.source!==window.opener||event.origin!==target||event.data?.nonce!==nonce)return;
-  if(event.data.type==='15month-collector-ack')document.getElementById('connection').textContent='15월사이트 연결됨';
+  if(event.data.type==='15month-collector-ack')document.getElementById('connection').textContent='15월사이트 연결됨 · 저장 확인 '+(event.data.saved||0)+'건';
 });
 async function update(){
   try{

@@ -31,10 +31,11 @@ async function update(){
   while(pos+8<=stream.length){const n=stream.readUInt32BE(pos),id=stream.readUInt32BE(pos+4);if(n<4||n>8*1024*1024)throw new Error('frame length');if(pos+4+n>stream.length)break;
    if(id===16857){const c=createDecipheriv('chacha20',Buffer.from(config.key,'hex'),Buffer.from(config.iv,'hex'));frames.push(Buffer.concat([c.update(stream.subarray(pos+8,pos+4+n)),c.final()]).toString('base64'));}pos+=4+n;
   }
-  const signature=frames.join('|');if(signature===lastSignature)return;lastSignature=signature;
+  const signature=frames.join('|');if(signature===lastSignature)return;
   const result=await new Promise((resolve,reject)=>{const child=spawn(config.python,[path.join(here,'summarize.py'),configPath],{windowsHide:true,stdio:['pipe','pipe','pipe']});let output='';child.stdout.on('data',x=>output+=x);child.stderr.resume();child.on('error',reject);child.on('exit',code=>code?reject(new Error('decode failed')):resolve(output));child.stdin.end(JSON.stringify(frames));});
-  const data=JSON.parse(result);data.updatedAt=new Date().toISOString();
+  const data=JSON.parse(result);data.updatedAt=stat.mtime.toISOString();
   fs.writeFileSync(path.join(home,'status.json.tmp'),JSON.stringify(data));fs.renameSync(path.join(home,'status.json.tmp'),path.join(home,'status.json'));
+  lastSignature=signature;
   console.log(`수신: 공격 ${data.attack}건, 방어 ${data.defense}건 (확인 대기)`);
  }catch(e){console.error('수집 데이터 확인 대기:',e.message);}finally{running=false;}
 }

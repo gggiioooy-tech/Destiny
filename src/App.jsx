@@ -2990,7 +2990,7 @@ export default function App() {
         {safeActive === "board" && <GuildBoardPage key={syncedCurrentUser.id} currentUser={syncedCurrentUser} users={users} />}
 
         {safeActive === "guildWarAdd" && syncedCurrentUser.isOwner && <AddGuildWarTab users={users} tabs={guildTabs} onAdded={async name => { await loadData(); setActive(guildTabId(name)); }} />}
-        {guildTabs.some(tab => guildTabId(tab.name) === safeActive) && <GuildWarPage key={safeActive} guild={guildTabs.find(tab => guildTabId(tab.name) === safeActive).name} counterTeams={enemyDefenseTeams.filter(team => !team.is_temporary && isVisibleItem(team, syncedCurrentUser)).map(team => ({...team, decks: parseCounterDecks(team.counter_decks)}))} />}
+        {guildTabs.some(tab => guildTabId(tab.name) === safeActive) && <GuildWarPage currentUser={syncedCurrentUser} key={safeActive} guild={guildTabs.find(tab => guildTabId(tab.name) === safeActive).name} counterTeams={enemyDefenseTeams.filter(team => !team.is_temporary && isVisibleItem(team, syncedCurrentUser)).map(team => ({...team, decks: parseCounterDecks(team.counter_decks)}))} />}
 
         {(safeActive === "attack" || safeActive === "temporaryAttack") && (
           <AttackPage
