@@ -65,7 +65,7 @@ function guildNavigation(tabs) {
   const result = [...navItems];
   result.splice(result.findIndex(item => item.id === "attack") + 1, 0,
     ...tabs.map(tab => ({ id: guildTabId(tab.name), label: tab.name + " 길드전", icon: Shield, visibleTo: ["member", "admin"] })),
-    { id: "guildWarAdd", label: "길드 추가하기", icon: Plus, visibleTo: ["admin"] });
+    { id: "guildWarAdd", label: "길드 추가하기", icon: Plus, visibleTo: ["admin"], ownerOnly: true });
   return result;
 }
 
@@ -2989,7 +2989,7 @@ export default function App() {
 
         {safeActive === "board" && <GuildBoardPage key={syncedCurrentUser.id} currentUser={syncedCurrentUser} users={users} />}
 
-        {safeActive === "guildWarAdd" && syncedCurrentUser.role === "admin" && <AddGuildWarTab users={users} tabs={guildTabs} onAdded={async name => { await loadData(); setActive(guildTabId(name)); }} />}
+        {safeActive === "guildWarAdd" && syncedCurrentUser.isOwner && <AddGuildWarTab users={users} tabs={guildTabs} onAdded={async name => { await loadData(); setActive(guildTabId(name)); }} />}
         {guildTabs.some(tab => guildTabId(tab.name) === safeActive) && <GuildWarPage key={safeActive} guild={guildTabs.find(tab => guildTabId(tab.name) === safeActive).name} counterTeams={enemyDefenseTeams.filter(team => !team.is_temporary && isVisibleItem(team, syncedCurrentUser)).map(team => ({...team, decks: parseCounterDecks(team.counter_decks)}))} />}
 
         {(safeActive === "attack" || safeActive === "temporaryAttack") && (

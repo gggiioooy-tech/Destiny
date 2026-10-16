@@ -18,6 +18,13 @@ do $$declare r jsonb;begin
 end$$;
 reset role;
 update public.profiles set memo='QA보류길드' where auth_user_id=(select uid from guild_test_identity where kind='member');
+update public.profiles set role='admin' where auth_user_id=(select uid from guild_test_identity where kind='member');
+set local role authenticated;
+do $$begin
+ begin perform public.add_guild_war_tab('QA보류길드');raise exception 'NON_OWNER_ADMIN_ADD_ALLOWED';exception when insufficient_privilege then null;end;
+end$$;
+reset role;
+update public.profiles set role='member' where auth_user_id=(select uid from guild_test_identity where kind='member');
 set local role authenticated;
 do $$declare r jsonb;begin
  r=public.submit_guild_war_observation('battle','QA-held-test',now(),'{"warDate":"2026-10-15","direction":"attack","attacker":{},"defender":{}}');
