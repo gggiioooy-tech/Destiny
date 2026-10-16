@@ -19,13 +19,14 @@ export default function PcCollectorConnection({ currentUser }) {
       try{
         for(const row of rows){
           if(!active||connection.current!==c||c.popup.closed)break;
-          if(c.done.has(row?.sourceKey))continue;
+          const revision=JSON.stringify([row?.payload?.attacker?.skills,row?.payload?.defender?.skills]);
+          if(c.done.get(row?.sourceKey)===revision)continue;
           const args=collectorRecord(row,guilds[0]);
           const {data,error}=await supabase.rpc('submit_guild_war_observation',args);
           if(error)throw error;
           if(!data||!['recorded','duplicate','held'].includes(data.status))throw new Error('서버 저장 응답을 확인하지 못했습니다.');
           if(data.status==='held')throw new Error('길드 탭이 등록되지 않아 서버에서 보류됐습니다.');
-          c.done.add(row.sourceKey);
+          c.done.set(row.sourceKey,revision);
           if(active&&connection.current===c){setSaved(c.done.size);setError('');}
         }
       }catch(e){if(active&&connection.current===c){setError(e.message||'저장 실패. 연결 상태를 확인한 뒤 다시 시도합니다.');c.retryAt=Date.now()+15000;}}
@@ -53,7 +54,7 @@ export default function PcCollectorConnection({ currentUser }) {
     const url=launch?`/pc-connect.html#${new URLSearchParams({nonce})}`:`${LOCAL_ORIGIN}/connect#${new URLSearchParams({nonce,origin:location.origin})}`;
     const popup=window.open(url,'15month-pc-collector','width=640,height=720');
     if(!popup){setError('팝업을 허용한 뒤 다시 연결해 주세요.');return;}
-    connection.current={popup,nonce,lastSeen:Date.now(),done:new Set()};setError('');setWaiting(true);setState(null);setSaved(0);
+    connection.current={popup,nonce,lastSeen:Date.now(),done:new Map()};setError('');setWaiting(true);setState(null);setSaved(0);
     if(launch)window.location.href='month15-collector://start';
   }
   return <div className="min-w-0 rounded-2xl border border-zinc-200 bg-white p-4">

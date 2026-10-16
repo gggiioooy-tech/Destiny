@@ -12,8 +12,12 @@ for value in json.load(sys.stdin):
  for row in message.GuildWarBattleHistory:
   key=(message.AttackType,row.CreateTimeMS,row.PlayerInfo.AccountUID,row.TargetPlayerInfo.AccountUID,row.PlaceID)
   unique[key]=(message.AttackType,MessageToDict(row,preserving_proto_field_name=True))
+jobs=[]
 for direction,row in unique.values():
- try:records.append(normalize(row,direction,config.get('periods',[]),config.get('catalog',{})))
+ try:
+  record=normalize(row,direction,config.get('periods',[]),config.get('catalog',{}));records.append(record);jobs.append((direction,row,record))
  except (ValueError,KeyError,TypeError):held+=1
+from replay_skills import enrich
+enrich(pool,jobs,Path(sys.argv[1]).parent)
 attack=sum(x[0]==1 for x in unique.values());defense=sum(x[0]==2 for x in unique.values())
 print(json.dumps({'attack':attack,'defense':defense,'held':held,'reason':'확인된 길드전 기록을 저장합니다. 미확인 영웅·펫 이름은 번호로 표시합니다.','groups':[],'records':records},ensure_ascii=True))
