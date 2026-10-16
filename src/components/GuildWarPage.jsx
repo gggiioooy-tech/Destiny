@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase.js';
 import { groupDefenses, heroKey, heroNames, memoGuilds } from '../lib/guildWar.js';
 import { sortByRecommendation } from '../lib/recommendationSort.js';
 import { CounterOrderDisplay } from './CounterOrderFields.jsx';
+import PcCollectorConnection from './PcCollectorConnection.jsx';
 
 const box = 'min-w-0 rounded-2xl border border-zinc-200 bg-white p-4 sm:p-5';
 const button = 'site-button rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm disabled:opacity-50';
@@ -110,6 +111,7 @@ export default function GuildWarPage({ guild, counterTeams }) {
   const title=section==='teams'?'상대 방어팀':section==='attack'?'공격 기록':'방어 기록';
   return <section className="mx-auto max-w-7xl space-y-5 p-4 sm:p-8">
     <header className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl font-bold">{guild} 길드전</h1><button className={button} onClick={()=>setRevision(v=>v+1)}>새로고침</button></header>
+    <PcCollectorConnection />
     <div className="flex flex-wrap gap-2" aria-label="길드전 분류">{[['current','현재 길드전'],['history','지난 길드전 이력']].map(([value,label])=><button key={value} type="button" aria-pressed={mode===value} className={`${button} ${mode===value?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>{setMode(value);chooseSection('teams');}}>{label}</button>)}</div>
     {datesError&&<p role="alert" className="text-red-600">{datesError}</p>}
     {datesLoading?<p role="status">길드전 목록 불러오는 중…</p>:<>
