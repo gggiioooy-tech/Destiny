@@ -30,7 +30,7 @@ const server=http.createServer((req,res)=>{
       if(!config.python || !fs.existsSync(config.python))throw new Error();
       captureStatus='게임 연결 확인 중…';
       const child=spawn(config.python,['-u',path.join(here,'capture.py'),stateDir],{windowsHide:true,stdio:['ignore','pipe','pipe']});capture=child;
-      child.stdout.on('data',b=>{if(b.toString().includes('CAPTURE_READY'))captureStatus='수집 중 · 게임에서 전장과 기록 목록을 열어 주세요. (최대 10분)';});
+      child.stdout.on('data',b=>{if(b.toString().includes('CAPTURE_RECONNECT'))captureStatus='게임 연결 대기 · 재접속하면 자동으로 다시 수집합니다.';if(b.toString().includes('CAPTURE_READY'))captureStatus='수집 중 · 게임에서 전장과 기록 목록을 열어 주세요. (최대 10분)';});
       child.stderr.on('data',()=>{captureStatus='수집 실패 · 게임 실행, Npcap 및 PC 설정을 확인해 주세요.';});
       child.on('error',()=>{captureStatus='수집 프로그램 실행 실패';capture=null;});
       child.on('exit',code=>{capture=null;captureStatus=code===0?'수집 완료 · 다시 수집하려면 수집 시작을 누르세요.':'수집 실패 · 게임 실행, Npcap 및 PC 설정을 확인해 주세요.';});
