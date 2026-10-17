@@ -43,6 +43,9 @@ const server=http.createServer((req,res)=>{
     try {
       const data=JSON.parse(fs.readFileSync(path.join(stateDir,'status.json'),'utf8'));
       data.captureStatus=captureStatus;
+      const field=(data.records||[]).find(r=>r.kind==='defense_snapshot')?.payload;
+      if(field){const castles=['외성1','외성2','외성3','외성4','외성5','내성1','내성2','내성3','본성'];const missing=castles.filter(c=>!field.defenses.some(d=>d.castle===c));data.captureStatus+=` · 상대 방어팀 ${field.defenses.length}/${field.total}개${missing.length?' · 미수집: '+missing.join(', '):''}`;}
+      try{const error=fs.readFileSync(path.join(stateDir,'decode-error.txt'),'utf8');if(error)data.captureStatus+=' · '+error;}catch{}
       return send(200,'application/json; charset=utf-8',JSON.stringify(data));
     }catch{return send(200,'application/json; charset=utf-8',JSON.stringify({attack:0,defense:0,held:0,reason:fs.existsSync(path.join(stateDir,'config.json'))?'수집 대기':'연결 프로그램 설치 완료 · 이 PC의 게임 수집 설정이 아직 필요합니다.',updatedAt:null,groups:[],records:[]}));}
   }

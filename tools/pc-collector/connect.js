@@ -24,7 +24,7 @@ async function update(){
     if(data.captureStatus)captureInfo.textContent=data.captureStatus;
     document.getElementById('counts').textContent=`공격 ${data.attack||0}건 · 방어 ${data.defense||0}건 · 확인 대기 ${data.held||0}건`;
     document.getElementById('reason').textContent=data.reason||'';
-    document.getElementById('updated').textContent=data.updatedAt?`마지막 수신: ${new Date(data.updatedAt).toLocaleString('ko-KR')}`:'아직 수신된 기록이 없습니다.';
+    document.getElementById('updated').textContent=data.updatedAt?`마지막 기록 갱신: ${new Date(data.updatedAt).toLocaleString('ko-KR')}`:'아직 수신된 기록이 없습니다.';
     const list=document.getElementById('groups');list.replaceChildren();
     for(const group of (data.groups||[]).slice(0,30)){const li=document.createElement('li');li.textContent=`${group.guild||'미확인'} · ${group.direction==='attack'?'공격':'방어'} ${group.count}건`;list.append(li);}
     if(paired&&!window.opener.closed)window.opener.postMessage({type:'15month-collector-status',nonce,data},target);

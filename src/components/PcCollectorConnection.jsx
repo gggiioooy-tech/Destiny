@@ -65,6 +65,6 @@ export default function PcCollectorConnection({ currentUser }) {
     {state&&<button type="button" className="site-button mt-3 rounded-xl border px-4 py-2" onClick={()=>{const c=connection.current;if(c)c.popup.postMessage({type:'15month-collector-start',nonce:c.nonce},LOCAL_ORIGIN);}}>수집 시작</button>}
     {waiting&&<p role="status" className="mt-2 text-sm">PC 연결 확인 중…</p>}
     {error&&<p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
-    {state&&<div role="status" className="mt-3 space-y-1 text-sm"><p className="font-semibold">PC 연결됨 · 공격 {state.attack}건 · 방어 {state.defense}건 수신</p><p>저장 확인 {saved}건 (기존 기록 포함) · 확인 대기 {state.held}건</p><p>{state.reason}</p>{state.updatedAt&&<p className="text-zinc-500">마지막 수신: {new Date(state.updatedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})}</p>}</div>}
+    {state&&<div role="status" className="mt-3 space-y-1 text-sm"><p className="font-semibold">PC 연결됨 · 공격 {state.attack}건 · 방어 {state.defense}건 수신</p><p>저장 확인 {saved}건 (기존 기록 포함) · 확인 대기 {state.held}건</p><p>{state.reason}</p>{state.updatedAt&&<p className="text-zinc-500">마지막 기록 갱신: {new Date(state.updatedAt).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})}</p>}</div>}
   </div>;
 }
