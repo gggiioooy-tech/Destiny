@@ -12,7 +12,7 @@ if (-not (Test-Path -LiteralPath $runtime) -or (Get-FileHash -LiteralPath $runti
     if ((Get-FileHash -LiteralPath $download -Algorithm SHA256).Hash.ToLowerInvariant() -ne $hashes[$arch]) { throw '실행 파일 검증에 실패했습니다. 설치를 중단합니다.' }
     Move-Item -LiteralPath $download -Destination $runtime -Force
 }
-$files = @('start.ps1','desktop.ps1','server.mjs','watch.mjs','summarize.py','normalize.py','replay_skills.py','connect.html','connect.js','connect.css','uninstall.ps1')
+$files = @('start.ps1','desktop.ps1','server.mjs','watch.mjs','summarize.py','normalize.py','replay_skills.py','capture.py','battlefield.py','connect.html','connect.js','connect.css','uninstall.ps1')
 foreach ($file in $files) { Copy-Item -LiteralPath (Join-Path $PSScriptRoot $file) -Destination (Join-Path $installRoot $file) -Force }
 $scheme = 'HKCU:\Software\Classes\month15-collector'
 New-Item -Path $scheme -Force | Out-Null
