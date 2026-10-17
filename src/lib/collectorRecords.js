@@ -1,3 +1,4 @@
+import { resolveGameSide } from './gameNames.js';
 const text=(v,n=100)=>typeof v==='string'&&v.length<=n;
 export function collectorRecord(row,guild){
   const p=row?.payload;
@@ -8,7 +9,7 @@ export function collectorRecord(row,guild){
       if(!text(k.hero)||!text(k.skill)||!s.heroIds.includes(k.heroId)||!Number.isSafeInteger(k.skillType)||!Number.isSafeInteger(k.order))throw new Error('PC 스킬 정보를 확인해 주세요.');
       return {hero:k.hero,skill:k.skill,heroId:k.heroId,skillType:k.skillType,order:k.order};
     }):[];
-    return {nickname:s.nickname,heroes:s.heroes,heroIds:s.heroIds,pet:s.pet,petId:s.petId,namesResolved:s.namesResolved===true,skills};
+    return resolveGameSide({nickname:s.nickname,heroes:s.heroes,heroIds:s.heroIds,pet:s.pet,petId:s.petId,namesResolved:s.namesResolved===true,skills});
   }
   return {p_kind:'battle',p_source_key:row.sourceKey,p_occurred_at:row.occurredAt,p_payload:{warDate:p.warDate,direction:p.direction,sourceGuild:p.sourceGuild,opponentGuild:p.opponentGuild,periodSource:'owner-confirmed',castle:p.castle,attackerWon:p.attackerWon,attacker:side(p.attacker),defender:side(p.defender)}};
 }
