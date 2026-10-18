@@ -300,3 +300,9 @@ body {
 :root .site-theme .site-page-header { background-color: rgb(var(--header-panel-rgb) / var(--panel-alpha)); }
 /* Native option menus must remain legible while a transparent select is open. */
 .site-theme select option { background-color: rgb(var(--panel-rgb)); }
+
+/* Keep battle outcomes distinguishable across all themes. */
+.site-theme .battle-side-win { background-color: rgb(187 247 208 / var(--panel-alpha, .6)); box-shadow: inset 0 0 0 1px rgb(34 197 94 / .35); }
+.site-theme .battle-side-loss { background-color: rgb(254 202 202 / var(--panel-alpha, .6)); box-shadow: inset 0 0 0 1px rgb(239 68 68 / .4); }
+.dark .site-theme .battle-side-win { background-color: rgb(20 83 45 / var(--panel-alpha, .6)); }
+.dark .site-theme .battle-side-loss { background-color: rgb(127 29 29 / var(--panel-alpha, .6)); }

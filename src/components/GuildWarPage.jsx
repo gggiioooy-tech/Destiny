@@ -49,9 +49,9 @@ function CounterDetails({ deck }) {
   </details>;
 }
 
-function BattleSide({ title, side }) {
+function BattleSide({ title, side, result }) {
   side=resolveGameSide(side);
-  return <div className="min-w-0 rounded-xl bg-zinc-50 p-3"><p className="text-xs text-zinc-500">{title}</p><p className="mt-1 font-semibold">{plain(side?.nickname)||'닉네임 미확인'}</p><p className="text-sm">{heroNames(side?.heroes).join(' · ')||'영웅 미확인'}</p><p className="text-sm">펫: {plain(side?.pet)||'미확인'}</p>
+  return <div className={`min-w-0 rounded-xl p-3 ${result ? `battle-side-${result}` : 'bg-zinc-50'}`}><p className="text-xs text-zinc-500">{title}</p><p className="mt-1 font-semibold">{plain(side?.nickname)||'닉네임 미확인'}</p><p className="text-sm">{heroNames(side?.heroes).join(' · ')||'영웅 미확인'}</p><p className="text-sm">펫: {plain(side?.pet)||'미확인'}</p>
     {side?.namesResolved === false && <p className="mt-2 text-xs text-amber-700">영웅·펫 이름 확인 중 · 원본 번호 보존</p>}<p className="mt-2 text-xs text-zinc-500">시작 예약 스킬</p><p className="text-sm">{Array.isArray(side?.skills)&&side.skills.length ? side.skills.map(s=>`${plain(s?.hero)||'영웅 미확인'} ${skillLabel(s)}`).join(' → ') : '미수집'}</p>
   </div>;
 }
@@ -147,7 +147,7 @@ export default function GuildWarPage({ guild, counterTeams, currentUser }) {
         {error&&<p role="alert" className="text-red-600">{error}</p>}
         {loading||(!!period&&loadedKey!==requestKey)?<p role="status">기록 불러오는 중…</p>:section==='teams'?<DefenseGroups snapshot={snapshot} counterTeams={counterTeams} castle={castle} search={query}/>:<div className="space-y-3">
           {!battles.length&&<div className={box}>{castle||query?'조건에 맞는 기록이 없습니다.':`아직 등록된 ${title}이 없습니다.`}</div>}
-          {battles.map(row=><article key={row.id} className={box}><div className="mb-3 flex flex-wrap justify-between gap-2 text-sm"><span>{plain(row.payload.opponentGuild) && <>{plain(row.payload.opponentGuild)} · </>}{plain(row.payload.castle)||'위치 미확인'} · {date(row.occurred_at)}</span><span style={{color:typeof row.payload.attackerWon!=='boolean'?'#71717a':row.payload.attackerWon===(section==='attack')?'#15803d':'#dc2626',fontWeight:700}}>{typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'우리 길드 승리':'우리 길드 패배'):'결과 미확인'}</span></div><div className="grid gap-3 md:grid-cols-2"><BattleSide title={section==='attack'?'공격자 · 우리 길드':'공격자 · 상대 길드'} side={row.payload.attacker}/><BattleSide title={section==='defense'?'방어자 · 우리 길드':'방어자 · 상대 길드'} side={row.payload.defender}/></div></article>)}
+          {battles.map(row=><article key={row.id} className={box}><div className="mb-3 flex flex-wrap justify-between gap-2 text-sm"><span>{plain(row.payload.opponentGuild) && <>{plain(row.payload.opponentGuild)} · </>}{plain(row.payload.castle)||'위치 미확인'} · {date(row.occurred_at)}</span><span style={{color:typeof row.payload.attackerWon!=='boolean'?'#71717a':row.payload.attackerWon===(section==='attack')?'#15803d':'#dc2626',fontWeight:700}}>{typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'우리 길드 승리':'우리 길드 패배'):'결과 미확인'}</span></div><div className="grid gap-3 md:grid-cols-2"><BattleSide result={typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'win':'loss'):null} title={section==='attack'?'공격자 · 우리 길드':'공격자 · 상대 길드'} side={row.payload.attacker}/><BattleSide result={typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'win':'loss'):null} title={section==='defense'?'방어자 · 우리 길드':'방어자 · 상대 길드'} side={row.payload.defender}/></div></article>)}
         </div>}
       </>}
     </>}
