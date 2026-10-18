@@ -24,5 +24,5 @@ if (-not (Test-Path -LiteralPath "$env:SystemRoot/System32/Npcap/wpcap.dll")) {
     Download-Verified 'https://npcap.com/dist/npcap-1.89.exe' $npcap '8aed85e900d783d1308506e919587d3e540451947af8a82f2d04f819e44305cc'
     if ((Get-AuthenticodeSignature -LiteralPath $npcap).Status -ne 'Valid') { throw 'Npcap 서명을 확인할 수 없습니다.' }
     Start-Process -FilePath $npcap -Verb RunAs -Wait
-    if (-not (Test-Path -LiteralPath "$env:SystemRoot/System32/Npcap/wpcap.dll")) { throw 'Npcap 설치가 완료되지 않았습니다. install.cmd를 다시 실행해 주세요.' }
+    if (-not (Test-Path -LiteralPath "$env:SystemRoot/System32/Npcap/wpcap.dll")) { throw 'Npcap 설치가 완료되지 않았습니다. 이거누르면설치됨.cmd를 다시 실행해 주세요.' }
 }
