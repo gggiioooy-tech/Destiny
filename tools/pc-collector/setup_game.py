@@ -46,6 +46,6 @@ with exe.open('rb') as f,mmap.mmap(f.fileno(),0,access=mmap.ACCESS_READ) as b:
         pos=b.find(b'\x0a\x0eprotocol.proto',pos+1)
 if len(found)!=1:raise SystemExit('게임 버전 확인이 필요합니다. 자동 설정을 중단했습니다.')
 schema=state/'game-schema.pb';schema.write_bytes(found[0].SerializeToString())
-config={'python':sys.executable,'protobufPath':str(app/'vendor'),'schemaPath':str(schema),'key':profile['key'],'iv':profile['iv'],'guild':profile['guild'],'periods':[p for p in existing.get('periods',[]) if p.get('guild')==profile['guild']],'catalog':json.loads((app/'gameCatalog.json').read_text(encoding='utf8')),'capturePath':str(state/'pending.pcap'),'serverPort':0}
+config={'python':sys.executable,'protobufPath':str(app/'vendor'),'schemaPath':str(schema),'key':profile['key'],'iv':profile['iv'],'guild':profile['guild'],'periods':list({p['warDate']:p for p in existing.get('periods',[])+profile.get('periods',[]) if p.get('guild')==profile['guild']}.values()),'catalog':json.loads((app/'gameCatalog.json').read_text(encoding='utf8')),'capturePath':str(state/'pending.pcap'),'serverPort':0}
 temp=state/'config.tmp';temp.write_text(json.dumps(config),encoding='utf8');os.replace(temp,state/'config.json')
 print('SETUP_READY',flush=True)
