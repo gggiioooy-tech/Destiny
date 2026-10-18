@@ -14,6 +14,7 @@ const cookie=randomBytes(32).toString('hex');
 fs.mkdirSync(stateDir,{recursive:true});
 let capture=null,captureStatus='수집 시작 버튼을 눌러 주세요.';
 let settingUp=false;
+function readPeriods(){try{return JSON.parse(fs.readFileSync(path.join(stateDir,'match-periods.json'),'utf8'));}catch{return [];}}
 const server=http.createServer((req,res)=>{
   res.setHeader('Cache-Control','no-store');
   res.setHeader('X-Content-Type-Options','nosniff');
@@ -76,14 +77,14 @@ const server=http.createServer((req,res)=>{
     try {
       const data=JSON.parse(fs.readFileSync(path.join(stateDir,'status.json'),'utf8'));
       data.captureStatus=captureStatus;
-      try{data.periods=JSON.parse(fs.readFileSync(path.join(stateDir,'match-periods.json'),'utf8'));}catch{data.periods=[];}
+      data.periods=readPeriods();
       data.supportsPeriods=true;
       data.needsSetup=!fs.existsSync(path.join(stateDir,'config.json'));
       const field=(data.records||[]).find(r=>r.kind==='defense_snapshot')?.payload;
       if(field){const castles=['외성1','외성2','외성3','외성4','외성5','내성1','내성2','내성3','본성'];const missing=castles.filter(c=>!field.defenses.some(d=>d.castle===c));data.captureStatus+=` · 상대 방어팀 ${field.defenses.length}/${field.total}개${missing.length?' · 미수집: '+missing.join(', '):''}`;}
       try{const error=fs.readFileSync(path.join(stateDir,'decode-error.txt'),'utf8');if(error)data.captureStatus+=' · '+error;}catch{}
       return send(200,'application/json; charset=utf-8',JSON.stringify(data));
-    }catch{return send(200,'application/json; charset=utf-8',JSON.stringify({attack:0,defense:0,held:0,supportsPeriods:true,periods:[],needsSetup:!fs.existsSync(path.join(stateDir,'config.json')),captureStatus,reason:'게임을 실행하고 사이트에 연결하면 자동으로 설정합니다.',updatedAt:null,groups:[],records:[]}));}
+    }catch{return send(200,'application/json; charset=utf-8',JSON.stringify({attack:0,defense:0,held:0,supportsPeriods:true,periods:readPeriods(),needsSetup:!fs.existsSync(path.join(stateDir,'config.json')),captureStatus,reason:'게임을 실행하고 사이트에 연결하면 자동으로 설정합니다.',updatedAt:null,groups:[],records:[]}));}
   }
   const assets={'/connect':['connect.html','text/html; charset=utf-8'],'/connect.js':['connect.js','text/javascript; charset=utf-8'],'/connect.css':['connect.css','text/css; charset=utf-8']};
   const asset=assets[url.pathname];
