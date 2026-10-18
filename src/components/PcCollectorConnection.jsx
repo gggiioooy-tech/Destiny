@@ -40,7 +40,7 @@ export default function PcCollectorConnection({ currentUser }) {
       c.lastSeen=Date.now();setWaiting(false);
       if(d.needsSetup&&!c.setupRequested){c.setupRequested=true;supabase.rpc('collector_setup_profile').then(({data,error})=>{if(!active||connection.current!==c)return;if(error){setError(error.message);return;}c.popup.postMessage({type:'15month-collector-setup',nonce:c.nonce,profile:data},LOCAL_ORIGIN);});}
       if(!d.needsSetup&&!c.started){c.started=true;c.popup.postMessage({type:'15month-collector-start',nonce:c.nonce},LOCAL_ORIGIN);}
-      setState({attack:d.attack,defense:d.defense,held:d.held,reason:typeof d.captureStatus==='string'?d.captureStatus:typeof d.reason==='string'?d.reason.slice(0,200):'',updatedAt:typeof d.updatedAt==='string'?d.updatedAt:null});
+      setState({attack:d.attack,defense:d.defense,held:d.held,reason:[typeof d.captureStatus==='string'?d.captureStatus:'',typeof d.reason==='string'?d.reason.slice(0,200):'',...Object.entries(d.heldReasons||{}).slice(0,8).map(([reason,count])=>`${reason}: ${count}건`)].filter(Boolean).join(' · '),updatedAt:typeof d.updatedAt==='string'?d.updatedAt:null});
       c.popup.postMessage({type:'15month-collector-ack',nonce:c.nonce,saved:c.done.size},LOCAL_ORIGIN);
       if(Array.isArray(d.records)&&d.records.length<=1000)void upload(c,d.records);
     }

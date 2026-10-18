@@ -40,10 +40,10 @@ async function update(){
   const known=new Map((old.records||[]).map(r=>[r.sourceKey,JSON.stringify(r.payload)]));
   const changed=(data.records||[]).some(r=>known.get(r.sourceKey)!==JSON.stringify(r.payload));
   data.updatedAt=changed?new Date().toISOString():old.updatedAt||null;
-  if(!data.records?.length){lastSignature=signature;return;}
+  if(!data.records?.length&&!data.held){lastSignature=signature;return;}
   fs.writeFileSync(path.join(home,'status.json.tmp'),JSON.stringify(data));fs.renameSync(path.join(home,'status.json.tmp'),path.join(home,'status.json'));
   fs.writeFileSync(path.join(home,'decode-error.txt'),'');lastSignature=signature;
-  console.log(`수신: 공격 ${data.attack}건, 방어 ${data.defense}건 (확인 대기)`);
+  console.log(`수신: 공격 ${data.attack}건, 방어 ${data.defense}건 (보류 ${data.held}건)`);
  }catch(e){previous=-1;fs.writeFileSync(path.join(home,'decode-error.txt'),'게임 데이터 해석 대기 · 게임 재접속 후 수집 시작을 다시 눌러 주세요.');console.error('수집 데이터 확인 대기:',e.message);}finally{running=false;}
 }
 await update();setInterval(update,2000);
