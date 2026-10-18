@@ -23,3 +23,24 @@ export function uniqueBattles(rows) {
     seen.add(key); return true;
   });
 }
+
+export function defenseCopyText(defenses) {
+  const locations = ['외성1','외성2','외성3','외성4','외성5','내성1','내성2','내성3','본성'];
+  const byCastle = new Map(); const total = new Map();
+  function add(map, heroes) {
+    const key = heroKey(heroes);
+    const entry = map.get(key) || { heroes, count: 0 };
+    entry.count++; map.set(key, entry);
+  }
+  for (const row of Array.isArray(defenses) ? defenses : []) {
+    const heroes = heroNames(row?.heroes);
+    if (!heroes.length) continue;
+    const castle = row.castle || '위치 미확인';
+    if (!byCastle.has(castle)) byCastle.set(castle, new Map());
+    add(byCastle.get(castle), heroes); add(total, heroes);
+  }
+  if (!total.size) return '';
+  const lines = map => [...map.values()].sort((a,b) => b.count-a.count || a.heroes.join(' ').localeCompare(b.heroes.join(' '),'ko')).map(row => `${row.heroes.join(' ')} x${row.count}`).join('\n');
+  const names = [...locations, ...[...byCastle.keys()].filter(name => !locations.includes(name))];
+  return [...names.filter(name => byCastle.has(name)).map(name => `${name}\n${lines(byCastle.get(name))}`), `종합\n${lines(total)}`].join('\n\n');
+}

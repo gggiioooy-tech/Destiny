@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
-import { groupDefenses, heroKey, heroNames, memoGuilds } from '../lib/guildWar.js';
+import { defenseCopyText, groupDefenses, heroKey, heroNames, memoGuilds } from '../lib/guildWar.js';
 import { sortByRecommendation } from '../lib/recommendationSort.js';
 import { CounterOrderDisplay } from './CounterOrderFields.jsx';
 import PcCollectorConnection from './PcCollectorConnection.jsx';
@@ -61,10 +61,21 @@ const warTitle = (value, opponent='') => { const [y,m,d] = value.split('-'); ret
 
 function DefenseGroups({ snapshot, counterTeams, castle, search }) {
   const [overview,setOverview]=useState(false);
+  const [copyStatus,setCopyStatus]=useState('');
+  const [manualCopy,setManualCopy]=useState('');
+  const copyText=defenseCopyText((snapshot?.payload?.defenses||[]).map(resolveGameSide));
+  async function copyDefenses(){
+    if(!copyText)return;
+    try{await navigator.clipboard.writeText(copyText);setCopyStatus('복사했습니다. 카톡에 붙여넣기 하세요.');setManualCopy('');}
+    catch{setCopyStatus('자동 복사가 차단됐습니다. 아래 내용을 선택해 복사해 주세요.');setManualCopy(copyText);}
+  }
+
   const keyword=search.replace(/\s/g,'').toLowerCase();
   const groups=groupDefenses(snapshot?.payload?.defenses).filter(g=>(!castle||g.castle===castle)&&(!keyword||[...g.heroes,g.pet,...g.members].join(' ').replace(/\s/g,'').toLowerCase().includes(keyword)));
   return <div className="space-y-3">
-    <div className="flex flex-wrap gap-2">{[[false,'상세보기'],[true,'몰아보기']].map(([value,label])=><button type="button" key={label} aria-pressed={overview===value} className={`${button} ${overview===value?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>setOverview(value)}>{label}</button>)}</div>
+    <div className="flex flex-wrap gap-2">{[[false,'상세보기'],[true,'몰아보기']].map(([value,label])=><button type="button" key={label} aria-pressed={overview===value} className={`${button} ${overview===value?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>setOverview(value)}>{label}</button>)}<button type="button" className={button} disabled={!copyText} onClick={copyDefenses}>상대 방어팀 복사하기</button></div>
+    {copyStatus&&<p role="status" className="text-sm">{copyStatus}</p>}
+    {manualCopy&&<textarea aria-label="상대 방어팀 복사 내용" readOnly value={manualCopy} onFocus={e=>e.target.select()} className="w-full rounded-xl border border-zinc-200 bg-white p-3" rows={12}/>}
     {snapshot&&<p className="text-xs text-zinc-500">수집 시각: {date(snapshot.occurred_at)} · 수집 {Array.isArray(snapshot.payload.defenses)?snapshot.payload.defenses.length:0}개 / 전체 {Number.isInteger(snapshot.payload.total)?snapshot.payload.total:'미확인'}개</p>}
     {!groups.length&&<div className={box}><p>{snapshot?'조건에 맞는 상대 방어팀이 없습니다.':'아직 수집된 상대 방어팀이 없습니다.'}</p>{!snapshot&&<p className="mt-2 text-sm text-zinc-500">PC 수집기 연결 후 전장 정보를 수신하면 표시됩니다.</p>}</div>}
     {overview&&<div className="grid min-w-0 grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">{castles.filter(name=>!castle||castle===name).map(name=>{
