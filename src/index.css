@@ -263,6 +263,9 @@ body {
 .cinderella .site-theme { background-color: #eee5f6; color: #34394e; }
 .cinderella .site-theme::before {
   background-image: linear-gradient(90deg, rgb(235 239 250 / .35), rgb(232 243 255 / .16) 55%, rgb(235 237 249 / .06)), url('/themes/cinderella-illustration.png');
+  /* Enlarge the central artwork so the original black side margins stay offscreen. */
+  background-size: cover, max(210vw, 179vh) auto;
+  background-position: center, center 18%;
 }
 .cinderella .site-theme .site-page-header {
   background-color: rgb(235 240 251 / .45);
