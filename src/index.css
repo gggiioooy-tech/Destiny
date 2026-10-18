@@ -104,12 +104,12 @@ body {
 .dark .site-theme .site-page { background-color: #101014; }
 
 /* The supplied illustration is used as-is. Translucent panels reveal the artwork. */
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme {
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme {
   background: #d7eeed;
   color: #183c43;
   isolation: isolate;
 }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme::before {
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme::before {
   content: "";
   position: fixed;
   inset: 0;
@@ -120,8 +120,8 @@ body {
   background-position: center, right center;
   background-repeat: no-repeat;
 }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .site-page { background: transparent; }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .site-page-header {
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .site-page { background: transparent; }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .site-page-header {
   min-height: 230px;
   padding: 28px;
   overflow: hidden;
@@ -134,43 +134,43 @@ body {
   background-position: right 18px center;
   box-shadow: 0 12px 40px rgb(25 89 96 / .09);
 }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .site-page-header > div { max-width: 65%; }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .bg-white { background-color: rgb(250 255 254 / .58); }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .bg-white\/90 { background-color: rgb(238 251 248 / .68); }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme aside.bg-white { background-color: rgb(235 250 248 / .68); }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .bg-zinc-50,
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .bg-zinc-50\/60 { background-color: rgb(230 246 245 / .48); }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .bg-zinc-100 { background-color: rgb(216 237 235 / .6); }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .bg-zinc-200 { background-color: rgb(192 226 223 / .65); }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .bg-zinc-950 { background-color: #176b71; color: #fff; box-shadow: 0 4px 14px rgb(23 107 113 / .15); }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .hover\:bg-zinc-800:hover { background-color: #12565c; }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .hover\:bg-white:hover,
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .hover\:bg-zinc-50:hover,
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .hover\:bg-zinc-100:hover,
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .hover\:bg-zinc-200:hover { background-color: #d9efec; }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .text-zinc-950,
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .text-zinc-900 { color: #153c44; }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .text-zinc-800,
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .text-zinc-700 { color: #28545c; }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .text-zinc-600,
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .text-zinc-500,
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .text-zinc-400 { color: #4e7077; }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .border-zinc-100,
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .border-zinc-200 { border-color: #c4dfdd; }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .border-zinc-300 { border-color: #98c8c5; }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .ring-zinc-200 { --tw-ring-color: #c4dfdd; }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme input::placeholder,
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme textarea::placeholder { color: #66888d; }
-:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .miku-theme-toggle { background: #c9eeea; border-color: #71bdb6; color: #175e63; }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .site-page-header > div { max-width: 65%; }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .bg-white { background-color: rgb(250 255 254 / .58); }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .bg-white\/90 { background-color: rgb(238 251 248 / .68); }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme aside.bg-white { background-color: rgb(235 250 248 / .68); }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .bg-zinc-50,
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .bg-zinc-50\/60 { background-color: rgb(230 246 245 / .48); }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .bg-zinc-100 { background-color: rgb(216 237 235 / .6); }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .bg-zinc-200 { background-color: rgb(192 226 223 / .65); }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .bg-zinc-950 { background-color: #176b71; color: #fff; box-shadow: 0 4px 14px rgb(23 107 113 / .15); }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .hover\:bg-zinc-800:hover { background-color: #12565c; }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .hover\:bg-white:hover,
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .hover\:bg-zinc-50:hover,
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .hover\:bg-zinc-100:hover,
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .hover\:bg-zinc-200:hover { background-color: #d9efec; }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .text-zinc-950,
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .text-zinc-900 { color: #153c44; }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .text-zinc-800,
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .text-zinc-700 { color: #28545c; }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .text-zinc-600,
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .text-zinc-500,
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .text-zinc-400 { color: #4e7077; }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .border-zinc-100,
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .border-zinc-200 { border-color: #c4dfdd; }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .border-zinc-300 { border-color: #98c8c5; }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .ring-zinc-200 { --tw-ring-color: #c4dfdd; }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme input::placeholder,
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme textarea::placeholder { color: #66888d; }
+:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .miku-theme-toggle { background: #c9eeea; border-color: #71bdb6; color: #175e63; }
 @media (max-width: 640px) {
-  :is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .site-page-header {
+  :is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .site-page-header {
     min-height: 220px;
     padding: 20px;
     background-size: auto 145px;
     background-position: right 8px top 10px;
     background-image: url('/themes/miku-chibi.png');
   }
-  :is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .site-page-header > div { max-width: 58%; }
+  :is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .site-page-header > div { max-width: 58%; }
 }
 
 /* Alya shares the translucent layout with a silver-blue palette. */
@@ -260,20 +260,37 @@ body {
   .emilia .site-theme .site-page-header { background-size: auto 145px; background-position: right 12px top 10px; }
 }
 
+.cinderella .site-theme { background-color: #eee5f6; color: #34394e; }
+.cinderella .site-theme::before {
+  background-image: linear-gradient(90deg, rgb(235 239 250 / .35), rgb(232 243 255 / .16) 55%, rgb(235 237 249 / .06)), url('/themes/cinderella-illustration.png');
+}
+.cinderella .site-theme .site-page-header {
+  background-color: rgb(235 240 251 / .45);
+  background-image: url('/themes/cinderella-chibi.png');
+  background-size: auto 94%;
+  background-position: right 28px center;
+}
+.cinderella .site-theme .bg-zinc-950 { background-color: #8b3b50; }
+.cinderella .site-theme .cinderella-theme-toggle { background: #f5e6eb; border-color: #cda2ae; color: #703045; }
+@media (max-width: 640px) {
+  .cinderella .site-theme .site-page-header { background-size: auto 145px; background-position: right 12px top 10px; }
+}
+
+
 @media (max-width: 480px) {
-  :is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .site-page-header {
+  :is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .site-page-header {
     min-height: 0;
     padding-top: 150px;
     background-size: auto 130px;
     background-position: right 12px top 10px;
   }
-  :is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) .site-theme .site-page-header > div { max-width: 100%; }
+  :is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .site-page-header > div { max-width: 100%; }
 }
 
 /* Change panel fills only: text, icons and theme illustrations stay fully visible. */
 :root { --panel-alpha: .6; --panel-rgb: 255 255 255; --muted-panel-rgb: 244 244 245; --header-panel-rgb: 255 255 255; }
 :root.dark { --panel-rgb: 24 24 27; --muted-panel-rgb: 39 39 42; --header-panel-rgb: 24 24 27; }
-:root:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia) { --panel-rgb: 250 255 254; --muted-panel-rgb: 230 246 245; --header-panel-rgb: 235 240 251; }
+:root:is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) { --panel-rgb: 250 255 254; --muted-panel-rgb: 230 246 245; --header-panel-rgb: 235 240 251; }
 :root .site-theme :is(.bg-white, .bg-white\/90),
 :root .site-theme aside.bg-white { background-color: rgb(var(--panel-rgb) / var(--panel-alpha)); }
 :root .site-theme :is(.bg-zinc-50, .bg-zinc-50\/60, .bg-zinc-100, .bg-zinc-200) { background-color: rgb(var(--muted-panel-rgb) / var(--panel-alpha)); }

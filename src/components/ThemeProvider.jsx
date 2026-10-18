@@ -11,7 +11,7 @@ function initialTransparency() {
   return 40;
 }
 function initialTheme() {
-  try { const saved = localStorage.getItem(STORAGE_KEY); if (saved === 'light' || saved === 'dark' || saved === 'miku' || saved === 'alya' || saved === 'marciana' || saved === 'elaina' || saved === 'yuno' || saved === 'emilia') return saved; } catch {}
+  try { const saved = localStorage.getItem(STORAGE_KEY); if (saved === 'light' || saved === 'dark' || saved === 'miku' || saved === 'alya' || saved === 'marciana' || saved === 'elaina' || saved === 'yuno' || saved === 'emilia' || saved === 'cinderella') return saved; } catch {}
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 export function ThemeProvider({ children }) {
@@ -29,10 +29,11 @@ export function ThemeProvider({ children }) {
     document.documentElement.classList.toggle('elaina', theme === 'elaina');
     document.documentElement.classList.toggle('yuno', theme === 'yuno');
     document.documentElement.classList.toggle('emilia', theme === 'emilia');
+    document.documentElement.classList.toggle('cinderella', theme === 'cinderella');
     document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
     try { localStorage.setItem(STORAGE_KEY, theme); } catch {}
   }, [theme]);
-  return <ThemeContext.Provider value={{ theme, transparency, setTransparency, toggleEmilia: () => setTheme(value => value === 'emilia' ? 'light' : 'emilia'), toggleYuno: () => setTheme(value => value === 'yuno' ? 'light' : 'yuno'), toggleElaina: () => setTheme(value => value === 'elaina' ? 'light' : 'elaina'), toggleMarciana: () => setTheme(value => value === 'marciana' ? 'light' : 'marciana'), toggleAlya: () => setTheme(value => value === 'alya' ? 'light' : 'alya'), toggleMiku: () => setTheme(value => value === 'miku' ? 'light' : 'miku'), toggle: () => setTheme(value => value === 'dark' ? 'light' : 'dark') }}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={{ toggleCinderella: () => setTheme(value => value === 'cinderella' ? 'light' : 'cinderella'), theme, transparency, setTransparency, toggleEmilia: () => setTheme(value => value === 'emilia' ? 'light' : 'emilia'), toggleYuno: () => setTheme(value => value === 'yuno' ? 'light' : 'yuno'), toggleElaina: () => setTheme(value => value === 'elaina' ? 'light' : 'elaina'), toggleMarciana: () => setTheme(value => value === 'marciana' ? 'light' : 'marciana'), toggleAlya: () => setTheme(value => value === 'alya' ? 'light' : 'alya'), toggleMiku: () => setTheme(value => value === 'miku' ? 'light' : 'miku'), toggle: () => setTheme(value => value === 'dark' ? 'light' : 'dark') }}>{children}</ThemeContext.Provider>;
 }
 export function TransparencyControl({ className = '' }) {
   const { transparency, setTransparency } = useContext(ThemeContext);
@@ -102,6 +103,7 @@ export function AnimeThemeMenu({ compact = false, className = '' }) {
       <ElainaThemeToggle className="w-full" />
       <YunoThemeToggle className="w-full" />
       <EmiliaThemeToggle className="w-full" />
+      <CinderellaThemeToggle className="w-full" />
     </div>}
   </div>;
 }
@@ -119,5 +121,13 @@ export function EmiliaThemeToggle({ compact = false, className = '' }) {
   const selected = theme === 'emilia';
   return <button type="button" onClick={toggleEmilia} aria-pressed={selected} aria-label={selected ? '에밀리아 테마 끄기' : '에밀리아 테마'} title={selected ? '에밀리아 테마 끄기' : '에밀리아 테마'} className={`emilia-theme-toggle inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 ${className}`}>
     <Snowflake size={17} />{!compact && (selected ? '에밀리아 테마 켜짐' : '에밀리아 테마')}
+  </button>;
+}
+
+export function CinderellaThemeToggle({ compact = false, className = '' }) {
+  const { theme, toggleCinderella } = useContext(ThemeContext);
+  const selected = theme === 'cinderella';
+  return <button type="button" onClick={toggleCinderella} aria-pressed={selected} aria-label={selected ? '센데렐라 테마 끄기' : '센데렐라 테마'} title={selected ? '센데렐라 테마 끄기' : '센데렐라 테마'} className={`cinderella-theme-toggle inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 ${className}`}>
+    <Snowflake size={17} />{!compact && (selected ? '센데렐라 테마 켜짐' : '센데렐라 테마')}
   </button>;
 }
