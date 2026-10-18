@@ -10,7 +10,7 @@ async function update(){
  if(running)return;running=true;
  try{
   const next=JSON.parse(fs.readFileSync(configPath,'utf8').replace(/^\uFEFF/,''));
-  if(next.capturePath!==config.capturePath){previous=-1;lastSignature='';}config=next;
+  if(next.capturePath!==config.capturePath||JSON.stringify(next.periods)!==JSON.stringify(config.periods)){previous=-1;lastSignature='';}config=next;
   const stat=fs.statSync(config.capturePath);if(stat.size===previous)return;
   if(stat.size>16*1024*1024)throw new Error('capture limit');previous=stat.size;
   const b=fs.readFileSync(config.capturePath);if(b.length<24||b.readUInt32LE(0)!==0xa1b2c3d4||b.readUInt32LE(20)!==1)throw new Error('pcap format');

@@ -57,7 +57,7 @@ function BattleSide({ title, side }) {
 }
 
 const castles = ['외성1','외성2','외성3','외성4','외성5','내성1','내성2','내성3','본성'];
-const warTitle = value => { const [y,m,d] = value.split('-'); return `${y}년 ${Number(m)}월 ${Number(d)}일 길드전 이력`; };
+const warTitle = (value, opponent='') => { const [y,m,d] = value.split('-'); return `${y}년 ${Number(m)}월 ${Number(d)}일${opponent ? ` ${opponent}` : ''} 길드전 이력`; };
 
 function DefenseGroups({ snapshot, counterTeams, castle, search }) {
   const [overview,setOverview]=useState(false);
@@ -85,6 +85,7 @@ function DefenseGroups({ snapshot, counterTeams, castle, search }) {
 }
 
 export default function GuildWarPage({ guild, counterTeams, currentUser }) {
+  const [dateNames,setDateNames]=useState({});
   const [mode,setMode]=useState('current');const [historyDate,setHistoryDate]=useState('');const [dates,setDates]=useState([]);
   const [section,setSection]=useState('teams');const [castle,setCastle]=useState('');const [search,setSearch]=useState('');const [query,setQuery]=useState('');
   const [opponent,setOpponent]=useState({key:'',name:''});
@@ -98,7 +99,7 @@ export default function GuildWarPage({ guild, counterTeams, currentUser }) {
     let active=true;let running=false;
     async function loadDates(){
       if(running)return;running=true;
-      try{const {data,error}=await supabase.rpc('guild_war_dates',{p_guild:guild});if(error)throw error;if(active){setDates((data||[]).map(row=>row.war_date));setDatesError('');}}
+      try{const {data,error}=await supabase.rpc('guild_war_history_labels',{p_guild:guild});if(error)throw error;if(active){setDates((data||[]).map(row=>row.war_date));setDateNames(Object.fromEntries((data||[]).map(row=>[row.war_date,plain(row.opponent)])));setDatesError('');}}
       catch(e){if(active)setDatesError(e.message||'길드전 날짜를 불러오지 못했습니다.');}finally{running=false;if(active)setDatesLoading(false);}
     }
     loadDates();const timer=setInterval(()=>{if(!document.hidden)loadDates();},15000);return()=>{active=false;clearInterval(timer);};
@@ -132,11 +133,11 @@ export default function GuildWarPage({ guild, counterTeams, currentUser }) {
     <div className="flex flex-wrap gap-2" aria-label="길드전 분류">{[['current','현재 길드전'],['history','지난 길드전 이력']].map(([value,label])=><button key={value} type="button" aria-pressed={mode===value} className={`${button} ${mode===value?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>{setMode(value);chooseSection('teams');}}>{label}</button>)}</div>
     {datesError&&<p role="alert" className="text-red-600">{datesError}</p>}
     {datesLoading?<p role="status">길드전 목록 불러오는 중…</p>:<>
-      {mode==='history'&&<section className={box}><h2 className="mb-3 font-semibold">날짜별 길드전 이력</h2><div className="flex flex-wrap gap-2">{dates.map(value=><button key={value} className={`${button} ${historyDate===value?'ring-2 ring-blue-500':''}`} aria-pressed={historyDate===value} onClick={()=>{setHistoryDate(value);chooseSection('teams');}}>{warTitle(value)}</button>)}</div>{!dates.length&&<p className="text-sm text-zinc-500">저장된 길드전 이력이 없습니다.</p>}</section>}
+      {mode==='history'&&<section className={box}><h2 className="mb-3 font-semibold">날짜별 길드전 이력</h2><div className="flex flex-wrap gap-2">{dates.map(value=><button key={value} className={`${button} ${historyDate===value?'ring-2 ring-blue-500':''}`} aria-pressed={historyDate===value} onClick={()=>{setHistoryDate(value);chooseSection('teams');}}>{warTitle(value,dateNames[value])}</button>)}</div>{!dates.length&&<p className="text-sm text-zinc-500">저장된 길드전 이력이 없습니다.</p>}</section>}
       {mode==='current'&&!period&&<div className={box}>아직 수집된 현재 길드전 정보가 없습니다.</div>}
       {mode==='history'&&dates.length>0&&!period&&<p className="text-sm text-zinc-500">확인할 길드전 날짜를 선택해 주세요.</p>}
       {(period||mode==='current')&&<>
-        {period&&<p className="text-sm text-zinc-500">{warTitle(period)}{mode==='current'?' · 가장 최근 수집된 길드전':''}</p>}
+        {period&&<p className="text-sm text-zinc-500">{warTitle(period,dateNames[period])}{mode==='current'?' · 가장 최근 수집된 길드전':''}</p>}
         <div className="flex flex-wrap gap-2" aria-label="기록 종류">{[['teams',defenseTitle],['attack','공격 기록'],['defense','방어 기록']].map(([value,label])=><button key={value} aria-pressed={section===value} className={`${button} ${section===value?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>chooseSection(value)}>{label}</button>)}</div>
         <div className={`${box} grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]`}>
           <label className="text-sm">성별 분류<select aria-label="성별 분류" className="mt-2 w-full rounded-xl border border-zinc-200 bg-white p-3 text-zinc-950" value={castle} onChange={e=>setCastle(e.target.value)}><option value="">전체</option>{castles.map(value=><option key={value} value={value}>{value}{section==='attack'?' 공격':section==='defense'?' 방어':''}</option>)}</select></label>
@@ -146,7 +147,7 @@ export default function GuildWarPage({ guild, counterTeams, currentUser }) {
         {error&&<p role="alert" className="text-red-600">{error}</p>}
         {loading||(!!period&&loadedKey!==requestKey)?<p role="status">기록 불러오는 중…</p>:section==='teams'?<DefenseGroups snapshot={snapshot} counterTeams={counterTeams} castle={castle} search={query}/>:<div className="space-y-3">
           {!battles.length&&<div className={box}>{castle||query?'조건에 맞는 기록이 없습니다.':`아직 등록된 ${title}이 없습니다.`}</div>}
-          {battles.map(row=><article key={row.id} className={box}><div className="mb-3 flex flex-wrap justify-between gap-2 text-sm"><span>{plain(row.payload.opponentGuild) && <>{plain(row.payload.opponentGuild)} · </>}{plain(row.payload.castle)||'위치 미확인'} · {date(row.occurred_at)}</span><span>{typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'우리 길드 승리':'우리 길드 패배'):'결과 미확인'}</span></div><div className="grid gap-3 md:grid-cols-2"><BattleSide title={section==='attack'?'공격자 · 우리 길드':'공격자 · 상대 길드'} side={row.payload.attacker}/><BattleSide title={section==='defense'?'방어자 · 우리 길드':'방어자 · 상대 길드'} side={row.payload.defender}/></div></article>)}
+          {battles.map(row=><article key={row.id} className={box}><div className="mb-3 flex flex-wrap justify-between gap-2 text-sm"><span>{plain(row.payload.opponentGuild) && <>{plain(row.payload.opponentGuild)} · </>}{plain(row.payload.castle)||'위치 미확인'} · {date(row.occurred_at)}</span><span style={{color:typeof row.payload.attackerWon!=='boolean'?'#71717a':row.payload.attackerWon===(section==='attack')?'#15803d':'#dc2626',fontWeight:700}}>{typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'우리 길드 승리':'우리 길드 패배'):'결과 미확인'}</span></div><div className="grid gap-3 md:grid-cols-2"><BattleSide title={section==='attack'?'공격자 · 우리 길드':'공격자 · 상대 길드'} side={row.payload.attacker}/><BattleSide title={section==='defense'?'방어자 · 우리 길드':'방어자 · 상대 길드'} side={row.payload.defender}/></div></article>)}
         </div>}
       </>}
     </>}
