@@ -17,10 +17,10 @@ let settingUp=false,periodSyncStatus='매칭 정보 연결 대기';
 function readPeriods(){try{return JSON.parse(fs.readFileSync(path.join(stateDir,'match-periods.json'),'utf8'));}catch{return [];}}
 
 function mergePeriods(periods,config,file){
-      if(!Array.isArray(periods)||periods.length>60||periods.some(p=>p.guild!==config.guild||!/^\d{4}-\d{2}-\d{2}$/.test(p.warDate)||typeof p.opponent!=='string'||p.opponent.length>80||!Number.isFinite(Date.parse(p.from))||!Number.isFinite(Date.parse(p.until))||Date.parse(p.until)<=Date.parse(p.from)||Date.parse(p.until)-Date.parse(p.from)>172800000))throw new Error();
-      const merged=new Map((config.periods||[]).map(p=>[p.warDate,p]));for(const p of periods)merged.set(p.warDate,p);
+      if(!Array.isArray(periods)||periods.length>60||periods.some(p=>p.guild!==config.guild||!/^\d{4}-\d{2}-\d{2}$/.test(p.warDate)||typeof p.opponent!=='string'||p.opponent.length>80||!Number.isFinite(Date.parse(p.from))||!Number.isFinite(Date.parse(p.until))||Date.parse(p.until)<=Date.parse(p.from)||Date.parse(p.until)-Date.parse(p.from)>172800000))throw new Error('매칭 날짜 또는 길드 설정이 일치하지 않습니다.');
+      const merged=new Map((config.periods||[]).filter(p=>p.guild===config.guild).map(p=>[p.warDate,p]));for(const p of periods)merged.set(p.warDate,p);
       config.periods=[...merged.values()].sort((a,b)=>a.warDate.localeCompare(b.warDate)).slice(-60);
-      if(JSON.stringify(config.periods)!==JSON.stringify(JSON.parse(fs.readFileSync(file,'utf8')).periods)){
+      if(JSON.stringify(config)!==JSON.stringify(JSON.parse(fs.readFileSync(file,'utf8').replace(/^\uFEFF/,'')))){
         fs.writeFileSync(file+'.tmp',JSON.stringify(config));fs.renameSync(file+'.tmp',file);
       }
 
@@ -45,8 +45,8 @@ const server=http.createServer((req,res)=>{
       let profile;try{profile=JSON.parse(body);if(!/^[a-f0-9]{64}$/.test(profile.key)||!/^[a-f0-9]{32}$/.test(profile.iv)||typeof profile.guild!=='string'||!profile.guild.trim()||profile.guild.length>80)throw new Error();}catch{return send(400,'application/json','{"message":"설정 정보 오류"}');}
       try{
         if(fs.existsSync(path.join(stateDir,'config.json'))){
-          const file=path.join(stateDir,'config.json');const config=JSON.parse(fs.readFileSync(file,'utf8'));
-          if(config.guild!==profile.guild)throw new Error('설치된 길드와 로그인 계정 길드가 다릅니다.');
+          const file=path.join(stateDir,'config.json');const config=JSON.parse(fs.readFileSync(file,'utf8').replace(/^\uFEFF/,''));
+          config.guild=profile.guild;
           mergePeriods(profile.periods||[],config,file);
           return send(200,'application/json',JSON.stringify({ready:true,message:periodSyncStatus}));
         }
@@ -64,10 +64,10 @@ const server=http.createServer((req,res)=>{
     if(!localAuthorized||req.headers['x-collector-action']!=='periods')return send(403,'text/plain','Forbidden');
     let body='';req.on('data',b=>{body+=b;if(body.length>65536)req.destroy();});
     req.on('end',()=>{try{
-      const periods=JSON.parse(body);const file=path.join(stateDir,'config.json');const config=JSON.parse(fs.readFileSync(file,'utf8'));
+      const periods=JSON.parse(body);const file=path.join(stateDir,'config.json');const config=JSON.parse(fs.readFileSync(file,'utf8').replace(/^\uFEFF/,''));
       mergePeriods(periods,config,file);
       send(200,'application/json','{"ready":true}');
-    }catch{send(400,'application/json','{"message":"매칭 정보 동기화 실패"}');}});return;
+    }catch(e){periodSyncStatus='매칭 동기화 실패: '+(e.code||e.message||'설정 확인 필요');send(400,'application/json',JSON.stringify({message:periodSyncStatus}));}});return;
   }
   if(url.pathname==='/capture' && req.method==='POST'){
     if(!localAuthorized || req.headers['x-collector-action']!=='start')return send(403,'text/plain','Forbidden');
@@ -91,13 +91,13 @@ const server=http.createServer((req,res)=>{
       const data=JSON.parse(fs.readFileSync(path.join(stateDir,'status.json'),'utf8'));
       data.captureStatus=captureStatus;
       data.periods=readPeriods();
-      data.supportsPeriods=true;data.collectorVersion='2026.10.18.3';data.periodSyncStatus=periodSyncStatus;
+      data.supportsPeriods=true;data.collectorVersion='2026.10.18.5';data.periodSyncStatus=periodSyncStatus;
       data.needsSetup=!fs.existsSync(path.join(stateDir,'config.json'));
       const field=(data.records||[]).find(r=>r.kind==='defense_snapshot')?.payload;
       if(field){const castles=['외성1','외성2','외성3','외성4','외성5','내성1','내성2','내성3','본성'];const missing=castles.filter(c=>!field.defenses.some(d=>d.castle===c));data.captureStatus+=` · 상대 방어팀 ${field.defenses.length}/${field.total}개${missing.length?' · 미수집: '+missing.join(', '):''}`;}
       try{const error=fs.readFileSync(path.join(stateDir,'decode-error.txt'),'utf8');if(error)data.captureStatus+=' · '+error;}catch{}
       return send(200,'application/json; charset=utf-8',JSON.stringify(data));
-    }catch{return send(200,'application/json; charset=utf-8',JSON.stringify({attack:0,defense:0,held:0,supportsPeriods:true,collectorVersion:'2026.10.18.3',periodSyncStatus,periods:readPeriods(),needsSetup:!fs.existsSync(path.join(stateDir,'config.json')),captureStatus,reason:'게임을 실행하고 사이트에 연결하면 자동으로 설정합니다.',updatedAt:null,groups:[],records:[]}));}
+    }catch{return send(200,'application/json; charset=utf-8',JSON.stringify({attack:0,defense:0,held:0,supportsPeriods:true,collectorVersion:'2026.10.18.5',periodSyncStatus,periods:readPeriods(),needsSetup:!fs.existsSync(path.join(stateDir,'config.json')),captureStatus,reason:'게임을 실행하고 사이트에 연결하면 자동으로 설정합니다.',updatedAt:null,groups:[],records:[]}));}
   }
   const assets={'/connect':['connect.html','text/html; charset=utf-8'],'/connect.js':['connect.js','text/javascript; charset=utf-8'],'/connect.css':['connect.css','text/css; charset=utf-8']};
   const asset=assets[url.pathname];

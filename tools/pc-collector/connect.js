@@ -8,19 +8,20 @@ if(paired)document.getElementById('connection').textContent='15월사이트와 �
 const captureButton=document.createElement('button');captureButton.textContent='수집 시작';document.querySelector('main').prepend(captureButton);
 const captureInfo=document.createElement('p');captureButton.after(captureInfo);
 const syncInfo=document.createElement('p');captureInfo.after(syncInfo);
-let syncError='';
+let syncError='';let setupTask=Promise.resolve();
 async function startCapture(){
   captureButton.disabled=true;
-  try{const r=await fetch('/capture',{method:'POST',headers:{'X-Collector-Action':'start'}});const d=await r.json();captureInfo.textContent=d.message;}
+  try{await setupTask;const r=await fetch('/capture',{method:'POST',headers:{'X-Collector-Action':'start'}});const d=await r.json();captureInfo.textContent=d.message;}
   catch{captureInfo.textContent='수집기를 다시 연결해 주세요.';}finally{captureButton.disabled=false;}
 }
 captureButton.addEventListener('click',startCapture);
 window.addEventListener('message',event=>{
   if(!paired||event.source!==window.opener||event.origin!==target||event.data?.nonce!==nonce)return;
   if(event.data.type==='15month-collector-setup'){
-    fetch('/setup',{method:'POST',headers:{'Content-Type':'application/json','X-Collector-Action':'setup'},body:JSON.stringify(event.data.profile)}).then(r=>r.json()).then(d=>{syncError=d.ready?'':(d.message||'자동 설정 실패');syncInfo.textContent=d.message||'자동 설정 완료';}).catch(()=>{syncError='설정 실패 · 다시 연결해 주세요.';syncInfo.textContent=syncError;});
+    setupTask=fetch('/setup',{method:'POST',headers:{'Content-Type':'application/json','X-Collector-Action':'setup'},body:JSON.stringify(event.data.profile)}).then(async r=>{const d=await r.json();if(!r.ok||!d.ready)throw new Error(d.message||'자동 설정 실패');syncError='';syncInfo.textContent=d.message||'자동 설정 완료';});
+    setupTask.catch(e=>{syncError=e.message;syncInfo.textContent=syncError;});
   }
-  if(event.data.type==='15month-collector-periods')fetch('/periods',{method:'POST',headers:{'Content-Type':'application/json','X-Collector-Action':'periods'},body:JSON.stringify(event.data.periods)}).then(r=>{if(!r.ok)throw new Error();syncError='';}).catch(()=>{syncError='매칭 정보 동기화 실패 · 다시 연결해 주세요.';syncInfo.textContent=syncError;});
+  if(event.data.type==='15month-collector-periods')setupTask.then(()=>fetch('/periods',{method:'POST',headers:{'Content-Type':'application/json','X-Collector-Action':'periods'},body:JSON.stringify(event.data.periods)})).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.message||`동기화 오류 ${r.status}`);syncError='';}).catch(e=>{syncError=e.message||'매칭 정보 연결 실패';syncInfo.textContent=syncError;});
   if(event.data.type==='15month-collector-start')void startCapture();
   if(event.data.type==='15month-collector-ack')document.getElementById('connection').textContent='15월사이트 연결됨 · 저장 확인 '+(event.data.saved||0)+'건';
 });
