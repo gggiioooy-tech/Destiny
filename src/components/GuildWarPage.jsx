@@ -87,6 +87,7 @@ function DefenseGroups({ snapshot, counterTeams, castle, search }) {
 export default function GuildWarPage({ guild, counterTeams, currentUser }) {
   const [mode,setMode]=useState('current');const [historyDate,setHistoryDate]=useState('');const [dates,setDates]=useState([]);
   const [section,setSection]=useState('teams');const [castle,setCastle]=useState('');const [search,setSearch]=useState('');const [query,setQuery]=useState('');
+  const [opponent,setOpponent]=useState({key:'',name:''});
   const [snapshot,setSnapshot]=useState(null);const [battles,setBattles]=useState([]);const [error,setError]=useState('');const [datesError,setDatesError]=useState('');
   const [loading,setLoading]=useState(false);const [datesLoading,setDatesLoading]=useState(true);const [revision,setRevision]=useState(0);
   const period=mode==='current'?(dates[0]||''):historyDate;
@@ -114,14 +115,17 @@ export default function GuildWarPage({ guild, counterTeams, currentUser }) {
           const {data,error}=await supabase.rpc('guild_war_battles',{p_guild:guild,p_war_date:period,p_direction:section,p_castle:castle,p_search:query});
           if(error)throw error;if(active)setBattles(data||[]);
         }
-        if(active)setError('');
+        const {data:opponents,error:opponentError}=await supabase.from('guild_war_observations').select('payload->>opponentGuild').eq('guild_name',guild).eq('war_date',period).not('payload->>opponentGuild','is',null).order('occurred_at',{ascending:false}).limit(1);
+        if(opponentError)throw opponentError;
+        if(active){setOpponent({key:JSON.stringify([guild,period]),name:plain(opponents?.[0]?.opponentGuild)});setError('');}
       }catch(e){if(active)setError(e.message||'기록을 불러오지 못했습니다.');}finally{running=false;if(active){setLoading(false);setLoadedKey(requestKey);}}
     }
     setSnapshot(null);setBattles([]);setError('');setLoading(!!period);load();
     const timer=setInterval(()=>{if(!document.hidden)load();},15000);return()=>{active=false;clearInterval(timer);};
   },[guild,period,section,castle,query,revision]);
   function chooseSection(next){setSection(next);setCastle('');setSearch('');setQuery('');}
-  const title=section==='teams'?'상대 방어팀':section==='attack'?'공격 기록':'방어 기록';
+  const defenseTitle=`${opponent.key===JSON.stringify([guild,period])&&opponent.name?opponent.name:'상대'} 방어팀`;
+  const title=section==='teams'?defenseTitle:section==='attack'?'공격 기록':'방어 기록';
   return <section className="mx-auto max-w-7xl space-y-5 p-4 sm:p-8">
     <header className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl font-bold">{guild} 길드전</h1><button className={button} onClick={()=>setRevision(v=>v+1)}>새로고침</button></header>
     <PcCollectorConnection currentUser={currentUser} />
@@ -133,7 +137,7 @@ export default function GuildWarPage({ guild, counterTeams, currentUser }) {
       {mode==='history'&&dates.length>0&&!period&&<p className="text-sm text-zinc-500">확인할 길드전 날짜를 선택해 주세요.</p>}
       {(period||mode==='current')&&<>
         {period&&<p className="text-sm text-zinc-500">{warTitle(period)}{mode==='current'?' · 가장 최근 수집된 길드전':''}</p>}
-        <div className="flex flex-wrap gap-2" aria-label="기록 종류">{[['teams','상대 방어팀'],['attack','공격 기록'],['defense','방어 기록']].map(([value,label])=><button key={value} aria-pressed={section===value} className={`${button} ${section===value?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>chooseSection(value)}>{label}</button>)}</div>
+        <div className="flex flex-wrap gap-2" aria-label="기록 종류">{[['teams',defenseTitle],['attack','공격 기록'],['defense','방어 기록']].map(([value,label])=><button key={value} aria-pressed={section===value} className={`${button} ${section===value?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>chooseSection(value)}>{label}</button>)}</div>
         <div className={`${box} grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]`}>
           <label className="text-sm">성별 분류<select aria-label="성별 분류" className="mt-2 w-full rounded-xl border border-zinc-200 bg-white p-3 text-zinc-950" value={castle} onChange={e=>setCastle(e.target.value)}><option value="">전체</option>{castles.map(value=><option key={value} value={value}>{value}{section==='attack'?' 공격':section==='defense'?' 방어':''}</option>)}</select></label>
           <label className="text-sm">검색<input aria-label="길드전 기록 검색" className="mt-2 w-full rounded-xl border border-zinc-200 bg-white p-3 text-zinc-950" value={search} onChange={e=>setSearch(e.target.value)} placeholder="닉네임, 영웅 이름, 펫 검색" /></label>
