@@ -7,6 +7,9 @@ from google.protobuf.json_format import MessageToDict
 pool=descriptor_pool.DescriptorPool();pool.Add(descriptor_pb2.FileDescriptorProto.FromString(Path(config['schemaPath']).read_bytes()))
 T=message_factory.GetMessageClass(pool.FindMessageTypeByName('re.ACGuildWarBattleHistoryAck'));unique={};records=[];held=0
 frames=json.load(sys.stdin)
+from match_period import discover
+automatic=discover(pool,frames,config,Path(sys.argv[1]).parent)
+config['periods']=[p for p in config.get('periods',[]) if not any(a['warDate']==p['warDate'] for a in automatic)]+automatic
 for value in frames:
  if isinstance(value,dict):
   if value['id']!=16857:continue

@@ -6,6 +6,10 @@ from google.protobuf.json_format import MessageToDict
 from normalize import CASTLES
 
 def snapshot(pool,frames,config):
+    instant=datetime.fromtimestamp(Path(config['capturePath']).stat().st_mtime,timezone.utc)
+    matches=[p for p in config.get('periods',[]) if p.get('matchKey') and p['from']<=instant.astimezone(timezone(timedelta(hours=9))).isoformat()<p['until']]
+    if len(matches)!=1:return None
+    match=matches[0]
     names={16841:'ACGuildWarEnterBattleFieldAck',16849:'ACGuildWarPlaceInfoAck'};entry=None;places={}
     for f in frames:
         if not isinstance(f,dict) or f['id'] not in names:continue
@@ -16,11 +20,11 @@ def snapshot(pool,frames,config):
         else:places[d['PlaceInfo']['PlaceID']]=d
     state=Path(config['capturePath']).parent
     context_file=state/'battlefield-context.json'
-    if entry:context_file.write_text(json.dumps({'entry':entry,'date':datetime.now(timezone(timedelta(hours=9))).date().isoformat()}),encoding='utf8')
+    if entry:context_file.write_text(json.dumps({'entry':entry,'matchKey':match['matchKey']}),encoding='utf8')
     else:
         try:
             saved=json.loads(context_file.read_text(encoding='utf8'))
-            if saved['date']==datetime.now(timezone(timedelta(hours=9))).date().isoformat():entry=saved['entry']
+            if saved.get('matchKey')==match['matchKey']:entry=saved['entry']
         except (OSError,ValueError):pass
     if not entry:return None
     target={p['PlaceID']:{(str(x['AccountUID']),x['DeckType'],x['Seq']) for x in p.get('DetailInfo',[])} for p in entry['TargetGuildPlaceInfo']['PlaceInfo']}
@@ -40,7 +44,7 @@ def snapshot(pool,frames,config):
     guilds={p['guild'] for p in config.get('periods',[])}
     if len(guilds)!=1:return None
     instant=datetime.fromtimestamp(Path(config['capturePath']).stat().st_mtime,timezone.utc)
-    day=instant.astimezone(timezone(timedelta(hours=9))).date().isoformat()
+    day=match['warDate']
     roster_key=hashlib.sha256(json.dumps({k:sorted(v) for k,v in target.items()},sort_keys=True).encode()).hexdigest()
     cache=state/('battlefield-'+day+'-'+roster_key+'.json')
     try:previous=json.loads(cache.read_text(encoding='utf8'))
@@ -49,6 +53,6 @@ def snapshot(pool,frames,config):
     rows=[r for r in previous if r['castle'] not in received]+rows
     if not rows:return None
     cache.write_text(json.dumps(rows),encoding='utf8')
-    payload={'warDate':day,'sourceGuild':next(iter(guilds)),'defenses':rows,'total':sum(len(x) for x in target.values()),'dateSource':'observed-date'}
+    payload={'warDate':day,'sourceGuild':match['guild'],'opponentGuild':match['opponent'],'matchKey':match['matchKey'],'defenses':rows,'total':sum(len(x) for x in target.values()),'dateSource':'game-match'}
     key=hashlib.sha256(json.dumps(payload,sort_keys=True,ensure_ascii=True).encode()).hexdigest()
     return {'kind':'defense_snapshot','sourceKey':'pc-v1:'+key,'occurredAt':instant.isoformat(),'payload':payload}

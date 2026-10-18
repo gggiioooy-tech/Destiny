@@ -15,6 +15,9 @@ async function startCapture(){
 captureButton.addEventListener('click',startCapture);
 window.addEventListener('message',event=>{
   if(!paired||event.source!==window.opener||event.origin!==target||event.data?.nonce!==nonce)return;
+  if(event.data.type==='15month-collector-setup'){
+    fetch('/setup',{method:'POST',headers:{'Content-Type':'application/json','X-Collector-Action':'setup'},body:JSON.stringify(event.data.profile)}).then(r=>r.json()).then(d=>{captureInfo.textContent=d.message||'자동 설정 완료';}).catch(()=>{captureInfo.textContent='설정 실패 · 다시 연결해 주세요.';});
+  }
   if(event.data.type==='15month-collector-start')void startCapture();
   if(event.data.type==='15month-collector-ack')document.getElementById('connection').textContent='15월사이트 연결됨 · 저장 확인 '+(event.data.saved||0)+'건';
 });

@@ -3,3 +3,8 @@ __pycache__/
 config.json
 status.json*
 *.pcap
+
+python/
+vendor/
+python-runtime.zip
+protobuf.zip
