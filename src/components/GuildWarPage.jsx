@@ -1,5 +1,7 @@
+import HistoryCounterSearch from './HistoryCounterSearch.jsx';
+import {readBattleHistory} from '../lib/historyCounters.js';
 import {loadBattleHeroSpeeds} from '../lib/battleHeroSpeeds.js';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { defenseCopyText, groupDefenses, heroKey, heroNames, memoGuilds } from '../lib/guildWar.js';
 import { sortByRecommendation } from '../lib/recommendationSort.js';
@@ -60,7 +62,15 @@ export function BattleSide({ title, side, result, speed, heroSpeeds, showHeroSpe
 const castles = ['외성1','외성2','외성3','외성4','외성5','내성1','내성2','내성3','본성'];
 const warTitle = (value, opponent='') => { const [y,m,d] = value.split('-'); return `${y}년 ${Number(m)}월 ${Number(d)}일${opponent ? ` ${opponent}` : ''} 길드전 이력`; };
 
-function DefenseGroups({ snapshot, counterTeams, castle, search }) {
+function DefenseCounterTabs({group,decks,currentUser,loadRows}){
+  const [tab,setTab]=useState('saved');
+  return <div className="min-w-0 space-y-2"><div className="flex flex-wrap gap-2" aria-label="카운터 종류">{[['saved','추천 카운터'],['history','길드전 이력 카운터']].map(([value,label])=><button type="button" key={value} aria-pressed={tab===value} className={`${button} ${tab===value?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>setTab(value)}>{label}</button>)}</div>
+    {tab==='saved'?<><p className="text-xs text-zinc-500">상대 영웅 조합 기준 · 펫별 적합성은 확인해 주세요.</p>{decks.length?decks.map((deck,i)=><CounterDetails key={i} deck={deck}/>):<p className="text-sm text-zinc-500">저장된 카운터 없음</p>}</>:<HistoryCounterSearch currentUser={currentUser} defenseHeroes={group.heroes} loadRows={loadRows}/>}
+  </div>;
+}
+function DefenseGroups({ snapshot, counterTeams, castle, search, currentUser }) {
+  // Share one lazy request across every castle and both display modes, scoped to this view/account.
+  const loadRows=useMemo(()=>{let pending;return()=>{if(!pending)pending=readBattleHistory().catch(e=>{pending=null;throw e;});return pending;};},[snapshot?.id,currentUser?.id,currentUser?.isOwner]);
   const [overview,setOverview]=useState(false);
   const [copyStatus,setCopyStatus]=useState('');
   const [manualCopy,setManualCopy]=useState('');
@@ -83,14 +93,14 @@ function DefenseGroups({ snapshot, counterTeams, castle, search }) {
       const rows=groups.filter(group=>group.castle===name);
       return <section key={name} className="min-w-0 rounded-2xl border border-zinc-200 bg-white p-4"><h3 className="mb-3 flex items-center justify-between gap-2 font-bold"><span>{name}</span><span className="text-sm font-normal text-zinc-500">{rows.reduce((sum,row)=>sum+row.count,0)}팀 · {rows.length}조합</span></h3><div className="space-y-3">{rows.map(group=>{
         const decks=sortByRecommendation(counterTeams.filter(t=>heroKey(t.heroes)===heroKey(group.heroes)).flatMap(t=>t.decks||[]));
-        return <div key={group.key} className="min-w-0 rounded-xl border border-zinc-200 p-3"><div className="flex items-start justify-between gap-2"><p className="min-w-0 break-words text-sm font-semibold">{group.heroes.join(' · ')}</p><strong className="shrink-0 text-blue-600">×{group.count}</strong></div><p className="mt-1 break-words text-xs text-zinc-500">펫: {group.pet||'미확인'}</p><details className="mt-2 text-xs"><summary className="cursor-pointer">상대 목록 · 추천 카운터 {decks.length}개</summary><p className="my-2 break-words">{group.members.join(' · ')}</p><div className="space-y-2">{decks.length?decks.map((deck,i)=><CounterDetails key={i} deck={deck}/>):<p>저장된 카운터 없음</p>}</div></details></div>;
+        return <div key={group.key} className="min-w-0 rounded-xl border border-zinc-200 p-3"><div className="flex items-start justify-between gap-2"><p className="min-w-0 break-words text-sm font-semibold">{group.heroes.join(' · ')}</p><strong className="shrink-0 text-blue-600">×{group.count}</strong></div><p className="mt-1 break-words text-xs text-zinc-500">펫: {group.pet||'미확인'}</p><details className="mt-2 text-xs"><summary className="cursor-pointer">상대 목록</summary><p className="my-2 break-words">{group.members.join(' · ')}</p></details><div className="mt-3"><DefenseCounterTabs group={group} decks={decks} currentUser={currentUser} loadRows={loadRows}/></div></div>;
       })}{!rows.length&&<p className="text-sm text-zinc-500">{search?'검색 결과 없음':'수집된 방어팀 없음'}</p>}</div></section>;
     })}</div>}
     {!overview&&groups.map(group=>{
       const decks=sortByRecommendation(counterTeams.filter(t=>heroKey(t.heroes)===heroKey(group.heroes)).flatMap(t=>t.decks||[]));
       return <article key={group.key} className={`${box} grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]`}>
         <div><p className="text-xs text-zinc-500">{group.castle}</p><h3 className="mt-1 font-semibold">{group.heroes.join(' · ')} <span>×{group.count}</span></h3><p className="mt-2 text-sm">펫: {group.pet||'미확인'}</p><details className="mt-3 text-sm"><summary className="cursor-pointer">상대 목록</summary><p>{group.members.join(' · ')}</p></details></div>
-        <div className="min-w-0 space-y-2"><h4 className="text-sm font-semibold">추천 카운터</h4><p className="text-xs text-zinc-500">상대 영웅 조합 기준 · 펫별 적합성은 확인해 주세요.</p>{decks.length?decks.map((deck,i)=><CounterDetails key={i} deck={deck}/>):<p className="text-sm text-zinc-500">저장된 카운터 없음</p>}</div>
+        <DefenseCounterTabs group={group} decks={decks} currentUser={currentUser} loadRows={loadRows}/>
       </article>;
     })}
   </div>;
@@ -158,7 +168,7 @@ export default function GuildWarPage({ guild, counterTeams, currentUser }) {
         </div>
         <h2 className="text-lg font-semibold">{mode==='current'?'현재 길드전 ':''}{title}{section!=='teams'&&<span className="ml-2 text-sm font-normal text-zinc-500">{battles.length}건 · 조건에 맞는 최근 최대 150건</span>}</h2>
         {error&&<p role="alert" className="text-red-600">{error}</p>}
-        {loading||(!!period&&loadedKey!==requestKey)?<p role="status">기록 불러오는 중…</p>:section==='teams'?<DefenseGroups snapshot={snapshot} counterTeams={counterTeams} castle={castle} search={query}/>:<div className="space-y-3">
+        {loading||(!!period&&loadedKey!==requestKey)?<p role="status">기록 불러오는 중…</p>:section==='teams'?<DefenseGroups currentUser={currentUser} snapshot={snapshot} counterTeams={counterTeams} castle={castle} search={query}/>:<div className="space-y-3">
           {!battles.length&&<div className={box}>{castle||query?'조건에 맞는 기록이 없습니다.':`아직 등록된 ${title}이 없습니다.`}</div>}
           {battles.map(row=><article key={row.id} className={box}><div className="mb-3 flex flex-wrap justify-between gap-2 text-sm"><span>{plain(row.payload.opponentGuild) && <>{plain(row.payload.opponentGuild)} · </>}{plain(row.payload.castle)||'위치 미확인'} · {date(row.occurred_at)}</span><span style={{color:typeof row.payload.attackerWon!=='boolean'?'#71717a':row.payload.attackerWon===(section==='attack')?'#15803d':'#dc2626',fontWeight:700}}>{typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'우리 길드 승리':'우리 길드 패배'):'결과 미확인'}</span></div><div className="grid gap-3 md:grid-cols-2"><BattleSide result={typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'win':'loss'):null} title={section==='attack'?'공격자 · 우리 길드':'공격자 · 상대 길드'} showHeroSpeeds={currentUser?.isOwner===true} heroSpeeds={heroSpeeds[row.id]?.attacker} side={row.payload.attacker} speed={row.payload.firstSkillSide?row.payload.firstSkillSide==='attacker':undefined}/><BattleSide result={typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'win':'loss'):null} title={section==='defense'?'방어자 · 우리 길드':'방어자 · 상대 길드'} showHeroSpeeds={currentUser?.isOwner===true} heroSpeeds={heroSpeeds[row.id]?.defender} side={row.payload.defender} speed={row.payload.firstSkillSide?row.payload.firstSkillSide==='defender':undefined}/></div></article>)}
         </div>}
