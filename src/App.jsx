@@ -56,9 +56,9 @@ const FALLBACK_SETTINGS = {
 
 const navItems = [
   { id: "board", label: "자유게시판", icon: ScrollText, visibleTo: ["member", "admin"] },
-  { id: "attack", label: "공격팀", icon: Swords, visibleTo: ["guest", "member", "admin"] },
-  { id: "historyCounter", label: "공격팀 (길드전 이력으로 검색)", icon: Swords, visibleTo: ["member", "admin"] },
-  { id: "temporaryAttack", label: "휴지통", icon: Trash2, visibleTo: ["guest", "member", "admin"] },
+  { id: "attack", label: "공격팀", icon: Swords, visibleTo: ["member", "admin"] },
+  { id: "historyCounter", label: "공격팀 (길드전 이력으로 검색)", icon: Swords, visibleTo: ["admin"] },
+  { id: "temporaryAttack", label: "휴지통", icon: Trash2, visibleTo: ["admin"] },
   { id: "members", label: "회원 관리", icon: Users, visibleTo: ["admin"] },
   { id: "deleted", label: "삭제정보관리", icon: Trash2, visibleTo: ["admin"], ownerOnly: true },
 ];
@@ -66,7 +66,7 @@ const navItems = [
 function guildNavigation(tabs, currentUser) {
   const result = currentUser?.role === 'guest' ? [] : [...navItems];
   result.splice(result.findIndex(item => item.id === "historyCounter") + 1, 0,
-    ...tabs.filter(tab => currentUser?.role !== 'guest' || memoGuilds(currentUser.memo).includes(tab.name)).map(tab => ({ id: guildTabId(tab.name), label: tab.name + " 길드전", icon: Shield, visibleTo: ["guest", "member", "admin"] })),
+    ...tabs.filter(tab => currentUser?.role === 'admin' || memoGuilds(currentUser.memo).includes(tab.name)).map(tab => ({ id: guildTabId(tab.name), label: tab.name + " 길드전", icon: Shield, visibleTo: ["guest", "member", "admin"] })),
     { id: "guildWarAdd", label: "길드 추가하기", icon: Plus, visibleTo: ["admin"], ownerOnly: true });
   return result;
 }
