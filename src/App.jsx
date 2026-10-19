@@ -438,7 +438,7 @@ function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, se
           <div className="rounded-xl bg-zinc-50 p-3">
             <div className="text-sm font-semibold text-zinc-950">{currentUser.gameNickname}</div>
             <div className="mt-1 text-xs text-zinc-500">{roleLabel(currentUser.role, currentUser.isOwner)}</div>
-            <WeeklyCounterSummary currentUser={currentUser} />
+            {currentUser.role === "admin" && <WeeklyCounterSummary currentUser={currentUser} />}
           </div>
           <Button onClick={logout} variant="secondary" className="mt-3 w-full"><LogOut size={16} /> 로그아웃</Button>
           <TransparencyControl className="mt-3" />
