@@ -243,14 +243,14 @@ function GuestLockedContent() {
         <Lock size={22} />
       </div>
       <h2 className="mt-5 text-lg font-semibold text-zinc-950">내용 열람 권한이 없습니다.</h2>
-      <p className="mt-2 text-sm leading-6 text-zinc-500">일반회원 이상부터 열람 가능합니다.</p>
+      <p className="mt-2 text-sm leading-6 text-zinc-500">권한등급 2등급 이상부터 열람 가능합니다.</p>
     </div>
   );
 }
 
 function roleLabel(role, isOwner = false) {
-  if (isOwner) return "최고관리자";
-  return { guest: "게스트", member: "일반회원", admin: "관리자" }[role] || role;
+  if (isOwner) return "권한등급 4등급";
+  return { guest: "권한등급 1등급", member: "권한등급 2등급", admin: "권한등급 3등급" }[role] || role;
 }
 
 function isSuperAdminId(id) {
@@ -525,7 +525,7 @@ function Dashboard({ setActive, currentUser, users, settings, setSettings }) {
       <PageShell>
         <div className="grid gap-4 md:grid-cols-3">
           {guestMode ? (
-            <SummaryCard title="접속 권한" value="게스트" desc="공략 내용 열람 제한" icon={Lock} />
+            <SummaryCard title="접속 권한" value="권한등급 1등급" desc="공략 내용 열람 제한" icon={Lock} />
           ) : (
             <SummaryCard title="승인 회원" value={`${approvedCount}명`} desc="현재 사이트 이용 가능" icon={Users} />
           )}
@@ -2619,16 +2619,16 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
   const updateUser = async (user, patch) => {
     if (!user) return;
     if (patch.role === 'super_admin') {
-      if (!canEditMemo) return alert('최고관리자만 임명할 수 있습니다.');
+      if (!canEditMemo) return alert('권한등급 4등급만 임명할 수 있습니다.');
       const { error } = await supabase.rpc('appoint_highest_administrator', { p_user_id: user.id });
-      if (error) return alert(`최고관리자 임명 실패: ${error.message}`);
+      if (error) return alert(`권한등급 4등급 임명 실패: ${error.message}`);
       await reloadData();
       return;
     }
     if (user.isOwner && patch.role && patch.role !== 'super_admin') {
-      if (!currentUser.isOwner || !isSuperAdminId(currentUser.id) || isSuperAdminId(user.id)) return alert('원래 사이트 소유자만 다른 최고관리자를 강등할 수 있습니다.');
+      if (!currentUser.isOwner || !isSuperAdminId(currentUser.id) || isSuperAdminId(user.id)) return alert('원래 사이트 소유자만 다른 4등급 회원을 강등할 수 있습니다.');
       const { error } = await supabase.rpc('demote_highest_administrator', { p_user_id: user.id, p_role: patch.role });
-      if (error) return alert(`최고관리자 강등 실패: ${error.message}`);
+      if (error) return alert(`권한등급 4등급 강등 실패: ${error.message}`);
       await reloadData();
       return;
     }
@@ -2845,10 +2845,10 @@ function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, week
                 onChange={(e) => updateUser(u, { role: e.target.value, status: "approved" })}
                 className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 outline-none focus:ring-4 focus:ring-zinc-200/70 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <option value="guest">게스트</option>
-                <option value="member">일반회원</option>
-                <option value="admin">관리자</option>
-                {(u.isOwner || (canEditMemo && u.status === 'approved')) && <option value="super_admin">최고관리자</option>}
+                <option value="guest">권한등급 1등급</option>
+                <option value="member">권한등급 2등급</option>
+                <option value="admin">권한등급 3등급</option>
+                {(u.isOwner || (canEditMemo && u.status === 'approved')) && <option value="super_admin">권한등급 4등급</option>}
               </select>
               {!protectedAdmin && !u.isOwner && <DeleteButton onConfirm={() => deleteUser(u)}>삭제</DeleteButton>}
             </>
