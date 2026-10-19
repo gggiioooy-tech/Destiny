@@ -57,7 +57,7 @@ const FALLBACK_SETTINGS = {
 const navItems = [
   { id: "board", label: "자유게시판", icon: ScrollText, visibleTo: ["member", "admin"] },
   { id: "attack", label: "공격팀", icon: Swords, visibleTo: ["member", "admin"] },
-  { id: "historyCounter", label: "공격팀 (길드전 이력으로 검색)", icon: Swords, visibleTo: ["admin"] },
+  { id: "historyCounter", label: "공격팀 (길드전 이력으로 검색)", icon: Swords, visibleTo: ["member", "admin"] },
   { id: "temporaryAttack", label: "휴지통", icon: Trash2, visibleTo: ["admin"] },
   { id: "members", label: "회원 관리", icon: Users, visibleTo: ["admin"] },
   { id: "deleted", label: "삭제정보관리", icon: Trash2, visibleTo: ["admin"], ownerOnly: true },
