@@ -1,4 +1,4 @@
-"""Read initial reservations only; replay URLs and account IDs stay local."""
+"""Read initial reservations and first active skill; replay URLs and account IDs stay local."""
 import json,re,urllib.request
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
@@ -6,6 +6,17 @@ from google.protobuf import message_factory
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,*args,**kwargs):return None
+
+def first_active_side(events,objects,rosters):
+    for actions in events:
+        sides=set()
+        for source,skill_group in actions:
+            if skill_group%100 not in (2,3,7):continue
+            team,hero=objects.get(source,(None,None))
+            side={1:'attacker',2:'defender'}.get(team)
+            if side and hero in rosters[side]['heroIds']:sides.add(side)
+        if sides:return next(iter(sides)) if len(sides)==1 else None
+    return None
 
 def extract(pool,data,row,direction,record):
     def parse(name,data):
@@ -31,10 +42,17 @@ def extract(pool,data,row,direction,record):
         if hero not in roster['heroIds']:raise ValueError('hero mismatch')
         result[side].append({'hero':roster['heroes'][roster['heroIds'].index(hero)],'heroId':hero,'skill':f'스킬 코드 {s.SkillType}','skillType':s.SkillType,'order':s.Sequence})
     if any(len(v)>3 for v in result.values()):raise ValueError('reservation count')
+    T=message_factory.GetMessageClass(pool.FindMessageTypeByName('re.ACUseSkillNoti'))
+    actions=[]
+    for packet in pack.Packet:
+        if packet.MessageID==T().MessageID:
+            event=parse('ACUseSkillNoti',packet.Data)
+            actions.append([(action.SourceObjectId,action.SkillGroupId) for action in event.SkillResult])
+    result['firstSkillSide']=first_active_side(actions,objects,record['payload'])
     return result
 
 def enrich(pool,jobs,state_dir):
-    cache=Path(state_dir)/'replay-skills-v1';cache.mkdir(exist_ok=True)
+    cache=Path(state_dir)/'replay-skills-v2';cache.mkdir(exist_ok=True)
     def run(job):
         direction,row,record=job
         try:
@@ -49,7 +67,12 @@ def enrich(pool,jobs,state_dir):
                 if len(data)>8*1024*1024:return
                 result=extract(pool,data,row,direction,record)
                 file.write_text(json.dumps(result,ensure_ascii=True),encoding='utf8')
-            for side in result:record['payload'][side]['skills']=result[side]
+            for side in ('attacker','defender'):record['payload'][side]['skills']=result[side]
+            if result.get('firstSkillSide') in ('attacker','defender'):record['payload']['firstSkillSide']=result['firstSkillSide']
         except Exception:
-            pass # Missing/expired replay must not prevent the battle itself being saved.
+            # Preserve previously decoded reservations if a replay has expired.
+            try:
+                old=json.loads((Path(state_dir)/'replay-skills-v1'/(record['sourceKey'].split(':')[1]+'.json')).read_text(encoding='utf8'))
+                for side in ('attacker','defender'):record['payload'][side]['skills']=old[side]
+            except (OSError,ValueError,KeyError):pass
     with ThreadPoolExecutor(max_workers=4) as executor:list(executor.map(run,jobs))

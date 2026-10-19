@@ -16,5 +16,5 @@ export function collectorRecord(row,guild){
     }):[];
     return resolveGameSide({nickname:s.nickname,heroes:s.heroes,heroIds:s.heroIds,pet:s.pet,petId:s.petId,namesResolved:s.namesResolved===true,skills});
   }
-  return {p_kind:'battle',p_source_key:row.sourceKey,p_occurred_at:row.occurredAt,p_payload:{warDate:p.warDate,direction:p.direction,sourceGuild:p.sourceGuild,opponentGuild:p.opponentGuild,periodSource:p.periodSource==='game-match'?'game-match':'owner-confirmed',castle:p.castle,attackerWon:p.attackerWon,attacker:side(p.attacker),defender:side(p.defender)}};
+  return {p_kind:'battle',p_source_key:row.sourceKey,p_occurred_at:row.occurredAt,p_payload:{warDate:p.warDate,direction:p.direction,sourceGuild:p.sourceGuild,opponentGuild:p.opponentGuild,periodSource:p.periodSource==='game-match'?'game-match':'owner-confirmed',castle:p.castle,firstSkillSide:['attacker','defender'].includes(p.firstSkillSide)?p.firstSkillSide:null,attackerWon:p.attackerWon,attacker:side(p.attacker),defender:side(p.defender)}};
 }

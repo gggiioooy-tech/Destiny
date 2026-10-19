@@ -51,7 +51,7 @@ export default function HistoryCounterSearch(){
           return <div key={row.source_key} className="space-y-2 rounded-xl border border-zinc-200 p-3">
             <p className="text-sm font-semibold">{new Date(row.war_date+'T12:00:00+09:00').toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',timeZone:'Asia/Seoul'})} 길드전 · {attackGuild||'길드 미확인'} · {p.attacker?.nickname||'닉네임 미확인'}</p>
             <p className="text-xs text-zinc-500">전투 시각: {new Date(row.occurred_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})} · 공격자 {result==='win'?'승리':result==='loss'?'패배':'결과 미확인'}</p>
-            <div className="grid gap-3 md:grid-cols-2"><BattleSide title={`공격 · ${attackGuild||'길드 미확인'}`} side={p.attacker} result={result}/><BattleSide title={`방어 · ${defendGuild||'길드 미확인'}`} side={p.defender} result={result}/></div>
+            <div className="grid gap-3 md:grid-cols-2"><BattleSide title={`공격 · ${attackGuild||'길드 미확인'}`} side={p.attacker} speed={p.firstSkillSide?p.firstSkillSide==='attacker':undefined} result={result}/><BattleSide title={`방어 · ${defendGuild||'길드 미확인'}`} side={p.defender} speed={p.firstSkillSide?p.firstSkillSide==='defender':undefined} result={result}/></div>
           </div>;
         })}</div></details>
       </article>)}
