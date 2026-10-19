@@ -64,8 +64,8 @@ const warTitle = (value, opponent='') => { const [y,m,d] = value.split('-'); ret
 
 function DefenseCounterTabs({group,decks,currentUser,loadRows}){
   const [tab,setTab]=useState('saved');
-  return <div className="min-w-0 space-y-2"><div className="flex flex-wrap gap-2" aria-label="카운터 종류">{[['saved','추천 카운터'],['history','길드전 이력 카운터']].map(([value,label])=><button type="button" key={value} aria-pressed={tab===value} className={`${button} ${tab===value?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>setTab(value)}>{label}</button>)}</div>
-    {tab==='saved'?<><p className="text-xs text-zinc-500">상대 영웅 조합 기준 · 펫별 적합성은 확인해 주세요.</p>{decks.length?decks.map((deck,i)=><CounterDetails key={i} deck={deck}/>):<p className="text-sm text-zinc-500">저장된 카운터 없음</p>}</>:<HistoryCounterSearch currentUser={currentUser} defenseHeroes={group.heroes} loadRows={loadRows}/>}
+  return <div className="min-w-0 space-y-2"><div className="flex flex-wrap gap-2" aria-label="카운터 종류">{[['saved','추천 카운터'],['history','길드전 이력 카운터']].map(([value,label])=><button type="button" key={value} aria-pressed={tab===value} className={`${button} ${tab===value?'ring-2 ring-blue-500 font-bold':''}`} aria-expanded={tab===value} onClick={()=>setTab(current=>current===value?null:value)}>{label}</button>)}</div>
+    {tab!==null&&(tab==='saved'?<><p className="text-xs text-zinc-500">상대 영웅 조합 기준 · 펫별 적합성은 확인해 주세요.</p>{decks.length?decks.map((deck,i)=><CounterDetails key={i} deck={deck}/>):<p className="text-sm text-zinc-500">저장된 카운터 없음</p>}</>:<HistoryCounterSearch currentUser={currentUser} defenseHeroes={group.heroes} loadRows={loadRows}/>)}
   </div>;
 }
 function DefenseGroups({ snapshot, counterTeams, castle, search, currentUser }) {
