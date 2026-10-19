@@ -49,7 +49,7 @@ function CounterDetails({ deck }) {
   </details>;
 }
 
-function BattleSide({ title, side, result }) {
+export function BattleSide({ title, side, result }) {
   side=resolveGameSide(side);
   return <div className={`min-w-0 rounded-xl p-3 ${result ? `battle-side-${result}` : 'bg-zinc-50'}`}><p className="text-xs text-zinc-500">{title}</p><p className="mt-1 font-semibold">{plain(side?.nickname)||'닉네임 미확인'}</p><p className="text-sm">{heroNames(side?.heroes).join(' · ')||'영웅 미확인'}</p><p className="text-sm">펫: {plain(side?.pet)||'미확인'}</p>
     {side?.namesResolved === false && <p className="mt-2 text-xs text-amber-700">영웅·펫 이름 확인 중 · 원본 번호 보존</p>}<p className="mt-2 text-xs text-zinc-500">시작 예약 스킬</p><p className="text-sm">{Array.isArray(side?.skills)&&side.skills.length ? side.skills.map(s=>`${plain(s?.hero)||'영웅 미확인'} ${skillLabel(s)}`).join(' → ') : '미수집'}</p>

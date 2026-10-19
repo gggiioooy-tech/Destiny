@@ -1,3 +1,4 @@
+import HistoryCounterSearch from "./components/HistoryCounterSearch.jsx";
 import GuildWarPage, { AddGuildWarTab } from "./components/GuildWarPage.jsx";
 import { guildTabId } from "./lib/guildWar.js";
 import AccountWatermark from "./components/AccountWatermark.jsx";
@@ -56,6 +57,7 @@ const FALLBACK_SETTINGS = {
 const navItems = [
   { id: "board", label: "자유게시판", icon: ScrollText, visibleTo: ["member", "admin"] },
   { id: "attack", label: "공격팀", icon: Swords, visibleTo: ["guest", "member", "admin"] },
+  { id: "historyCounter", label: "공격팀 (길드전 이력으로 검색)", icon: Swords, visibleTo: ["member", "admin"] },
   { id: "temporaryAttack", label: "휴지통", icon: Trash2, visibleTo: ["guest", "member", "admin"] },
   { id: "members", label: "회원 관리", icon: Users, visibleTo: ["admin"] },
   { id: "deleted", label: "삭제정보관리", icon: Trash2, visibleTo: ["admin"], ownerOnly: true },
@@ -63,7 +65,7 @@ const navItems = [
 
 function guildNavigation(tabs) {
   const result = [...navItems];
-  result.splice(result.findIndex(item => item.id === "attack") + 1, 0,
+  result.splice(result.findIndex(item => item.id === "historyCounter") + 1, 0,
     ...tabs.map(tab => ({ id: guildTabId(tab.name), label: tab.name + " 길드전", icon: Shield, visibleTo: ["member", "admin"] })),
     { id: "guildWarAdd", label: "길드 추가하기", icon: Plus, visibleTo: ["admin"], ownerOnly: true });
   return result;
@@ -2989,6 +2991,7 @@ export default function App() {
 
         {safeActive === "board" && <GuildBoardPage key={syncedCurrentUser.id} currentUser={syncedCurrentUser} users={users} />}
 
+        {safeActive === "historyCounter" && <HistoryCounterSearch key={syncedCurrentUser.id} />}
         {safeActive === "guildWarAdd" && syncedCurrentUser.isOwner && <AddGuildWarTab users={users} tabs={guildTabs} onAdded={async name => { await loadData(); setActive(guildTabId(name)); }} />}
         {guildTabs.some(tab => guildTabId(tab.name) === safeActive) && <GuildWarPage currentUser={syncedCurrentUser} key={safeActive} guild={guildTabs.find(tab => guildTabId(tab.name) === safeActive).name} counterTeams={enemyDefenseTeams.filter(team => !team.is_temporary && isVisibleItem(team, syncedCurrentUser)).map(team => ({...team, decks: parseCounterDecks(team.counter_decks)}))} />}
 
