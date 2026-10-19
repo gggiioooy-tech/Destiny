@@ -1,3 +1,4 @@
+import {loadBattleHeroSpeeds} from '../lib/battleHeroSpeeds.js';
 import React, {useEffect,useMemo,useState} from 'react';
 import {supabase} from '../lib/supabase.js';
 import {matchesEnemyTeamSearch} from '../lib/heroSearch.js';
@@ -5,12 +6,13 @@ import {heroKey} from '../lib/guildWar.js';
 import {resolveGameSide} from '../lib/gameNames.js';
 import {BattleSide} from './GuildWarPage.jsx';
 
-export default function HistoryCounterSearch(){
+export default function HistoryCounterSearch({currentUser}){
+  const [heroSpeeds,setHeroSpeeds]=useState({});
   const [rows,setRows]=useState([]),[query,setQuery]=useState(''),[loading,setLoading]=useState(true),[error,setError]=useState(''),[revision,setRevision]=useState(0);
   useEffect(()=>{
     let active=true;
     async function load(){
-      setLoading(true);setError('');
+      setLoading(true);setError('');setHeroSpeeds({});
       try{
         const all=[];const size=500;
         for(let offset=0;;offset+=size){
@@ -19,12 +21,12 @@ export default function HistoryCounterSearch(){
         }
         const unique=new Map();
         for(const row of all){if(unique.has(row.source_key))continue;unique.set(row.source_key,{...row,payload:{...row.payload,attacker:resolveGameSide(row.payload.attacker),defender:resolveGameSide(row.payload.defender)}});}
-        if(active)setRows([...unique.values()]);
+        const speeds=await loadBattleHeroSpeeds([...unique.values()],currentUser);if(active){setRows([...unique.values()]);setHeroSpeeds(speeds);}
       }catch(e){if(active){setRows([]);setError(e.message||'길드전 이력을 불러오지 못했습니다.');}}
       finally{if(active)setLoading(false);}
     }
     load();return()=>{active=false;};
-  },[revision]);
+  },[revision,currentUser?.id,currentUser?.isOwner]);
   const groups=useMemo(()=>{
     if(!query.trim())return [];
     const map=new Map();
@@ -51,7 +53,7 @@ export default function HistoryCounterSearch(){
           return <div key={row.source_key} className="space-y-2 rounded-xl border border-zinc-200 p-3">
             <p className="text-sm font-semibold">{new Date(row.war_date+'T12:00:00+09:00').toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',timeZone:'Asia/Seoul'})} 길드전 · {attackGuild||'길드 미확인'} · {p.attacker?.nickname||'닉네임 미확인'}</p>
             <p className="text-xs text-zinc-500">전투 시각: {new Date(row.occurred_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})} · 공격자 {result==='win'?'승리':result==='loss'?'패배':'결과 미확인'}</p>
-            <div className="grid gap-3 md:grid-cols-2"><BattleSide title={`공격 · ${attackGuild||'길드 미확인'}`} side={p.attacker} speed={p.firstSkillSide?p.firstSkillSide==='attacker':undefined} result={result}/><BattleSide title={`방어 · ${defendGuild||'길드 미확인'}`} side={p.defender} speed={p.firstSkillSide?p.firstSkillSide==='defender':undefined} result={result}/></div>
+            <div className="grid gap-3 md:grid-cols-2"><BattleSide title={`공격 · ${attackGuild||'길드 미확인'}`} showHeroSpeeds={currentUser?.isOwner===true} heroSpeeds={heroSpeeds[row.id]?.attacker} side={p.attacker} speed={p.firstSkillSide?p.firstSkillSide==='attacker':undefined} result={result}/><BattleSide title={`방어 · ${defendGuild||'길드 미확인'}`} showHeroSpeeds={currentUser?.isOwner===true} heroSpeeds={heroSpeeds[row.id]?.defender} side={p.defender} speed={p.firstSkillSide?p.firstSkillSide==='defender':undefined} result={result}/></div>
           </div>;
         })}</div></details>
       </article>)}

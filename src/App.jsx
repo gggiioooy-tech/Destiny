@@ -248,7 +248,8 @@ function GuestLockedContent() {
   );
 }
 
-function roleLabel(role) {
+function roleLabel(role, isOwner = false) {
+  if (isOwner) return "최고관리자";
   return { guest: "게스트", member: "일반회원", admin: "관리자" }[role] || role;
 }
 
@@ -436,7 +437,7 @@ function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, se
         <div className="border-t border-zinc-200 p-4">
           <div className="rounded-xl bg-zinc-50 p-3">
             <div className="text-sm font-semibold text-zinc-950">{currentUser.gameNickname}</div>
-            <div className="mt-1 text-xs text-zinc-500">{roleLabel(currentUser.role)}</div>
+            <div className="mt-1 text-xs text-zinc-500">{roleLabel(currentUser.role, currentUser.isOwner)}</div>
             <WeeklyCounterSummary currentUser={currentUser} />
           </div>
           <Button onClick={logout} variant="secondary" className="mt-3 w-full"><LogOut size={16} /> 로그아웃</Button>
@@ -531,7 +532,7 @@ function Dashboard({ setActive, currentUser, users, settings, setSettings }) {
           {currentUser.role === "admin" && (
             <>
               <SummaryCard title="가입 대기" value={`${pendingCount}명`} desc="관리자 확인 필요" icon={Lock} />
-              <SummaryCard title="접속 권한" value={roleLabel(currentUser.role)} desc="현재 로그인 권한" icon={Shield} />
+              <SummaryCard title="접속 권한" value={roleLabel(currentUser.role, currentUser.isOwner)} desc="현재 로그인 권한" icon={Shield} />
             </>
           )}
         </div>
@@ -2793,7 +2794,7 @@ function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, week
       <td data-label="게임 닉네임" className="px-3 py-4 font-semibold text-zinc-950">{u.gameNickname}</td>
       <td data-label="아이디" className="px-3 py-4 text-zinc-600">{u.id}</td>
       <td data-label="상태" className="px-3 py-4"><StatusBadge status={u.status} /></td>
-      <td data-label="등급" className="px-3 py-4"><RoleBadge role={u.role} /></td>
+      <td data-label="등급" className="px-3 py-4"><RoleBadge role={u.role} isOwner={u.isOwner} /></td>
       <td data-label="마지막 접속" className="px-3 py-4 text-xs text-zinc-500">{formatLastSeen(u.lastSeenAt)}</td>
       <td data-label="이번주 카운터 작성 횟수" className="px-3 py-4 font-semibold text-zinc-950">{weeklyCount === null ? "—" : `${weeklyCount}회`}</td>
       <td data-label="관리자 메모" className="px-3 py-4">
@@ -2832,7 +2833,7 @@ function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, week
               >
                 <option value="guest">게스트</option>
                 <option value="member">일반회원</option>
-                <option value="admin">관리자</option>
+                <option value="admin">{u.isOwner ? "최고관리자" : "관리자"}</option>
               </select>
               {!protectedAdmin && <DeleteButton onConfirm={() => deleteUser(u)}>삭제</DeleteButton>}
             </>
@@ -2847,7 +2848,7 @@ function StatusBadge({ status }) {
   const style = { pending: "bg-amber-50 text-amber-700 ring-amber-200", approved: "bg-emerald-50 text-emerald-700 ring-emerald-200", rejected: "bg-zinc-100 text-zinc-600 ring-zinc-200", blocked: "bg-red-50 text-red-700 ring-red-200" }[status] || "bg-zinc-100 text-zinc-600 ring-zinc-200";
   return <span className={cx("inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ring-1", style)}>{statusLabel(status)}</span>;
 }
-function RoleBadge({ role }) { return <span className={cx("inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ring-1", role === "admin" ? "bg-zinc-950 text-white ring-zinc-950" : "bg-white text-zinc-600 ring-zinc-200")}>{roleLabel(role)}</span>; }
+function RoleBadge({ role, isOwner }) { return <span className={cx("inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ring-1", role === "admin" ? "bg-zinc-950 text-white ring-zinc-950" : "bg-white text-zinc-600 ring-zinc-200")}>{roleLabel(role, isOwner)}</span>; }
 function EmptyState({ text }) { return <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center text-sm text-zinc-400">{text}</div>; }
 function PlaceholderPage({ title, desc }) { return <PageShell><PageHeader eyebrow="Coming Soon" title={title} desc={desc} /><EmptyState text="여기는 다음 단계에서 내용을 추가하면 됩니다." /></PageShell>; }
 
@@ -2991,7 +2992,7 @@ export default function App() {
 
         {safeActive === "board" && <GuildBoardPage key={syncedCurrentUser.id} currentUser={syncedCurrentUser} users={users} />}
 
-        {safeActive === "historyCounter" && <HistoryCounterSearch key={syncedCurrentUser.id} />}
+        {safeActive === "historyCounter" && <HistoryCounterSearch key={syncedCurrentUser.id} currentUser={syncedCurrentUser} />}
         {safeActive === "guildWarAdd" && syncedCurrentUser.isOwner && <AddGuildWarTab users={users} tabs={guildTabs} onAdded={async name => { await loadData(); setActive(guildTabId(name)); }} />}
         {guildTabs.some(tab => guildTabId(tab.name) === safeActive) && <GuildWarPage currentUser={syncedCurrentUser} key={safeActive} guild={guildTabs.find(tab => guildTabId(tab.name) === safeActive).name} counterTeams={enemyDefenseTeams.filter(team => !team.is_temporary && isVisibleItem(team, syncedCurrentUser)).map(team => ({...team, decks: parseCounterDecks(team.counter_decks)}))} />}
 

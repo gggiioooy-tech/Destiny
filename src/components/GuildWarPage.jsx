@@ -1,3 +1,4 @@
+import {loadBattleHeroSpeeds} from '../lib/battleHeroSpeeds.js';
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { defenseCopyText, groupDefenses, heroKey, heroNames, memoGuilds } from '../lib/guildWar.js';
@@ -49,9 +50,9 @@ function CounterDetails({ deck }) {
   </details>;
 }
 
-export function BattleSide({ title, side, result, speed }) {
+export function BattleSide({ title, side, result, speed, heroSpeeds, showHeroSpeeds = false }) {
   side=resolveGameSide(side);
-  return <div className={`min-w-0 rounded-xl p-3 ${result ? `battle-side-${result}` : 'bg-zinc-50'}`}><p className="text-xs text-zinc-500">{title} <span className="ml-2 font-semibold" style={{color:speed===true?'#15803d':speed===false?'#dc2626':undefined}}>{speed===true?'속공땀':speed===false?'속공따임':'속공 미확인'}</span></p><p className="mt-1 font-semibold">{plain(side?.nickname)||'닉네임 미확인'}</p><p className="text-sm">{heroNames(side?.heroes).join(' · ')||'영웅 미확인'}</p><p className="text-sm">펫: {plain(side?.pet)||'미확인'}</p>
+  return <div className={`min-w-0 rounded-xl p-3 ${result ? `battle-side-${result}` : 'bg-zinc-50'}`}><p className="text-xs text-zinc-500">{title} <span className="ml-2 font-semibold" style={{color:speed===true?'#15803d':speed===false?'#dc2626':undefined}}>{speed===true?'속공땀':speed===false?'속공따임':'속공 미확인'}</span></p>{showHeroSpeeds&&<aside className="my-2 rounded-lg border border-current/10 px-3 py-2 text-xs sm:float-right sm:ml-3 sm:max-w-[48%]" aria-label="영웅별 속공"><p className="mb-1 font-semibold" title="전투 시작 시 리플레이 수치입니다. 게임 능력치 화면과의 일치는 미검증입니다.">영웅별 속공 · 전투 기록값</p>{(side?.heroIds||[]).map((id,i)=><p key={`${id}-${i}`} className="flex justify-between gap-3"><span>{side.heroes?.[i]||`영웅 #${id}`}</span><b>{heroSpeeds?.find(v=>v.heroId===id)?.value??'미수집'}</b></p>)}</aside>}<p className="mt-1 font-semibold">{plain(side?.nickname)||'닉네임 미확인'}</p><p className="text-sm">{heroNames(side?.heroes).join(' · ')||'영웅 미확인'}</p><p className="text-sm">펫: {plain(side?.pet)||'미확인'}</p>
     {side?.namesResolved === false && <p className="mt-2 text-xs text-amber-700">영웅·펫 이름 확인 중 · 원본 번호 보존</p>}<p className="mt-2 text-xs text-zinc-500">시작 예약 스킬</p><p className="text-sm">{Array.isArray(side?.skills)&&side.skills.length ? side.skills.map(s=>`${plain(s?.hero)||'영웅 미확인'} ${skillLabel(s)}`).join(' → ') : '미수집'}</p>
   </div>;
 }
@@ -103,8 +104,9 @@ export default function GuildWarPage({ guild, counterTeams, currentUser }) {
   const [snapshot,setSnapshot]=useState(null);const [battles,setBattles]=useState([]);const [error,setError]=useState('');const [datesError,setDatesError]=useState('');
   const [loading,setLoading]=useState(false);const [datesLoading,setDatesLoading]=useState(true);const [revision,setRevision]=useState(0);
   const period=mode==='current'?(dates[0]||''):historyDate;
-  const requestKey=JSON.stringify([guild,period,section,castle,query,revision]);
+  const requestKey=JSON.stringify([guild,period,section,castle,query,revision,currentUser?.isOwner,currentUser?.id]);
   const [loadedKey,setLoadedKey]=useState('');
+  const [heroSpeeds,setHeroSpeeds]=useState({});
   useEffect(()=>{const timer=setTimeout(()=>setQuery(search.trim()),300);return()=>clearTimeout(timer);},[search]);
   useEffect(()=>{
     let active=true;let running=false;
@@ -125,16 +127,16 @@ export default function GuildWarPage({ guild, counterTeams, currentUser }) {
           if(error)throw error;if(active)setSnapshot(data?.[0]||null);
         }else{
           const {data,error}=await supabase.rpc('guild_war_battles',{p_guild:guild,p_war_date:period,p_direction:section,p_castle:castle,p_search:query});
-          if(error)throw error;if(active)setBattles(data||[]);
+          if(error)throw error;const speeds=await loadBattleHeroSpeeds(data||[],currentUser);if(active){setBattles(data||[]);setHeroSpeeds(speeds);}
         }
         const {data:opponents,error:opponentError}=await supabase.from('guild_war_observations').select('payload->>opponentGuild').eq('guild_name',guild).eq('war_date',period).not('payload->>opponentGuild','is',null).order('occurred_at',{ascending:false}).limit(1);
         if(opponentError)throw opponentError;
         if(active){setOpponent({key:JSON.stringify([guild,period]),name:plain(opponents?.[0]?.opponentGuild)});setError('');}
       }catch(e){if(active)setError(e.message||'기록을 불러오지 못했습니다.');}finally{running=false;if(active){setLoading(false);setLoadedKey(requestKey);}}
     }
-    setSnapshot(null);setBattles([]);setError('');setLoading(!!period);load();
+    setSnapshot(null);setBattles([]);setHeroSpeeds({});setError('');setLoading(!!period);load();
     const timer=setInterval(()=>{if(!document.hidden)load();},15000);return()=>{active=false;clearInterval(timer);};
-  },[guild,period,section,castle,query,revision]);
+  },[guild,period,section,castle,query,revision,currentUser?.isOwner,currentUser?.id]);
   function chooseSection(next){setSection(next);setCastle('');setSearch('');setQuery('');}
   const defenseTitle=`${opponent.key===JSON.stringify([guild,period])&&opponent.name?opponent.name:'상대'} 방어팀`;
   const title=section==='teams'?defenseTitle:section==='attack'?'공격 기록':'방어 기록';
@@ -158,7 +160,7 @@ export default function GuildWarPage({ guild, counterTeams, currentUser }) {
         {error&&<p role="alert" className="text-red-600">{error}</p>}
         {loading||(!!period&&loadedKey!==requestKey)?<p role="status">기록 불러오는 중…</p>:section==='teams'?<DefenseGroups snapshot={snapshot} counterTeams={counterTeams} castle={castle} search={query}/>:<div className="space-y-3">
           {!battles.length&&<div className={box}>{castle||query?'조건에 맞는 기록이 없습니다.':`아직 등록된 ${title}이 없습니다.`}</div>}
-          {battles.map(row=><article key={row.id} className={box}><div className="mb-3 flex flex-wrap justify-between gap-2 text-sm"><span>{plain(row.payload.opponentGuild) && <>{plain(row.payload.opponentGuild)} · </>}{plain(row.payload.castle)||'위치 미확인'} · {date(row.occurred_at)}</span><span style={{color:typeof row.payload.attackerWon!=='boolean'?'#71717a':row.payload.attackerWon===(section==='attack')?'#15803d':'#dc2626',fontWeight:700}}>{typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'우리 길드 승리':'우리 길드 패배'):'결과 미확인'}</span></div><div className="grid gap-3 md:grid-cols-2"><BattleSide result={typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'win':'loss'):null} title={section==='attack'?'공격자 · 우리 길드':'공격자 · 상대 길드'} side={row.payload.attacker} speed={row.payload.firstSkillSide?row.payload.firstSkillSide==='attacker':undefined}/><BattleSide result={typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'win':'loss'):null} title={section==='defense'?'방어자 · 우리 길드':'방어자 · 상대 길드'} side={row.payload.defender} speed={row.payload.firstSkillSide?row.payload.firstSkillSide==='defender':undefined}/></div></article>)}
+          {battles.map(row=><article key={row.id} className={box}><div className="mb-3 flex flex-wrap justify-between gap-2 text-sm"><span>{plain(row.payload.opponentGuild) && <>{plain(row.payload.opponentGuild)} · </>}{plain(row.payload.castle)||'위치 미확인'} · {date(row.occurred_at)}</span><span style={{color:typeof row.payload.attackerWon!=='boolean'?'#71717a':row.payload.attackerWon===(section==='attack')?'#15803d':'#dc2626',fontWeight:700}}>{typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'우리 길드 승리':'우리 길드 패배'):'결과 미확인'}</span></div><div className="grid gap-3 md:grid-cols-2"><BattleSide result={typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'win':'loss'):null} title={section==='attack'?'공격자 · 우리 길드':'공격자 · 상대 길드'} showHeroSpeeds={currentUser?.isOwner===true} heroSpeeds={heroSpeeds[row.id]?.attacker} side={row.payload.attacker} speed={row.payload.firstSkillSide?row.payload.firstSkillSide==='attacker':undefined}/><BattleSide result={typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'win':'loss'):null} title={section==='defense'?'방어자 · 우리 길드':'방어자 · 상대 길드'} showHeroSpeeds={currentUser?.isOwner===true} heroSpeeds={heroSpeeds[row.id]?.defender} side={row.payload.defender} speed={row.payload.firstSkillSide?row.payload.firstSkillSide==='defender':undefined}/></div></article>)}
         </div>}
       </>}
     </>}
