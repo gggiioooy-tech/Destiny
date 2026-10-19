@@ -2625,6 +2625,13 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
       await reloadData();
       return;
     }
+    if (user.isOwner && patch.role && patch.role !== 'super_admin') {
+      if (!currentUser.isOwner || !isSuperAdminId(currentUser.id) || isSuperAdminId(user.id)) return alert('원래 사이트 소유자만 다른 최고관리자를 강등할 수 있습니다.');
+      const { error } = await supabase.rpc('demote_highest_administrator', { p_user_id: user.id, p_role: patch.role });
+      if (error) return alert(`최고관리자 강등 실패: ${error.message}`);
+      await reloadData();
+      return;
+    }
     if (!canEditMemo && Object.prototype.hasOwnProperty.call(patch, 'memo')) return alert('관리자 메모는 사이트 소유자만 수정할 수 있습니다.');
     if (!canEditMemo && user.role === 'admin' && ((patch.role && patch.role !== user.role) || (patch.status && patch.status !== user.status))) return alert('관리자 권한은 사이트 소유자만 변경할 수 있습니다.');
 
@@ -2788,7 +2795,7 @@ function MemberTable({ list, pending, updateUser, deleteUser, currentUser, weekl
 
 function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, weeklyCount }) {
   const canEditMemo = currentUser.isOwner === true;
-  const protectedAdmin = u.isOwner || isSuperAdminId(u.id) || (!canEditMemo && u.role === "admin");
+  const protectedAdmin = (u.isOwner && !isSuperAdminId(currentUser.id)) || isSuperAdminId(u.id) || (!canEditMemo && u.role === "admin");
   const [memo, setMemo] = useState(u.memo || "");
   useEffect(() => setMemo(u.memo || ""), [u.memo]);
 
@@ -2834,16 +2841,16 @@ function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, week
             <>
               <select
                 disabled={protectedAdmin}
-                value={u.role}
+                value={u.isOwner ? 'super_admin' : u.role}
                 onChange={(e) => updateUser(u, { role: e.target.value, status: "approved" })}
                 className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 outline-none focus:ring-4 focus:ring-zinc-200/70 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <option value="guest">게스트</option>
                 <option value="member">일반회원</option>
-                <option value="admin">{u.isOwner ? "최고관리자" : "관리자"}</option>
-                {canEditMemo && !u.isOwner && u.status === 'approved' && <option value="super_admin">최고관리자</option>}
+                <option value="admin">관리자</option>
+                {(u.isOwner || (canEditMemo && u.status === 'approved')) && <option value="super_admin">최고관리자</option>}
               </select>
-              {!protectedAdmin && <DeleteButton onConfirm={() => deleteUser(u)}>삭제</DeleteButton>}
+              {!protectedAdmin && !u.isOwner && <DeleteButton onConfirm={() => deleteUser(u)}>삭제</DeleteButton>}
             </>
           )}
         </div>
