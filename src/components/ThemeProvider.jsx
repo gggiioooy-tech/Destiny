@@ -127,7 +127,8 @@ export function EmiliaThemeToggle({ compact = false, className = '' }) {
 export function CinderellaThemeToggle({ compact = false, className = '' }) {
   const { theme, toggleCinderella } = useContext(ThemeContext);
   const selected = theme === 'cinderella';
-  return <button type="button" onClick={toggleCinderella} aria-pressed={selected} aria-label={selected ? '센데렐라 테마 끄기' : '센데렐라 테마'} title={selected ? '센데렐라 테마 끄기' : '센데렐라 테마'} className={`cinderella-theme-toggle inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 ${className}`}>
-    <Snowflake size={17} />{!compact && (selected ? '센데렐라 테마 켜짐' : '센데렐라 테마')}
+  return <button type="button" onClick={toggleCinderella} aria-pressed={selected} aria-label={selected ? '신데렐라 테마 끄기' : '신데렐라 테마'} title={selected ? '신데렐라 테마 끄기' : '신데렐라 테마'} className={`cinderella-theme-toggle inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 ${className}`}>
+    <Snowflake size={17} />{!compact && (selected ? '신데렐라 테마 켜짐' : '신데렐라 테마')}
   </button>;
 }
+

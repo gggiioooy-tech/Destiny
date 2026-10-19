@@ -2618,6 +2618,13 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
 
   const updateUser = async (user, patch) => {
     if (!user) return;
+    if (patch.role === 'super_admin') {
+      if (!canEditMemo) return alert('최고관리자만 임명할 수 있습니다.');
+      const { error } = await supabase.rpc('appoint_highest_administrator', { p_user_id: user.id });
+      if (error) return alert(`최고관리자 임명 실패: ${error.message}`);
+      await reloadData();
+      return;
+    }
     if (!canEditMemo && Object.prototype.hasOwnProperty.call(patch, 'memo')) return alert('관리자 메모는 사이트 소유자만 수정할 수 있습니다.');
     if (!canEditMemo && user.role === 'admin' && ((patch.role && patch.role !== user.role) || (patch.status && patch.status !== user.status))) return alert('관리자 권한은 사이트 소유자만 변경할 수 있습니다.');
 
@@ -2834,6 +2841,7 @@ function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, week
                 <option value="guest">게스트</option>
                 <option value="member">일반회원</option>
                 <option value="admin">{u.isOwner ? "최고관리자" : "관리자"}</option>
+                {canEditMemo && !u.isOwner && u.status === 'approved' && <option value="super_admin">최고관리자</option>}
               </select>
               {!protectedAdmin && <DeleteButton onConfirm={() => deleteUser(u)}>삭제</DeleteButton>}
             </>
