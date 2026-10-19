@@ -93,14 +93,14 @@ function DefenseGroups({ snapshot, counterTeams, castle, search, currentUser }) 
       const rows=groups.filter(group=>group.castle===name);
       return <section key={name} className="min-w-0 rounded-2xl border border-zinc-200 bg-white p-4"><h3 className="mb-3 flex items-center justify-between gap-2 font-bold"><span>{name}</span><span className="text-sm font-normal text-zinc-500">{rows.reduce((sum,row)=>sum+row.count,0)}팀 · {rows.length}조합</span></h3><div className="space-y-3">{rows.map(group=>{
         const decks=sortByRecommendation(counterTeams.filter(t=>heroKey(t.heroes)===heroKey(group.heroes)).flatMap(t=>t.decks||[]));
-        return <div key={group.key} className="min-w-0 rounded-xl border border-zinc-200 p-3"><div className="flex items-start justify-between gap-2"><p className="min-w-0 break-words text-sm font-semibold">{group.heroes.join(' · ')}</p><strong className="shrink-0 text-blue-600">×{group.count}</strong></div><p className="mt-1 break-words text-xs text-zinc-500">펫: {group.pet||'미확인'}</p><details className="mt-2 text-xs"><summary className="cursor-pointer">상대 목록</summary><p className="my-2 break-words">{group.members.join(' · ')}</p></details><div className="mt-3"><DefenseCounterTabs group={group} decks={decks} currentUser={currentUser} loadRows={loadRows}/></div></div>;
+        return <div key={group.key} className="min-w-0 rounded-xl border border-zinc-200 p-3"><div className="flex items-start justify-between gap-2"><p className="min-w-0 break-words text-sm font-semibold">{group.heroes.join(' · ')}</p><strong className="shrink-0 text-blue-600">×{group.count}</strong></div><p className="mt-1 break-words text-xs text-zinc-500">펫: {group.pet||'미확인'}</p><details className="mt-2 text-xs"><summary className="cursor-pointer">상대 목록</summary><p className="my-2 break-words">{group.members.join(' · ')}</p></details><div className="mt-3">{currentUser?.role!=='guest'&&<DefenseCounterTabs group={group} decks={decks} currentUser={currentUser} loadRows={loadRows}/>}</div></div>;
       })}{!rows.length&&<p className="text-sm text-zinc-500">{search?'검색 결과 없음':'수집된 방어팀 없음'}</p>}</div></section>;
     })}</div>}
     {!overview&&groups.map(group=>{
       const decks=sortByRecommendation(counterTeams.filter(t=>heroKey(t.heroes)===heroKey(group.heroes)).flatMap(t=>t.decks||[]));
       return <article key={group.key} className={`${box} grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]`}>
         <div><p className="text-xs text-zinc-500">{group.castle}</p><h3 className="mt-1 font-semibold">{group.heroes.join(' · ')} <span>×{group.count}</span></h3><p className="mt-2 text-sm">펫: {group.pet||'미확인'}</p><details className="mt-3 text-sm"><summary className="cursor-pointer">상대 목록</summary><p>{group.members.join(' · ')}</p></details></div>
-        <DefenseCounterTabs group={group} decks={decks} currentUser={currentUser} loadRows={loadRows}/>
+        {currentUser?.role!=='guest'&&<DefenseCounterTabs group={group} decks={decks} currentUser={currentUser} loadRows={loadRows}/>}
       </article>;
     })}
   </div>;
