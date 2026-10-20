@@ -431,7 +431,7 @@ function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, se
             const selected = active === item.id;
             return (
               <button key={item.id} onClick={() => { setActive(item.id); setIsOpen(false); }} className={cx("flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition", selected ? "bg-zinc-950 text-white" : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950")}>
-                <Icon size={17} />{item.label}
+                <Icon size={17} className="shrink-0" />{item.id === "historyCounter" ? <span className="min-w-0 text-left"><span className="block">공격팀</span><span className="block text-xs">(길드전 이력으로 검색)</span></span> : item.label}
               </button>
             );
           })}
