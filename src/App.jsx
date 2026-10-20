@@ -1,3 +1,4 @@
+import { useTabNavigation } from "./lib/useTabNavigation.js";
 import { pageTables, pageQuery } from "./lib/pageData.js";
 import { guildTabId, memoGuilds } from "./lib/guildWar.js";
 import AccountWatermark from "./components/AccountWatermark.jsx";
@@ -926,7 +927,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
   useAnimeThemeAccess(currentUser);
-  const [active, setActive] = useState("attack");
+  const [active, setActive, replaceActive] = useTabNavigation();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const [authUserId, setAuthUserId] = useState(null);
@@ -1001,6 +1002,9 @@ export default function App() {
   useEffect(() => { loadData(); }, [loadData]);
   const navigation = currentUser ? guildNavigation(guildTabs, currentUser).filter(item => item.visibleTo.includes(currentUser.role) && (!item.ownerOnly || currentUser.isOwner)) : [];
   const safeActive = navigation.some(item => item.id === active) ? active : (currentUser?.role === 'guest' ? navigation[0]?.id || 'noGuild' : 'attack');
+  useEffect(() => {
+    if (!loading && currentUser?.status === 'approved' && !currentUser.mustChangePassword && active !== safeActive) replaceActive(safeActive);
+  }, [loading, currentUser?.status, currentUser?.mustChangePassword, active, safeActive, replaceActive]);
   const requiredTables = pageTables(safeActive, currentUser);
   const pageKey = `${currentUser?.authUserId || ''}:${currentUser?.role || ''}:${safeActive}`;
   const pageReady = requiredTables.every(table => loadedTables.current.has(table));
@@ -1030,7 +1034,7 @@ export default function App() {
   const syncedCurrentUser = currentUser;
   const logout = async () => {
     loadVersion.current += 1;
-    setCurrentUser(null); setUsers([]); setActive('dashboard');
+    setCurrentUser(null); setUsers([]); replaceActive('attack');
     await supabase.auth.signOut({ scope: 'local' });
   };
 
