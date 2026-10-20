@@ -329,3 +329,10 @@ body {
 /* Member details remain readable at every panel transparency setting. */
 .site-theme .member-info-preview { background-color: #fff !important; }
 .dark .site-theme .member-info-preview { background-color: #18181b !important; }
+
+.member-table-without-weekly th:nth-child(6) { width: 22%; }
+.member-table-without-weekly th:nth-child(7) { width: 20%; }
+.member-table-without-weekly th:nth-child(8) { width: 15%; }
+@container (max-width: 1100px) {
+  .member-table-without-weekly td:nth-child(6) { grid-column: 1 / -1; }
+}

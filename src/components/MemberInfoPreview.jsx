@@ -37,7 +37,7 @@ export default function MemberInfoPreview({ user, weeklyCount, battleStat }) {
         <dt className="text-zinc-500">상태</dt><dd>{statusLabel(user.status)}</dd>
         <dt className="text-zinc-500">마지막 접속</dt><dd>{formatLastSeen(user.lastSeenAt)}</dd>
         <dt className="text-zinc-500">관리자 메모</dt><dd className="break-words whitespace-pre-wrap">{user.memo || '없음'}</dd>
-        <dt className="text-zinc-500">이번주 카운터</dt><dd>{weeklyCount == null ? '—' : `${weeklyCount}회`}</dd>
+        {user.role === 'admin' && <><dt className="text-zinc-500">이번주 카운터</dt><dd>{weeklyCount == null ? '—' : `${weeklyCount}회`}</dd></>}
       </dl>
       <div className="mt-3 border-t border-zinc-200 pt-3"><MemberBattleStats stats={battleStat} /></div>
     </div>}

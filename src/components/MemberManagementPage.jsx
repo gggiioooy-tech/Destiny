@@ -248,9 +248,10 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
 }
 
 function MemberTable({ list, pending, updateUser, deleteUser, currentUser, weeklyCounts, battleStats }) {
+  const showWeeklyCounts = !pending && list.some(user => user.role === "admin");
   return (
     <div className="member-table-region member-table-compact mt-2">
-      <table className="member-table w-full text-left text-sm">
+      <table className={cx("member-table w-full text-left text-sm", !showWeeklyCounts && "member-table-without-weekly")}>
         <thead>
           <tr className="border-b border-zinc-200 text-xs font-semibold uppercase text-zinc-400">
             <th className="px-2 py-2">게임 닉네임</th>
@@ -258,7 +259,7 @@ function MemberTable({ list, pending, updateUser, deleteUser, currentUser, weekl
             <th className="px-2 py-2">상태</th>
             <th className="px-2 py-2">등급</th>
             <th className="px-2 py-2">마지막 접속</th>
-            <th className="px-2 py-2">이번주 카운터 작성 횟수</th>
+            {showWeeklyCounts && <th className="px-2 py-2">이번주 카운터 작성 횟수</th>}
             <th className="px-2 py-2">길드전 통계</th>
             <th className="px-2 py-2">관리자 메모</th>
             <th className="px-2 py-2 text-right">관리</th>
@@ -267,13 +268,13 @@ function MemberTable({ list, pending, updateUser, deleteUser, currentUser, weekl
         <tbody>
           {list.length === 0 ? (
             <tr>
-              <td colSpan={9} className="py-8 text-center text-zinc-400">
+              <td colSpan={showWeeklyCounts ? 9 : 8} className="py-8 text-center text-zinc-400">
                 표시할 회원이 없습니다.
               </td>
             </tr>
           ) : (
             list.map((u) => (
-              <MemberRow currentUser={currentUser} battleStat={battleStats === null ? null : (battleStats[u.authUserId] || {})} weeklyCount={weeklyCounts === null ? null : (weeklyCounts[u.authUserId] || 0)} key={u.id} user={u} pending={pending} updateUser={updateUser} deleteUser={deleteUser} />
+              <MemberRow showWeeklyCounts={showWeeklyCounts} currentUser={currentUser} battleStat={battleStats === null ? null : (battleStats[u.authUserId] || {})} weeklyCount={weeklyCounts === null ? null : (weeklyCounts[u.authUserId] || 0)} key={u.id} user={u} pending={pending} updateUser={updateUser} deleteUser={deleteUser} />
             ))
           )}
         </tbody>
@@ -282,7 +283,7 @@ function MemberTable({ list, pending, updateUser, deleteUser, currentUser, weekl
   );
 }
 
-function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, weeklyCount, battleStat }) {
+function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, weeklyCount, battleStat, showWeeklyCounts }) {
   const canEditMemo = currentUser.isOwner === true;
   const protectedAdmin = (u.isOwner && !isSuperAdminId(currentUser.id)) || isSuperAdminId(u.id) || (!canEditMemo && u.role === "admin");
   const [themeSaving, setThemeSaving] = useState(false);
@@ -305,7 +306,7 @@ function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, week
       <td data-label="상태" className="px-2 py-2"><StatusBadge status={u.status} /></td>
       <td data-label="등급" className="px-2 py-2"><RoleBadge role={u.role} isOwner={u.isOwner} /></td>
       <td data-label="마지막 접속" className="px-2 py-2 text-xs text-zinc-500">{formatLastSeen(u.lastSeenAt)}</td>
-      <td data-label="이번주 카운터 작성 횟수" className="px-2 py-2 font-semibold text-zinc-950">{weeklyCount === null ? "—" : `${weeklyCount}회`}</td>
+      {showWeeklyCounts && <td data-label="이번주 카운터 작성 횟수" className="px-2 py-2 font-semibold text-zinc-950">{weeklyCount === null ? "—" : `${weeklyCount}회`}</td>}
       <td data-label="길드전 통계" className="px-2 py-2"><MemberBattleStats stats={battleStat} /></td>
       <td data-label="관리자 메모" className="px-2 py-2">
         <div className="member-memo flex min-w-0 gap-2">
