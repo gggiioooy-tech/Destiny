@@ -2,10 +2,10 @@ import {supabase} from './supabase.js';
 import {heroKey} from './guildWar.js';
 import {resolveGameSide} from './gameNames.js';
 
-export async function readBattleHistory(){
+export async function readBattleHistory(anonymous=false){
   const all=[];const size=500;
   for(let offset=0;;offset+=size){
-    const {data,error}=await supabase.from('guild_war_observations').select('id,source_key,guild_name,war_date,occurred_at,payload').eq('kind','battle').order('occurred_at',{ascending:false}).order('id').range(offset,offset+size-1);
+    const {data,error}=await (anonymous?supabase.rpc('anonymous_battle_history',{p_offset:offset,p_limit:size}):supabase.from('guild_war_observations').select('id,source_key,guild_name,war_date,occurred_at,payload').eq('kind','battle').order('occurred_at',{ascending:false}).order('id').range(offset,offset+size-1));
     if(error)throw error;all.push(...(data||[]));if(!data||data.length<size)break;
   }
   const unique=new Map();
