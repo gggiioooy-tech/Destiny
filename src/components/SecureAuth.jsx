@@ -44,7 +44,6 @@ export function SecureAuth({ settings }) {
       <section>
         <p className="text-sm font-semibold text-zinc-400">{settings.guild_name || '15월'}</p>
         <h1 className="mt-6 break-keep text-4xl font-semibold leading-tight tracking-tight md:text-6xl">{settings.site_title}</h1>
-        <p className="mt-6 max-w-xl text-base leading-7 text-zinc-400">{settings.main_subtitle}</p>
       </section>
       <section className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 sm:p-8">
         <div className="mb-7 grid grid-cols-2 gap-2 rounded-xl bg-black/30 p-1">
