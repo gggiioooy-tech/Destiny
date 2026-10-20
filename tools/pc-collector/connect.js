@@ -6,6 +6,8 @@ const paired=window.opener && /^[a-f0-9]{64}$/.test(nonce||'') && allowed.has(ta
 history.replaceState(null,'','/connect');
 if(paired)document.getElementById('connection').textContent='15월사이트와 연결 중입니다.';
 const captureButton=document.getElementById('capture-start');
+const stopButton=document.getElementById('capture-stop');
+let changingCapture=false;
 const captureInfo=document.getElementById('capture-info');
 const syncInfo=document.getElementById('sync-info');
 const video=document.getElementById('mascot-video');
@@ -20,13 +22,20 @@ video.querySelector('source').addEventListener('error',()=>{video.hidden=true;mo
 if(reducedMotion.matches){video.autoplay=false;video.pause();}motionLabel();
 let lastSavedAt=null;let lastSavedCount=0;let syncError='';let setupTask=Promise.resolve();
 async function startCapture(restart=false){
-  if(captureButton.disabled)return;
+  if(changingCapture)return;
+  changingCapture=true;
   captureInfo.textContent='수집을 시작하고 있어요…';
   captureButton.disabled=true;
   try{await setupTask.catch(()=>{});const r=await fetch('/capture',{method:'POST',headers:{'X-Collector-Action':'start','X-Collector-Restart':String(restart)}});const d=await r.json();captureInfo.textContent=d.message;if(!r.ok)throw new Error(d.message||'수집 시작 실패');}
-  catch(e){captureInfo.textContent=e.message||'수집기를 다시 연결해 주세요.';}finally{captureButton.disabled=false;}
+  catch(e){captureInfo.textContent=e.message||'수집기를 다시 연결해 주세요.';}finally{captureButton.disabled=false;changingCapture=false;}
 }
 captureButton.addEventListener('click',()=>startCapture(true));
+async function stopCapture(){
+  if(changingCapture)return;changingCapture=true;stopButton.disabled=true;captureInfo.textContent='수집을 종료하고 있어요…';
+  try{const r=await fetch('/capture/stop',{method:'POST',headers:{'X-Collector-Action':'stop'}});const d=await r.json();captureInfo.textContent=d.message;if(!r.ok)throw new Error(d.message);}
+  catch(e){captureInfo.textContent=e.message||'수집 종료에 실패했어요.';}finally{changingCapture=false;stopButton.disabled=false;void update();}
+}
+stopButton.addEventListener('click',stopCapture);
 window.addEventListener('message',event=>{
   if(!paired||event.source!==window.opener||event.origin!==target||event.data?.nonce!==nonce)return;
   if(event.data.type==='15month-collector-setup'){
@@ -34,6 +43,7 @@ window.addEventListener('message',event=>{
     setupTask.catch(e=>{syncError=e.message;syncInfo.textContent=syncError;});
   }
   if(event.data.type==='15month-collector-periods')setupTask.then(()=>fetch('/periods',{method:'POST',headers:{'Content-Type':'application/json','X-Collector-Action':'periods'},body:JSON.stringify(event.data.periods)})).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.message||`동기화 오류 ${r.status}`);syncError='';}).catch(e=>{syncError=e.message||'매칭 정보 연결 실패';syncInfo.textContent=syncError;});
+  if(event.data.type==='15month-collector-stop')void stopCapture();
   if(event.data.type==='15month-collector-start')void startCapture(event.data.restart===true);
   if(event.data.type==='15month-collector-ack'){const count=event.data.saved||0;if(count>lastSavedCount)lastSavedAt=new Date().toLocaleString('ko-KR');lastSavedCount=count;document.getElementById('connection').textContent='15월사이트 연결됨 · 저장 확인 '+count+'건 · 마지막 저장 확인: '+(lastSavedAt||'아직 없음');}
 });
