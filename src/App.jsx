@@ -4,7 +4,6 @@ import { guildTabId, memoGuilds } from "./lib/guildWar.js";
 import AccountWatermark from "./components/AccountWatermark.jsx";
 import CounterTransferButton from "./components/CounterTransferButton.jsx";
 import { ThemeToggle, AnimeThemeMenu, TransparencyControl, useAnimeThemeAccess } from "./components/ThemeProvider.jsx";
-import GuildWarRecognition from "./components/GuildWarRecognition.jsx";
 import { CounterOrderFields, CounterOrderDisplay } from "./components/CounterOrderFields.jsx";
 import { parseCounterOrder, describeCounterOrder } from "./lib/counterOrders.js";
 import { matchesHeroSearch, matchesEnemyTeamSearch, searchTokens } from "./lib/heroSearch.js";
@@ -1405,7 +1404,6 @@ function AttackPage({ currentUser, attackTeams, setAttackTeams, enemyDefenseTeam
             <p className="mt-2 text-xs leading-5 text-zinc-400">
               영웅명·초성을 띄어쓰기나 쉼표로 구분해 입력하세요. 순서와 관계없이 입력한 영웅이 모두 포함된 방어팀을 찾습니다.
             </p>
-            <GuildWarRecognition onHeroesChange={(heroes) => { setEnemyHeroSearch(heroes.filter(Boolean).join(", ")); setSelectedEnemyDefense(null); setFilter("전체"); }} />
           </div>
           <div>
             <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
