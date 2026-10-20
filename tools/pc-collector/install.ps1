@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+﻿﻿$ErrorActionPreference = 'Stop'
 $installRoot = Join-Path $env:LOCALAPPDATA '15month-collector\app'
 New-Item -ItemType Directory -Path $installRoot -Force | Out-Null
 Get-CimInstance Win32_Process | Where-Object { $_.Name -in @('node.exe','python.exe') -and $_.ExecutablePath -and $_.ExecutablePath.StartsWith($installRoot+'\',[StringComparison]::OrdinalIgnoreCase) } | ForEach-Object { Stop-Process -Id $_.ProcessId -ErrorAction SilentlyContinue }
@@ -13,7 +13,7 @@ if (-not (Test-Path -LiteralPath $runtime) -or (Get-FileHash -LiteralPath $runti
     if ((Get-FileHash -LiteralPath $download -Algorithm SHA256).Hash.ToLowerInvariant() -ne $hashes[$arch]) { throw '실행 파일 검증에 실패했습니다. 설치를 중단합니다.' }
     Move-Item -LiteralPath $download -Destination $runtime -Force
 }
-$files = @('start.ps1','desktop.ps1','server.mjs','watch.mjs','summarize.py','normalize.py','replay_skills.py','capture.py','capture_worker.py','battlefield.py','match_period.py','setup_game.py','prepare.ps1','gameCatalog.json','connect.html','connect.js','connect.css','uninstall.ps1')
+$files = @('update.ps1','release.json','start.ps1','desktop.ps1','server.mjs','watch.mjs','summarize.py','normalize.py','replay_skills.py','capture.py','capture_worker.py','battlefield.py','match_period.py','setup_game.py','prepare.ps1','gameCatalog.json','connect.html','connect.js','connect.css','uninstall.ps1')
 foreach ($file in $files) { Copy-Item -LiteralPath (Join-Path $PSScriptRoot $file) -Destination (Join-Path $installRoot $file) -Force }
 & (Join-Path $installRoot 'prepare.ps1')
 if (Test-Path -LiteralPath (Join-Path (Split-Path $installRoot) 'config.json')) {

@@ -15,3 +15,10 @@
 
 ## 검증
 구문/빌드, 별도 빈 상태 폴더에서 전용 Python+protobuf만으로 스키마 추출, 승인되지 않은 계정 설정 접근 거부, ZIP의 개인 설정/캡처 제외를 확인한다. 실제 다른 PC의 드라이버 설치와 게임 통신은 해당 PC에서 최종 확인이 필요하다.
+
+
+## 자동 업데이트
+
+PC 자동 실행은 등록하지 않습니다. 사용자가 연결 프로그램을 실행하면 업데이트를 백그라운드에서 확인합니다. 수집 중에는 적용을 보류하고, SHA-256 검증과 허용된 파일 목록 확인 후 프로그램 코드만 갱신합니다. 개인 config.json, 수집 기록, Python·Node·Npcap은 덮어쓰지 않습니다. 실패하면 기존 파일을 복구합니다. 이 기능이 없는 구버전은 최초 한 번 재설치해야 합니다.
+
+배포 시 release.json 버전을 올리고 `python scripts/package-collector.py`를 실행해 설치 ZIP, 코드 전용 업데이트 ZIP, 배포 매니페스트를 함께 갱신하세요. 실행 환경 자체 변경은 별도 재설치가 필요합니다. 테스트는 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify-collector-update.ps1`입니다.

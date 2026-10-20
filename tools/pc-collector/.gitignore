@@ -8,3 +8,6 @@ python/
 vendor/
 python-runtime.zip
 protobuf.zip
+
+update-status.txt
+update-backup/

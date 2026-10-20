@@ -1,3 +1,4 @@
+﻿param([switch]$SkipUpdate)
 ﻿$ErrorActionPreference = 'Stop'
 $collectorRoot = $PSScriptRoot
 $stateRoot = Join-Path $env:LOCALAPPDATA '15month-collector'
@@ -17,6 +18,10 @@ if (-not $serverRunning) {
 }
 if (-not $watchRunning -and (Test-Path -LiteralPath (Join-Path $stateRoot 'config.json'))) {
     Start-Process -FilePath $nodePath -ArgumentList @('"' + $watchPath + '"') -WorkingDirectory $collectorRoot -WindowStyle Hidden -RedirectStandardOutput (Join-Path $stateRoot 'watch.log') -RedirectStandardError (Join-Path $stateRoot 'watch-error.log')
+}
+if (-not $SkipUpdate -and (Test-Path -LiteralPath (Join-Path $collectorRoot 'update.ps1'))) {
+    $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    Start-Process -FilePath $powershell -ArgumentList @('-NoProfile','-WindowStyle','Hidden','-ExecutionPolicy','Bypass','-File', ('"'+(Join-Path $collectorRoot 'update.ps1')+'"')) -WorkingDirectory $collectorRoot -WindowStyle Hidden
 }
 Write-Output 'PC 연결 프로그램을 실행했습니다. 15월사이트 길드전에서 PC 수집기 연결을 누르세요.'
 } finally { $launchLock.ReleaseMutex(); $launchLock.Dispose() }

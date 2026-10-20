@@ -38,6 +38,7 @@ window.addEventListener('message',event=>{
 async function update(){
   try{
     const response=await fetch('/status');if(!response.ok)throw new Error();const data=await response.json();
+    document.getElementById('update-info').textContent=data.updateStatus||'자동 업데이트를 사용하려면 최신 설치본을 한 번 설치해 주세요.';
     syncInfo.textContent=syncError||data.periodSyncStatus||'최신 설치본으로 업데이트해 주세요.';
     if(data.captureStatus)captureInfo.textContent=data.captureStatus;
     document.getElementById('activity').textContent=data.needsSetup?'설정 대기':data.captureActive?'수집 중':'수집 대기';
