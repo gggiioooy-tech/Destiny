@@ -35,5 +35,5 @@ Write-Output 'PASS verified update applies and restarts'
 # Restore real updater to test the current-version branch.
 Copy-Item tools/pc-collector/update.ps1 (Join-Path $app 'update.ps1') -Force
 & (Join-Path $app 'update.ps1')
-if((Get-Content (Join-Path $app 'update-status.txt') -Raw) -notmatch '최신'){throw 'did not detect latest'}
+if((Get-Content (Join-Path $app 'update-status.txt') -Raw -Encoding UTF8) -notmatch '최신'){throw 'did not detect latest'}
 Write-Output 'PASS current version is not reinstalled'
