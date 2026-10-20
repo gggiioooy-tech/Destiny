@@ -12,8 +12,8 @@ const captureInfo=document.getElementById('capture-info');
 const syncInfo=document.getElementById('sync-info');
 const video=document.getElementById('mascot-video');
 const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
-video.defaultPlaybackRate=2;video.playbackRate=2;
-video.addEventListener('loadedmetadata',()=>{video.playbackRate=2;if(reducedMotion.matches)video.pause();});
+video.defaultPlaybackRate=3.4;video.playbackRate=3.4;
+video.addEventListener('loadedmetadata',()=>{video.playbackRate=3.4;if(reducedMotion.matches)video.pause();});
 video.querySelector('source').addEventListener('error',()=>{video.hidden=true;document.getElementById('mascot-fallback').hidden=false;});
 if(reducedMotion.matches){video.autoplay=false;video.pause();}
 let actionError='',saveError='',lastProblemData={};
