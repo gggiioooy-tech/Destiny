@@ -31,7 +31,7 @@ const server=http.createServer((req,res)=>{
   res.setHeader('X-Content-Type-Options','nosniff');
   res.setHeader('Referrer-Policy','no-referrer');
   res.setHeader('X-Frame-Options','DENY');
-  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; connect-src 'self'; style-src 'self'; frame-ancestors 'none'; form-action 'none'; base-uri 'none'");
+  res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; connect-src 'self'; style-src 'self'; media-src https://i1.ruliweb.com; frame-ancestors 'none'; form-action 'none'; base-uri 'none'");
   const send=(status,type,body)=>{res.writeHead(status,{'Content-Type':type});res.end(body);};
   // Reject DNS rebinding, cross-origin API reads and all writes.
   if(req.headers.host!==host)return send(403,'text/plain','Forbidden');
