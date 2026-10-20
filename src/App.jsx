@@ -146,8 +146,14 @@ function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, se
 }
 
 function MobileHeader({ setIsOpen, currentUser, settings }) {
+  const header = useRef(null);
+  useEffect(() => {
+    const update = () => document.documentElement.style.setProperty('--mobile-header-height', `${header.current?.getBoundingClientRect().height || 0}px`);
+    const observer = new ResizeObserver(update); observer.observe(header.current); update();
+    return () => { observer.disconnect(); document.documentElement.style.removeProperty('--mobile-header-height'); };
+  }, []);
   return (
-    <header className="sticky top-0 z-30 flex flex-wrap gap-2 items-center justify-between border-b border-zinc-200 bg-white/90 px-3 py-3 backdrop-blur sm:px-4 lg:hidden">
+    <header ref={header} className="sticky top-0 z-30 flex flex-wrap gap-2 items-center justify-between border-b border-zinc-200 bg-white/90 px-3 py-3 backdrop-blur sm:px-4 lg:hidden">
       <div className="flex items-center gap-2"><div className="grid h-9 w-9 place-items-center rounded-lg bg-zinc-950 text-white">
               <Snowflake size={24} strokeWidth={2.4} className="snow-sway-icon" />
             </div><div><div className="text-sm font-semibold">{renderRichText(settings.guild_name, "")}</div><div className="text-[11px] text-zinc-500">{currentUser.gameNickname}</div></div></div>

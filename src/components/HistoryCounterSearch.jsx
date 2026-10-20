@@ -1,3 +1,4 @@
+import DetailDialog from "./DetailDialog.jsx";
 import React,{useEffect,useState} from 'react';
 import {historyCriteria,historyPage} from '../lib/historySearchApi.js';
 import {loadBattleHeroSpeeds} from '../lib/battleHeroSpeeds.js';
@@ -32,11 +33,14 @@ function HistoryRecords({criteria,currentUser,heroes}){
 }
 function CounterGroup({group,criteria,currentUser,showRate}){
   const [open,setOpen]=useState(false);
-  return <article className="min-w-0 space-y-3 rounded-2xl border border-zinc-200 bg-white p-4">
+  return <article className="history-counter-group min-w-0 space-y-3 rounded-2xl border border-zinc-200 bg-white p-4">
     <h2 className="break-words text-base font-bold leading-6">{group.heroes.join(' · ')} <span className="text-blue-600">{group.count}회 공격</span></h2>
     <p className="text-sm">{showRate&&<b>승률 {group.rate===null?'미확인':`${(Number(group.rate)*100).toFixed(1)}%`} · </b>}승리 {group.wins}회 · 패배 {group.losses}회</p>
-    <button type="button" aria-expanded={open} className="text-left font-semibold" onClick={()=>setOpen(v=>!v)}>{open?'▾':'▸'} {currentUser.role==='member'?'날짜·펫·스킬 기록 보기':'날짜·공격자·펫·스킬 기록 보기'} ({group.count}건)</button>
-    {open&&<HistoryRecords criteria={criteria} currentUser={currentUser} heroes={group.heroes}/>}
+    <button type="button" aria-haspopup="dialog" className="site-button site-button-primary w-full rounded-xl px-4 py-2.5 text-left text-sm font-semibold" onClick={()=>setOpen(true)}>전투 기록 상세보기 · {group.count}건</button>
+    {open&&<DetailDialog title={group.heroes.join(' · ')+' · 길드전 공격 이력'} onClose={()=>setOpen(false)}>
+      <p className="mb-4 text-sm text-zinc-500">{group.count}회 공격 · {group.wins}승 {group.losses}패{group.rate!==null&&` · 승률 ${(Number(group.rate)*100).toFixed(1)}%`}</p>
+      <HistoryRecords criteria={criteria} currentUser={currentUser} heroes={group.heroes}/>
+    </DetailDialog>}
   </article>;
 }
 export default function HistoryCounterSearch({currentUser,defenseHeroes}){
@@ -59,7 +63,7 @@ export default function HistoryCounterSearch({currentUser,defenseHeroes}){
   const criteria=React.useMemo(()=>JSON.parse(criteriaKey),[criteriaKey]);
   return <section className={embedded?'min-w-0 space-y-3':'site-page mx-auto max-w-7xl space-y-5 p-4 sm:p-8'}>
     {!embedded&&<><header className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl font-bold">공격팀 (길드전 이력으로 검색)</h1><button type="button" className={button} disabled={loading} onClick={()=>{setOffset(0);setRevision(v=>v+1);}}>새로고침</button></header>
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4"><label htmlFor="history-counter-query" className="font-semibold">상대 방어 영웅 검색</label><input id="history-counter-query" value={input} onChange={e=>setInput(e.target.value)} placeholder="예: 아일린 젠이츠 델론즈 또는 ㅇㅇㄹ, ㅈㅇㅊ, ㄷㄹㅈ" className="mt-2 w-full rounded-xl border border-zinc-200 bg-white p-3"/><p className="mt-2 text-sm text-zinc-500">영웅명·초성을 띄어쓰기나 쉼표로 구분하세요. 순서와 관계없이 입력한 영웅을 모두 포함한 방어팀을 검색합니다.</p><p className="mt-1 text-sm text-zinc-500">{anonymous?'전체 길드 익명 공격 이력':'우리·상대 길드의 실제 공격 이력'} · 공격 영웅 조합 사용 횟수순 · 펫과 스킬은 기록을 펼쳐 확인하세요.</p></div></>}
+      <div className="rounded-2xl border border-zinc-200 bg-white p-4"><label htmlFor="history-counter-query" className="font-semibold">상대 방어 영웅 검색</label><input id="history-counter-query" value={input} onChange={e=>setInput(e.target.value)} placeholder="예: 아일린 젠이츠 델론즈 또는 ㅇㅇㄹ, ㅈㅇㅊ, ㄷㄹㅈ" className="mt-2 w-full rounded-xl border border-zinc-200 bg-white p-3"/><p className="mt-2 text-sm text-zinc-500">영웅명·초성을 띄어쓰기나 쉼표로 구분하세요. 순서와 관계없이 입력한 영웅을 모두 포함한 방어팀을 검색합니다.</p><p className="mt-1 text-sm text-zinc-500">{anonymous?'전체 길드 익명 공격 이력':'우리·상대 길드의 실제 공격 이력'} · 공격 영웅 조합 사용 횟수순 · 펫과 스킬은 상세보기에서 확인하세요.</p></div></>}
     {embedded&&<p className="text-xs text-zinc-500">같은 방어 영웅 3명 기준 · 승률순 (동률이면 공격 횟수순) · 결과 미확인은 승률에서 제외</p>}
     {error&&<p role="alert" className="text-red-600">{error}</p>}
     {!embedded&&!query?<p>방어 영웅을 입력해 주세요.</p>:<>

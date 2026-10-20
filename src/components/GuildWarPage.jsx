@@ -1,3 +1,4 @@
+import DetailDialog from "./DetailDialog.jsx";
 import HistoryCounterSearch from './HistoryCounterSearch.jsx';
 import {loadBattleHeroSpeeds} from '../lib/battleHeroSpeeds.js';
 import React, { useEffect, useState } from 'react';
@@ -35,12 +36,15 @@ export function AddGuildWarTab({ users, tabs, onAdded }) {
 }
 
 function CounterDetails({ deck }) {
+  const [open, setOpen] = useState(false);
   const heroes = heroNames(deck.heroes);
   let rings = [];
   try { const parsed=JSON.parse(deck.rings); if(Array.isArray(parsed)) rings=parsed; } catch { rings=heroNames(deck.rings); }
-  return <details className="rounded-xl border border-zinc-200 p-3">
-    <summary className="cursor-pointer text-sm font-semibold">{plain(deck.title) || heroes.join(' · ') || '추천 카운터'}{deck.power ? ` · 추천도 ${deck.power}` : ''}</summary>
-    <div className="mt-3 space-y-3 text-sm">
+  const title = plain(deck.title) || heroes.join(' · ') || '추천 카운터';
+  return <>
+    <button type="button" aria-haspopup="dialog" className="site-button site-button-secondary w-full rounded-xl border border-zinc-200 p-3 text-left text-sm font-semibold" onClick={()=>setOpen(true)}>{title}{deck.power ? ` · 추천도 ${deck.power}` : ''}<span className="ml-2 text-xs font-normal">상세보기 ↗</span></button>
+    {open&&<DetailDialog title={title+' · 추천 카운터'} onClose={()=>setOpen(false)}>
+    <div className="space-y-4 text-sm">
       <p>{heroes.join(' · ')}</p><p>펫: {plain(deck.pet)||'미입력'} · 진형: {plain(deck.formation)||'미입력'}</p>
       <div className="grid gap-2 sm:grid-cols-3">{heroes.map((hero,i)=><div key={i} className="min-w-0 rounded-lg bg-zinc-50 p-2"><b>{hero}</b><p className="whitespace-pre-wrap">반지: {plain(rings[i])||'미입력'}</p><p className="whitespace-pre-wrap">장비: {plain(deck[`gear_${i+1}`])||'미입력'}</p></div>)}</div>
       <p>팀속공: {plain(deck.team_speed)||'미입력'}</p>
@@ -48,7 +52,8 @@ function CounterDetails({ deck }) {
       <CounterOrderDisplay heroes={heroes} value={deck.skill_order} kind="skill" />
       {deck.note && <p className="whitespace-pre-wrap">{plain(deck.note)}</p>}
     </div>
-  </details>;
+    </DetailDialog>}
+  </>;
 }
 
 export function BattleSide({ title, side, result, speed, heroSpeeds, showHeroSpeeds = false, hideIdentity = false, hideSpeed = false }) {
@@ -170,19 +175,26 @@ export default function GuildWarPage({ guild, counterTeams, currentUser }) {
   return <section className="mx-auto max-w-7xl space-y-5 p-4 sm:p-8">
     <header className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl font-bold">{guild} 길드전</h1><button className={button} onClick={()=>{setBattleOffset(0);setRevision(v=>v+1);}}>새로고침</button></header>
     <PcCollectorConnection currentUser={currentUser} />
-    <div className="flex flex-wrap gap-2" aria-label="길드전 분류">{[['current','현재 길드전'],['history','지난 길드전 이력']].map(([value,label])=><button key={value} type="button" aria-pressed={mode===value} className={`${button} ${mode===value?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>{setMode(value);chooseSection('teams');}}>{label}</button>)}</div>
+    <div className="guild-war-toolbar space-y-3 rounded-2xl border border-zinc-200 p-3 shadow-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex gap-2" aria-label="길드전 분류">{[['current','현재 길드전'],['history','지난 길드전 이력']].map(([value,label])=><button key={value} type="button" aria-pressed={mode===value} className={`${button} ${mode===value?'font-bold':''}`} onClick={()=>{setMode(value);chooseSection('teams');}}>{label}</button>)}</div>
+        {mode==='history'&&<select aria-label="길드전 날짜" className="min-w-0 flex-1 rounded-xl border border-zinc-200 px-3 py-2 text-sm" value={historyDate} disabled={datesLoading} onChange={event=>{setHistoryDate(event.target.value);chooseSection('teams');}}><option value="">길드전 날짜 선택</option>{dates.map(value=><option key={value} value={value}>{warTitle(value,dateNames[value])}</option>)}</select>}
+      </div>
+      {(period||mode==='current')&&<>
+        <div className="flex gap-2 overflow-x-auto pb-1" aria-label="기록 종류">{[['teams',defenseTitle],['attack','공격 기록'],['defense','방어 기록']].map(([value,label])=><button key={value} type="button" aria-pressed={section===value} className={`${button} whitespace-nowrap ${section===value?'font-bold':''}`} onClick={()=>chooseSection(value)}>{label}</button>)}</div>
+        <div className="grid grid-cols-[minmax(100px,0.6fr)_minmax(0,1.4fr)] gap-2">
+          <label className="text-xs text-zinc-500">성 위치<select aria-label="성별 분류" className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-950" value={castle} onChange={event=>{setBattleOffset(0);setCastle(event.target.value);}}><option value="">전체</option>{castles.map(value=><option key={value} value={value}>{value}{section==='attack'?' 공격':section==='defense'?' 방어':''}</option>)}</select></label>
+          <label className="text-xs text-zinc-500">검색<input aria-label="길드전 기록 검색" className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-950" value={search} onChange={event=>setSearch(event.target.value)} placeholder="닉네임 · 영웅 · 펫" /></label>
+        </div>
+      </>}
+    </div>
     {datesError&&<p role="alert" className="text-red-600">{datesError}</p>}
     {datesLoading?<p role="status">길드전 목록 불러오는 중…</p>:<>
-      {mode==='history'&&<section className={box}><h2 className="mb-3 font-semibold">날짜별 길드전 이력</h2><div className="flex flex-wrap gap-2">{dates.map(value=><button key={value} className={`${button} ${historyDate===value?'ring-2 ring-blue-500':''}`} aria-pressed={historyDate===value} onClick={()=>{setHistoryDate(value);chooseSection('teams');}}>{warTitle(value,dateNames[value])}</button>)}</div>{!dates.length&&<p className="text-sm text-zinc-500">저장된 길드전 이력이 없습니다.</p>}</section>}
+      {mode==='history'&&!dates.length&&<p className="text-sm text-zinc-500">저장된 길드전 이력이 없습니다.</p>}
       {mode==='current'&&!period&&<div className={box}>아직 수집된 현재 길드전 정보가 없습니다.</div>}
       {mode==='history'&&dates.length>0&&!period&&<p className="text-sm text-zinc-500">확인할 길드전 날짜를 선택해 주세요.</p>}
       {(period||mode==='current')&&<>
         {period&&<p className="text-sm text-zinc-500">{warTitle(period,dateNames[period])}{mode==='current'?' · 가장 최근 수집된 길드전':''}</p>}
-        <div className="flex flex-wrap gap-2" aria-label="기록 종류">{[['teams',defenseTitle],['attack','공격 기록'],['defense','방어 기록']].map(([value,label])=><button key={value} aria-pressed={section===value} className={`${button} ${section===value?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>chooseSection(value)}>{label}</button>)}</div>
-        <div className={`${box} grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]`}>
-          <label className="text-sm">성별 분류<select aria-label="성별 분류" className="mt-2 w-full rounded-xl border border-zinc-200 bg-white p-3 text-zinc-950" value={castle} onChange={e=>{setBattleOffset(0);setCastle(e.target.value);}}><option value="">전체</option>{castles.map(value=><option key={value} value={value}>{value}{section==='attack'?' 공격':section==='defense'?' 방어':''}</option>)}</select></label>
-          <label className="text-sm">검색<input aria-label="길드전 기록 검색" className="mt-2 w-full rounded-xl border border-zinc-200 bg-white p-3 text-zinc-950" value={search} onChange={e=>setSearch(e.target.value)} placeholder="닉네임, 영웅 이름, 펫 검색" /></label>
-        </div>
         <h2 className="text-lg font-semibold">{mode==='current'?'현재 길드전 ':''}{title}{section!=='teams'&&<span className="ml-2 text-sm font-normal text-zinc-500">{battles.length}건 표시 · 30건씩 최대 150건</span>}</h2>
         {error&&<p role="alert" className="text-red-600">{error}</p>}
         {(loading&&!battles.length)||(!!period&&loadedKey!==requestKey)?<p role="status">기록 불러오는 중…</p>:section==='teams'?<DefenseGroups currentUser={currentUser} snapshot={snapshot} counterTeams={counterTeams} castle={castle} search={query}/>:<div className="space-y-3">

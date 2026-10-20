@@ -306,10 +306,10 @@ body {
 .site-theme select option { background-color: rgb(var(--panel-rgb)); }
 
 /* Keep battle outcomes distinguishable across all themes. */
-.site-theme .battle-side-win { background-color: rgb(187 247 208 / var(--panel-alpha, .6)); box-shadow: inset 0 0 0 1px rgb(34 197 94 / .35); }
-.site-theme .battle-side-loss { background-color: rgb(254 202 202 / var(--panel-alpha, .6)); box-shadow: inset 0 0 0 1px rgb(239 68 68 / .4); }
-.dark .site-theme .battle-side-win { background-color: rgb(20 83 45 / var(--panel-alpha, .6)); }
-.dark .site-theme .battle-side-loss { background-color: rgb(127 29 29 / var(--panel-alpha, .6)); }
+.site-theme .battle-side-win { background-color: rgb(187 247 208 / max(.82, var(--panel-alpha, .6))); box-shadow: inset 0 0 0 1px rgb(34 197 94 / .35); }
+.site-theme .battle-side-loss { background-color: rgb(254 202 202 / max(.82, var(--panel-alpha, .6))); box-shadow: inset 0 0 0 1px rgb(239 68 68 / .4); }
+.dark .site-theme .battle-side-win { background-color: rgb(20 83 45 / max(.82, var(--panel-alpha, .6))); }
+.dark .site-theme .battle-side-loss { background-color: rgb(127 29 29 / max(.82, var(--panel-alpha, .6))); }
 
 /* Compact member management, scoped to avoid changing other tables. */
 .member-table-compact .member-table { font-size: .75rem; }
@@ -343,3 +343,29 @@ body {
 @container (min-width: 640px) {
   .history-battle-sides { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Controls and detail views stay legible independently of decorative transparency. */
+:root { scrollbar-gutter: stable; }
+.site-theme { --action-color: #18181b; }
+.miku .site-theme { --action-color: #176b71; }
+.alya .site-theme { --action-color: #5b638d; }
+.marciana .site-theme { --action-color: #8c4c59; }
+.elaina .site-theme { --action-color: #755574; }
+.yuno .site-theme { --action-color: #355ba0; }
+.emilia .site-theme { --action-color: #79529a; }
+.cinderella .site-theme { --action-color: #8b3b50; }
+.dark .site-theme { --action-color: #3f4c68; }
+.site-theme .site-button { min-height: 38px; border-radius: .75rem; line-height: 1.4; }
+.site-theme .site-button:focus-visible { outline: 2px solid var(--action-color); outline-offset: 3px; }
+:root .site-theme .site-button-primary,
+:root .site-theme .site-button[aria-pressed="true"] { background-color: var(--action-color); color: #fff; border-color: var(--action-color); }
+:root .site-theme .site-button-secondary { background-color: rgb(var(--panel-rgb) / max(.88, var(--panel-alpha))); }
+:root .site-theme :is(input:not([type="range"]):not([type="checkbox"]), textarea, select) { background-color: rgb(var(--panel-rgb) / max(.88, var(--panel-alpha))) !important; }
+:root .site-theme :is(.history-counter-group,.history-battle-record) { background-color: rgb(var(--panel-rgb) / max(.8, var(--panel-alpha))); }
+.site-detail-dialog { width: min(1100px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: 0; border-radius: 1.25rem; border: 1px solid #c4ced7; overflow: auto; }
+.site-detail-dialog::backdrop { background: rgb(8 14 24 / .65); backdrop-filter: blur(4px); }
+:root .site-theme .site-detail-dialog,
+:root .site-theme .detail-dialog-header { background-color: rgb(var(--panel-rgb)) !important; }
+.guild-war-toolbar { position: sticky; top: calc(var(--mobile-header-height, 0px) + 8px); z-index: 20; background-color: rgb(var(--panel-rgb) / .96); backdrop-filter: blur(14px); }
+.guild-war-toolbar .site-button { padding: .5rem .75rem; font-size: .8125rem; }
+@media (min-width: 1024px) { .guild-war-toolbar { top: 8px; } }

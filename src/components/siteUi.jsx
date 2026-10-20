@@ -238,7 +238,7 @@ function PageHeader({ eyebrow, title, desc, action }) {
   );
 }
 
-function Button({ children, onClick, variant = "primary", className = "", disabled }) {
+function Button({ children, onClick, variant = "primary", className = "", disabled, type = "button", ...props }) {
   const styles = {
     primary: "bg-zinc-950 text-white hover:bg-zinc-800",
     secondary: "bg-white text-zinc-800 ring-1 ring-zinc-200 hover:bg-zinc-50",
@@ -246,7 +246,7 @@ function Button({ children, onClick, variant = "primary", className = "", disabl
     danger: "bg-red-50 text-red-700 hover:bg-red-100",
   };
   return (
-    <button disabled={disabled} onClick={onClick} className={cx("site-button inline-flex max-w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50", styles[variant], className)}>
+    <button {...props} type={type} disabled={disabled} onClick={onClick} className={cx(`site-button site-button-${variant}`, "site-button inline-flex max-w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50", styles[variant], className)}>
       {children}
     </button>
   );
