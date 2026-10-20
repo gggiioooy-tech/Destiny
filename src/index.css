@@ -336,3 +336,10 @@ body {
 @container (max-width: 1100px) {
   .member-table-without-weekly td:nth-child(6) { grid-column: 1 / -1; }
 }
+
+/* Nested history cards respond to their own width rather than the viewport. */
+.history-battle-record { container-type: inline-size; }
+.battle-side { overflow-wrap: anywhere; word-break: keep-all; }
+@container (min-width: 640px) {
+  .history-battle-sides { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

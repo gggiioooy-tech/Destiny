@@ -52,10 +52,29 @@ function CounterDetails({ deck }) {
 }
 
 export function BattleSide({ title, side, result, speed, heroSpeeds, showHeroSpeeds = false, hideIdentity = false, hideSpeed = false }) {
-  side=resolveGameSide(side);
-  return <div className={`min-w-0 rounded-xl p-3 ${result ? `battle-side-${result}` : 'bg-zinc-50'}`}><p className="text-xs text-zinc-500">{title} {!hideSpeed&&<span className="ml-2 font-semibold" style={{color:speed===true?'#15803d':speed===false?'#dc2626':undefined}}>{speed===true?'속공땀':speed===false?'속공따임':'속공 미확인'}</span>}</p>{showHeroSpeeds&&!hideSpeed&&<aside className="my-2 rounded-lg border border-current/10 px-3 py-2 text-xs sm:float-right sm:ml-3 sm:max-w-[48%]" aria-label="영웅별 속공"><p className="mb-1 font-semibold" title="전투 시작 시 리플레이 수치입니다. 게임 능력치 화면과의 일치는 미검증입니다.">영웅별 속공 · 전투 기록값</p>{(side?.heroIds||[]).map((id,i)=><p key={`${id}-${i}`} className="flex justify-between gap-3"><span>{side.heroes?.[i]||`영웅 #${id}`}</span><b>{heroSpeeds?.find(v=>v.heroId===id)?.value??'미수집'}</b></p>)}</aside>}{!hideIdentity&&<p className="mt-1 font-semibold">{plain(side?.nickname)||'닉네임 미확인'}</p>}<p className="text-sm">{heroNames(side?.heroes).join(' · ')||'영웅 미확인'}</p><p className="text-sm">펫: {plain(side?.pet)||'미확인'}</p>
-    {side?.namesResolved === false && <p className="mt-2 text-xs text-amber-700">영웅·펫 이름 확인 중 · 원본 번호 보존</p>}<p className="mt-2 text-xs text-zinc-500">시작 예약 스킬</p><p className="text-sm">{Array.isArray(side?.skills)&&side.skills.length ? side.skills.map(s=>`${plain(s?.hero)||'영웅 미확인'} ${skillLabel(s)}`).join(' → ') : '미수집'}</p>
-  </div>;
+  side = resolveGameSide(side);
+  const heroes = heroNames(side?.heroes);
+  const skills = Array.isArray(side?.skills) ? side.skills : [];
+  return <section className={`battle-side min-w-0 space-y-3 rounded-xl p-3 ${result ? `battle-side-${result}` : 'bg-zinc-50'}`}>
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500">
+      <span>{title}</span>
+      {!hideSpeed && <span className="whitespace-nowrap font-semibold" style={{color:speed===true?'#15803d':speed===false?'#dc2626':undefined}}>{speed===true?'속공땀':speed===false?'속공따임':'속공 미확인'}</span>}
+    </div>
+    <div className="space-y-1">
+      {!hideIdentity && <p className="font-semibold">{plain(side?.nickname)||'닉네임 미확인'}</p>}
+      <p className="text-sm leading-6">{heroes.join(' · ')||'영웅 미확인'}</p>
+      <p className="text-xs text-zinc-500">펫: {plain(side?.pet)||'미확인'}</p>
+    </div>
+    {side?.namesResolved === false && <p className="text-xs text-amber-700">영웅·펫 이름 확인 중 · 원본 번호 보존</p>}
+    <div className="border-t border-current/10 pt-2">
+      <p className="mb-2 text-xs font-semibold text-zinc-500">시작 예약 스킬</p>
+      {skills.length ? <ol className="space-y-1.5 text-sm">{skills.map((skill,index)=><li key={index} className="flex items-start gap-2"><span className="shrink-0 text-xs leading-6 text-zinc-500">{index+1}.</span><span className="min-w-0 leading-6">{plain(skill?.hero)||'영웅 미확인'} <b className="whitespace-nowrap">{skillLabel(skill)}</b></span></li>)}</ol> : <p className="text-sm text-zinc-500">미수집</p>}
+    </div>
+    {showHeroSpeeds && !hideSpeed && <aside className="rounded-lg border border-current/10 p-2.5 text-xs" aria-label="영웅별 속공">
+      <p className="mb-2 font-semibold" title="전투 시작 시 리플레이 수치입니다. 게임 능력치 화면과의 일치는 미검증입니다.">영웅별 속공 <span className="font-normal text-zinc-500">· 전투 기록값</span></p>
+      <dl className="space-y-1.5">{(side?.heroIds||[]).map((id,index)=><div key={`${id}-${index}`} className="flex items-start justify-between gap-3"><dt className="min-w-0">{side.heroes?.[index]||`영웅 #${id}`}</dt><dd className="shrink-0 whitespace-nowrap font-semibold tabular-nums">{heroSpeeds?.find(value=>value.heroId===id)?.value??'미수집'}</dd></div>)}</dl>
+    </aside>}
+  </section>;
 }
 
 const castles = ['외성1','외성2','외성3','외성4','외성5','내성1','내성2','내성3','본성'];

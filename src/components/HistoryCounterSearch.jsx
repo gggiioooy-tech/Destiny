@@ -19,10 +19,10 @@ function HistoryRecords({criteria,currentUser,heroes}){
   useEffect(()=>{let active=true;loadBattleHeroSpeeds(rows,currentUser).then(data=>{if(active)setSpeeds(data);}).catch(()=>{});return()=>{active=false;};},[rows,currentUser.id,currentUser.isOwner]);
   return <div className="mt-3 space-y-3">
     {rows.map(row=>{const p=row.payload,attackGuild=p.direction==='attack'?row.guild_name:p.opponentGuild,defendGuild=p.direction==='attack'?p.opponentGuild:row.guild_name;const result=typeof p.attackerWon==='boolean'?(p.attackerWon?'win':'loss'):null;
-      return <div key={row.id} className="space-y-2 rounded-xl border border-zinc-200 p-3">
-        <p className="text-sm font-semibold">{new Date(row.war_date+'T12:00:00+09:00').toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',timeZone:'Asia/Seoul'})} 길드전{!anonymous&&<> · {attackGuild||'길드 미확인'} · {p.attacker?.nickname||'닉네임 미확인'}</>}</p>
+      return <div key={row.id} className="history-battle-record min-w-0 space-y-3 rounded-xl border border-zinc-200 p-3">
+        <p className="break-words text-sm font-semibold leading-6">{new Date(row.war_date+'T12:00:00+09:00').toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',timeZone:'Asia/Seoul'})} 길드전{!anonymous&&<> · {attackGuild||'길드 미확인'} · {p.attacker?.nickname||'닉네임 미확인'}</>}</p>
         <p className="text-xs text-zinc-500">전투 시각: {new Date(row.occurred_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})} · 공격자 {result==='win'?'승리':result==='loss'?'패배':'결과 미확인'}</p>
-        <div className="grid gap-3 md:grid-cols-2">{['attacker','defender'].map(side=><BattleSide key={side} hideIdentity={anonymous} hideSpeed={anonymous} title={(side==='attacker'?'공격':'방어')+(anonymous?'':` · ${(side==='attacker'?attackGuild:defendGuild)||'길드 미확인'}`)} showHeroSpeeds={!anonymous&&currentUser.isOwner===true} heroSpeeds={speeds[row.id]?.[side]} side={p[side]} speed={p.firstSkillSide?p.firstSkillSide===side:undefined} result={result}/>)}</div>
+        <div className="history-battle-sides grid min-w-0 grid-cols-1 gap-3">{['attacker','defender'].map(side=><BattleSide key={side} hideIdentity={anonymous} hideSpeed={anonymous} title={(side==='attacker'?'공격':'방어')+(anonymous?'':` · ${(side==='attacker'?attackGuild:defendGuild)||'길드 미확인'}`)} showHeroSpeeds={!anonymous&&currentUser.isOwner===true} heroSpeeds={speeds[row.id]?.[side]} side={p[side]} speed={p.firstSkillSide?p.firstSkillSide===side:undefined} result={result}/>)}</div>
       </div>;
     })}
     {error&&<p role="alert" className="text-red-600">{error}</p>}
@@ -33,7 +33,7 @@ function HistoryRecords({criteria,currentUser,heroes}){
 function CounterGroup({group,criteria,currentUser,showRate}){
   const [open,setOpen]=useState(false);
   return <article className="min-w-0 space-y-3 rounded-2xl border border-zinc-200 bg-white p-4">
-    <h2 className="text-lg font-bold">{group.heroes.join(' · ')} <span className="text-blue-600">{group.count}회 공격</span></h2>
+    <h2 className="break-words text-base font-bold leading-6">{group.heroes.join(' · ')} <span className="text-blue-600">{group.count}회 공격</span></h2>
     <p className="text-sm">{showRate&&<b>승률 {group.rate===null?'미확인':`${(Number(group.rate)*100).toFixed(1)}%`} · </b>}승리 {group.wins}회 · 패배 {group.losses}회</p>
     <button type="button" aria-expanded={open} className="text-left font-semibold" onClick={()=>setOpen(v=>!v)}>{open?'▾':'▸'} {currentUser.role==='member'?'날짜·펫·스킬 기록 보기':'날짜·공격자·펫·스킬 기록 보기'} ({group.count}건)</button>
     {open&&<HistoryRecords criteria={criteria} currentUser={currentUser} heroes={group.heroes}/>}
