@@ -117,8 +117,8 @@ body {
   z-index: -1;
   pointer-events: none;
   background-image: linear-gradient(90deg, rgb(225 247 244 / .35), rgb(231 243 249 / .16) 55%, rgb(213 236 237 / .06)), url('/themes/miku-illustration.png');
-  background-size: cover, auto 100%;
-  background-position: center, center;
+  background-size: cover, cover;
+  background-position: center, center var(--theme-art-y, 18%);
   background-repeat: no-repeat;
 }
 :is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .site-page { background: transparent; }
@@ -194,6 +194,7 @@ body {
 /* Marciana shares the translucent layout with a silver-blue palette. */
 .marciana .site-theme { background-color: #f2ece0; color: #34394e; }
 .marciana .site-theme::before {
+  --theme-art-y: 0%;
   background-image: linear-gradient(90deg, rgb(235 239 250 / .35), rgb(232 243 255 / .16) 55%, rgb(235 237 249 / .06)), url('/themes/marciana-illustration.png');
 }
 .marciana .site-theme .site-page-header {
@@ -211,6 +212,7 @@ body {
 /* Elaina shares the translucent layout with a silver-blue palette. */
 .elaina .site-theme { background-color: #eee7ef; color: #34394e; }
 .elaina .site-theme::before {
+  --theme-art-y: 25%;
   background-image: linear-gradient(90deg, rgb(235 239 250 / .35), rgb(232 243 255 / .16) 55%, rgb(235 237 249 / .06)), url('/themes/elaina-illustration.png');
 }
 .elaina .site-theme .site-page-header {
@@ -247,6 +249,7 @@ body {
 /* Emilia shares the translucent layout with a silver-blue palette. */
 .emilia .site-theme { background-color: #eee5f6; color: #34394e; }
 .emilia .site-theme::before {
+  --theme-art-y: 14%;
   background-image: linear-gradient(90deg, rgb(235 239 250 / .35), rgb(232 243 255 / .16) 55%, rgb(235 237 249 / .06)), url('/themes/emilia-illustration.png');
 }
 .emilia .site-theme .site-page-header {
