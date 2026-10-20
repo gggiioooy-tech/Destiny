@@ -39,8 +39,9 @@ body {
 .defense-result-card .site-button { flex: 1 1 auto; }
 .member-table-region { container-type: inline-size; }
 .member-table { table-layout: fixed; }
-.member-table th:nth-child(7) { width: 23%; }
-.member-table th:nth-child(8) { width: 15%; }
+.member-table th:nth-child(7) { width: 22%; }
+.member-table th:nth-child(8) { width: 20%; }
+.member-table th:nth-child(9) { width: 15%; }
 .member-table th:nth-child(3), .member-table th:nth-child(4) { width: 9%; }
 .member-table td { overflow-wrap: anywhere; }
 .member-memo input { flex: 1 1 0; width: 0; }
@@ -51,7 +52,7 @@ body {
   .member-table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: .75rem; border: 1px solid #c4dfdd; border-radius: 1rem; }
   .member-table td { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: .5rem; padding: .6rem; }
   .member-table td::before { content: attr(data-label); font-size: .7rem; font-weight: 600; color: inherit; opacity: .7; }
-  .member-table td:nth-child(7), .member-table td:nth-child(8), .member-table td[colspan] { grid-column: 1 / -1; }
+  .member-table td:nth-child(7), .member-table td:nth-child(8), .member-table td:nth-child(9), .member-table td[colspan] { grid-column: 1 / -1; }
   .member-table td > div { width: 100%; }
   .member-table td:last-child > div { justify-content: flex-start; }
   .member-table td[colspan]::before { display: none; }
