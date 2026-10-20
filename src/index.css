@@ -325,3 +325,7 @@ body {
 @container (max-width: 560px) {
   .member-table-compact .member-table tr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Member details remain readable at every panel transparency setting. */
+.site-theme .member-info-preview { background-color: #fff !important; }
+.dark .site-theme .member-info-preview { background-color: #18181b !important; }

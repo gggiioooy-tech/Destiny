@@ -1,3 +1,4 @@
+import MemberInfoPreview from "./MemberInfoPreview.jsx";
 import { useMemberBattleStats, MemberBattleStats, ResetMemberBattleStats } from "./MemberBattleStats.jsx";
 import { matchesMemberSearch } from "../lib/memberSearch.js";
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
@@ -209,9 +210,9 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
             </div>
             <div className="flex flex-wrap gap-2">
               {selectedGuildMembers.map((user) => (
-                <span key={user.id} className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-zinc-700 ring-1 ring-zinc-200">
-                  {user.gameNickname}
-                </span>
+                <MemberInfoPreview key={user.id} user={user}
+                  weeklyCount={weeklyCounts === null ? null : (weeklyCounts[user.authUserId] || 0)}
+                  battleStat={battleStats === null ? null : (battleStats[user.authUserId] || {})} />
               ))}
             </div>
           </div>
