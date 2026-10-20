@@ -27,7 +27,7 @@ function mergePeriods(periods,config,file){
 
   periodSyncStatus=`${config.guild} 매칭 ${config.periods.length}개 적용됨`;
 }
-const server=http.createServer((req,res)=>{
+const server=http.createServer(async(req,res)=>{
   res.setHeader('Cache-Control','no-store');
   res.setHeader('X-Content-Type-Options','nosniff');
   res.setHeader('Referrer-Policy','no-referrer');
@@ -72,6 +72,13 @@ const server=http.createServer((req,res)=>{
   }
   if(url.pathname==='/capture' && req.method==='POST'){
     if(!localAuthorized || req.headers['x-collector-action']!=='start')return send(403,'text/plain','Forbidden');
+    if(capture&&req.headers['x-collector-restart']==='true'){
+      const previous=capture;
+      try{
+        await new Promise((resolve,reject)=>{const stop=spawn('taskkill.exe',['/PID',String(previous.pid),'/T','/F'],{windowsHide:true,stdio:'ignore'});const timeout=setTimeout(()=>{stop.kill();reject(new Error('stop timeout'));},5000);stop.once('error',e=>{clearTimeout(timeout);reject(e);});stop.once('exit',code=>{clearTimeout(timeout);if(code===0||capture!==previous)resolve();else reject(new Error('stop failed'));});});
+        if(capture===previous)capture=null;
+      }catch{return send(409,'application/json; charset=utf-8',JSON.stringify({message:'이전 수집을 정리하지 못했어요. 잠시 후 다시 눌러 주세요.'}));}
+    }
     if(capture)return send(200,'application/json',JSON.stringify({message:captureStatus}));
     try{
       const config=JSON.parse(fs.readFileSync(path.join(stateDir,'config.json'),'utf8').replace(/^\uFEFF/,''));
@@ -80,8 +87,8 @@ const server=http.createServer((req,res)=>{
       const child=spawn(config.python,['-u',path.join(here,'capture.py'),stateDir],{windowsHide:true,stdio:['ignore','pipe','pipe']});capture=child;
       child.stdout.on('data',b=>{if(b.toString().includes('CAPTURE_RECONNECT'))captureStatus='게임 연결 대기 · 재접속하면 자동으로 다시 수집합니다.';if(b.toString().includes('CAPTURE_READY'))captureStatus='수집 중 · 게임에서 전장과 기록 목록을 열어 주세요. (최대 10분)';});
       child.stderr.on('data',()=>{captureStatus='수집 실패 · 게임 실행, Npcap 및 PC 설정을 확인해 주세요.';});
-      child.on('error',()=>{captureStatus='수집 프로그램 실행 실패';capture=null;});
-      child.on('exit',code=>{capture=null;captureStatus=code===0?'수집 완료 · 다시 수집하려면 수집 시작을 누르세요.':'수집 실패 · 게임 실행, Npcap 및 PC 설정을 확인해 주세요.';});
+      child.on('error',()=>{if(capture!==child)return;captureStatus='수집 프로그램 실행 실패';capture=null;});
+      child.on('exit',code=>{if(capture!==child)return;capture=null;captureStatus=code===0?'수집 완료 · 다시 수집하려면 수집 시작을 누르세요.':'수집 실패 · 게임 실행, Npcap 및 PC 설정을 확인해 주세요.';});
       return send(200,'application/json',JSON.stringify({message:captureStatus}));
     }catch{return send(400,'application/json',JSON.stringify({message:'이 PC의 게임 수집 설정이 필요합니다.'}));}
   }
@@ -92,13 +99,13 @@ const server=http.createServer((req,res)=>{
       const data=JSON.parse(fs.readFileSync(path.join(stateDir,'status.json'),'utf8'));
       data.updateStatus=updateInfo();data.captureStatus=captureStatus;data.captureActive=Boolean(capture);data.settingUp=settingUp;
       data.periods=readPeriods();
-      data.supportsPeriods=true;data.collectorVersion='2026.10.20.4';data.periodSyncStatus=periodSyncStatus;
+      data.supportsPeriods=true;data.collectorVersion='2026.10.20.5';data.periodSyncStatus=periodSyncStatus;
       data.needsSetup=!fs.existsSync(path.join(stateDir,'config.json'));
       const field=(data.records||[]).find(r=>r.kind==='defense_snapshot')?.payload;
       if(field){const castles=['외성1','외성2','외성3','외성4','외성5','내성1','내성2','내성3','본성'];const missing=castles.filter(c=>!field.defenses.some(d=>d.castle===c));data.captureStatus+=` · 상대 방어팀 ${field.defenses.length}/${field.total}개${missing.length?' · 미수집: '+missing.join(', '):''}`;}
       for(const file of ['decode-error.txt','match-warning.txt'])try{const error=fs.readFileSync(path.join(stateDir,file),'utf8');if(error)data.captureStatus+=' · '+error;}catch{}
       return send(200,'application/json; charset=utf-8',JSON.stringify(data));
-    }catch{return send(200,'application/json; charset=utf-8',JSON.stringify({attack:0,defense:0,held:0,supportsPeriods:true,collectorVersion:'2026.10.20.4',periodSyncStatus,periods:readPeriods(),needsSetup:!fs.existsSync(path.join(stateDir,'config.json')),updateStatus:updateInfo(),captureStatus,captureActive:Boolean(capture),settingUp,lastReceivedAt:null,reason:'게임을 실행하고 사이트에 연결하면 자동으로 설정합니다.',updatedAt:null,groups:[],records:[]}));}
+    }catch{return send(200,'application/json; charset=utf-8',JSON.stringify({attack:0,defense:0,held:0,supportsPeriods:true,collectorVersion:'2026.10.20.5',periodSyncStatus,periods:readPeriods(),needsSetup:!fs.existsSync(path.join(stateDir,'config.json')),updateStatus:updateInfo(),captureStatus,captureActive:Boolean(capture),settingUp,lastReceivedAt:null,reason:'게임을 실행하고 사이트에 연결하면 자동으로 설정합니다.',updatedAt:null,groups:[],records:[]}));}
   }
   const assets={'/connect':['connect.html','text/html; charset=utf-8'],'/connect.js':['connect.js','text/javascript; charset=utf-8'],'/connect.css':['connect.css','text/css; charset=utf-8']};
   const asset=assets[url.pathname];
