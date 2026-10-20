@@ -22,7 +22,7 @@ export default function PcCollectorConnection({ currentUser }) {
       try{
         for(const row of rows){
           if(!active||connection.current!==c||c.popup.closed)break;
-          const revision=JSON.stringify([row?.payload?.attacker?.skills,row?.payload?.defender?.skills,row?.payload?.firstSkillSide,row?.payload?.heroSpeeds,row?.payload?.heroHealth]);
+          const revision=JSON.stringify([row?.payload?.attacker?.skills,row?.payload?.defender?.skills,row?.payload?.firstSkillSide,row?.payload?.heroSpeeds,row?.payload?.heroHealth,row?.payload?.heroStats]);
           if(c.done.get(row?.sourceKey)===revision)continue;
           const args=collectorRecord(row,guilds[0]);
           const {data,error}=await supabase.rpc('submit_guild_war_observation',args);

@@ -1,3 +1,4 @@
+import {canViewHeroStats} from '../lib/heroBattleStats.js';
 import DetailDialog from "./DetailDialog.jsx";
 import React,{useEffect,useState} from 'react';
 import {historyCriteria,historyPage} from '../lib/historySearchApi.js';
@@ -23,7 +24,7 @@ function HistoryRecords({criteria,currentUser,heroes}){
       return <div key={row.id} className="history-battle-record min-w-0 space-y-3 rounded-xl border border-zinc-200 p-3">
         <p className="break-words text-sm font-semibold leading-6">{new Date(row.war_date+'T12:00:00+09:00').toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',timeZone:'Asia/Seoul'})} 길드전{!anonymous&&<> · {attackGuild||'길드 미확인'} · {p.attacker?.nickname||'닉네임 미확인'}</>}</p>
         <p className="text-xs text-zinc-500">전투 시각: {new Date(row.occurred_at).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'})} · 공격자 {result==='win'?'승리':result==='loss'?'패배':'결과 미확인'}</p>
-        <div className="history-battle-sides grid min-w-0 grid-cols-1 gap-3">{['attacker','defender'].map(side=><BattleSide key={side} hideIdentity={anonymous} hideSpeed={anonymous} title={(side==='attacker'?'공격':'방어')+(anonymous?'':` · ${(side==='attacker'?attackGuild:defendGuild)||'길드 미확인'}`)} showHeroSpeeds={!anonymous&&currentUser.isOwner===true} heroHealth={speeds[row.id]?.health?.[side]} heroSpeeds={speeds[row.id]?.[side]} side={p[side]} speed={p.firstSkillSide?p.firstSkillSide===side:undefined} result={result}/>)}</div>
+        <div className="history-battle-sides grid min-w-0 grid-cols-1 gap-3">{['attacker','defender'].map(side=><BattleSide key={side} hideIdentity={anonymous} hideSpeed={anonymous} title={(side==='attacker'?'공격':'방어')+(anonymous?'':` · ${(side==='attacker'?attackGuild:defendGuild)||'길드 미확인'}`)} showHeroSpeeds={!anonymous&&canViewHeroStats(currentUser)} heroStats={speeds[row.id]?.stats?.[side]} heroHealth={speeds[row.id]?.health?.[side]} heroSpeeds={speeds[row.id]?.[side]} side={p[side]} speed={p.firstSkillSide?p.firstSkillSide===side:undefined} result={result}/>)}</div>
       </div>;
     })}
     {error&&<p role="alert" className="text-red-600">{error}</p>}

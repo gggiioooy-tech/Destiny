@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {canViewHeroStats,formatHeroStat,resolvedHeroStats,statKeys} from '../src/lib/heroBattleStats.js';
+test('only tier four has hero stat access',()=>{for(const user of [{role:'guest',isOwner:false},{role:'member',isOwner:false},{role:'admin',isOwner:false},{role:'member',isOwner:true},null])assert.equal(canViewHeroStats(user),false);assert.equal(canViewHeroStats({role:'admin',isOwner:true}),true);});
+test('missing stats are zero and rates retain decimals',()=>{assert.equal(formatHeroStat(undefined),'0');assert.equal(formatHeroStat(undefined,true),'0%');assert.equal(formatHeroStat(432,true),'43.2%');assert.equal(formatHeroStat(1500,true),'150%');assert.equal(formatHeroStat(3116),'3,116');assert.equal(formatHeroStat(-340,true),'-34%');assert.equal(statKeys.size,16);});
+test('legacy speed and health remain usable until full stats arrive',()=>{assert.deepEqual(resolvedHeroStats(1,[],[{heroId:1,value:29}],[{heroId:1,value:5589}]),{attackSpeed:29,hp:5589});assert.equal(resolvedHeroStats(1,[{heroId:1,stats:{hp:6000}}],[],[{heroId:1,value:5589}]).hp,6000);});

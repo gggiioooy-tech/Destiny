@@ -1,3 +1,4 @@
+import {statKeys} from './heroBattleStats.js';
 import { resolveGameSide } from './gameNames.js';
 const text=(v,n=100)=>typeof v==='string'&&v.length<=n;
 export function collectorRecord(row,guild){
@@ -24,6 +25,17 @@ export function collectorRecord(row,guild){
       const values=p[field][name];
       if(!Array.isArray(values)||values.length>3||new Set(values.map(v=>v.heroId)).size!==values.length||!values.every(v=>p[name].heroIds.includes(v.heroId)&&Number.isSafeInteger(v.value)&&v.value>=(field==='heroHealth'?1:0)&&v.value<=max))throw new Error('영웅 전투 능력치 정보 오류');
       privateFields[field][name]=values.map(({heroId,value})=>({heroId,value}));
+    }
+  }
+  if(p.heroStats){
+    privateFields.heroStats={};
+    for(const name of ['attacker','defender']){
+      const values=p.heroStats[name];
+      if(!Array.isArray(values)||values.length>3||new Set(values.map(v=>v.heroId)).size!==values.length)throw new Error('영웅 능력치 정보 오류');
+      privateFields.heroStats[name]=values.map(v=>{
+        if(!p[name].heroIds.includes(v.heroId)||!v.stats||typeof v.stats!=='object'||Array.isArray(v.stats)||Object.keys(v.stats).length>16||!Object.entries(v.stats).every(([key,n])=>statKeys.has(key)&&Number.isSafeInteger(n)&&Math.abs(n)<=2147483647))throw new Error('영웅 능력치 정보 오류');
+        return {heroId:v.heroId,stats:{...v.stats}};
+      });
     }
   }
   return {p_kind:'battle',p_source_key:row.sourceKey,p_occurred_at:row.occurredAt,p_payload:{warDate:p.warDate,direction:p.direction,sourceGuild:p.sourceGuild,opponentGuild:p.opponentGuild,periodSource:p.periodSource==='game-match'?'game-match':'owner-confirmed',castle:p.castle,firstSkillSide:['attacker','defender'].includes(p.firstSkillSide)?p.firstSkillSide:null,attackerWon:p.attackerWon,attacker:side(p.attacker),defender:side(p.defender),...privateFields}};

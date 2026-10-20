@@ -1,3 +1,5 @@
+import HeroBattleStats from './HeroBattleStats.jsx';
+import {canViewHeroStats} from '../lib/heroBattleStats.js';
 import DetailDialog from "./DetailDialog.jsx";
 import HistoryCounterSearch from './HistoryCounterSearch.jsx';
 import {loadBattleHeroSpeeds} from '../lib/battleHeroSpeeds.js';
@@ -56,7 +58,7 @@ function CounterDetails({ deck }) {
   </>;
 }
 
-export function BattleSide({ title, side, result, speed, heroSpeeds, heroHealth, showHeroSpeeds = false, hideIdentity = false, hideSpeed = false }) {
+export function BattleSide({ title, side, result, speed, heroSpeeds, heroHealth, heroStats, showHeroSpeeds = false, hideIdentity = false, hideSpeed = false }) {
   side = resolveGameSide(side);
   const heroes = heroNames(side?.heroes);
   const skills = Array.isArray(side?.skills) ? side.skills : [];
@@ -75,14 +77,7 @@ export function BattleSide({ title, side, result, speed, heroSpeeds, heroHealth,
       <p className="mb-2 text-xs font-semibold text-zinc-500">시작 예약 스킬</p>
       {skills.length ? <ol className="space-y-1.5 text-sm">{skills.map((skill,index)=><li key={index} className="flex items-start gap-2"><span className="shrink-0 text-xs leading-6 text-zinc-500">{index+1}.</span><span className="min-w-0 leading-6">{plain(skill?.hero)||'영웅 미확인'} <b className="whitespace-nowrap">{skillLabel(skill)}</b></span></li>)}</ol> : <p className="text-sm text-zinc-500">미수집</p>}
     </div>
-    {showHeroSpeeds && !hideSpeed && <aside className="rounded-lg border border-current/10 p-2.5 text-xs" aria-label="영웅별 속공">
-      <p className="mb-2 font-semibold" title="전투 시작 시 리플레이 수치입니다. 게임 능력치 화면과의 일치는 미검증입니다.">영웅별 속공 <span className="font-normal text-zinc-500">· 전투 기록값</span></p>
-      <dl className="space-y-1.5">{(side?.heroIds||[]).map((id,index)=><div key={`${id}-${index}`} className="flex items-start justify-between gap-3"><dt className="min-w-0">{side.heroes?.[index]||`영웅 #${id}`}</dt><dd className="shrink-0 whitespace-nowrap font-semibold tabular-nums">{heroSpeeds?.find(value=>value.heroId===id)?.value??'미수집'}</dd></div>)}</dl>
-    </aside>}
-    {showHeroSpeeds && !hideSpeed && <aside className="rounded-lg border border-current/10 p-2.5 text-xs" aria-label="영웅별 생명력">
-      <p className="mb-2 font-semibold" title="전투 시작 시 리플레이의 MaxHP 값입니다. 게임 능력치 화면과의 일치는 미검증입니다.">영웅별 생명력 <span className="font-normal text-zinc-500">· 전투 시작 최대값</span></p>
-      <dl className="space-y-1.5">{(side?.heroIds||[]).map((id,index)=><div key={`${id}-${index}`} className="flex items-start justify-between gap-3"><dt className="min-w-0">{side.heroes?.[index]||`영웅 #${id}`}</dt><dd className="shrink-0 whitespace-nowrap font-semibold tabular-nums">{heroHealth?.find(value=>value.heroId===id)?.value?.toLocaleString('ko-KR')??'미수집'}</dd></div>)}</dl>
-    </aside>}
+    {showHeroSpeeds && !hideSpeed && <HeroBattleStats side={side} stats={heroStats} speeds={heroSpeeds} health={heroHealth} />}
   </section>;
 }
 
@@ -203,7 +198,7 @@ export default function GuildWarPage({ guild, counterTeams, currentUser }) {
         {error&&<p role="alert" className="text-red-600">{error}</p>}
         {(loading&&!battles.length)||(!!period&&loadedKey!==requestKey)?<p role="status">기록 불러오는 중…</p>:section==='teams'?<DefenseGroups currentUser={currentUser} snapshot={snapshot} counterTeams={counterTeams} castle={castle} search={query}/>:<div className="space-y-3">
           {!battles.length&&<div className={box}>{castle||query?'조건에 맞는 기록이 없습니다.':`아직 등록된 ${title}이 없습니다.`}</div>}
-          {battles.map(row=><article key={row.id} className={box}><div className="mb-3 flex flex-wrap justify-between gap-2 text-sm"><span>{plain(row.payload.opponentGuild) && <>{plain(row.payload.opponentGuild)} · </>}{plain(row.payload.castle)||'위치 미확인'} · {date(row.occurred_at)}</span><span style={{color:typeof row.payload.attackerWon!=='boolean'?'#71717a':row.payload.attackerWon===(section==='attack')?'#15803d':'#dc2626',fontWeight:700}}>{typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'우리 길드 승리':'우리 길드 패배'):'결과 미확인'}</span></div><div className="grid gap-3 md:grid-cols-2"><BattleSide result={typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'win':'loss'):null} title={section==='attack'?'공격자 · 우리 길드':'공격자 · 상대 길드'} showHeroSpeeds={currentUser?.isOwner===true} heroHealth={heroSpeeds[row.id]?.health?.attacker} heroSpeeds={heroSpeeds[row.id]?.attacker} side={row.payload.attacker} speed={row.payload.firstSkillSide?row.payload.firstSkillSide==='attacker':undefined}/><BattleSide result={typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'win':'loss'):null} title={section==='defense'?'방어자 · 우리 길드':'방어자 · 상대 길드'} showHeroSpeeds={currentUser?.isOwner===true} heroHealth={heroSpeeds[row.id]?.health?.defender} heroSpeeds={heroSpeeds[row.id]?.defender} side={row.payload.defender} speed={row.payload.firstSkillSide?row.payload.firstSkillSide==='defender':undefined}/></div></article>)}
+          {battles.map(row=><article key={row.id} className={box}><div className="mb-3 flex flex-wrap justify-between gap-2 text-sm"><span>{plain(row.payload.opponentGuild) && <>{plain(row.payload.opponentGuild)} · </>}{plain(row.payload.castle)||'위치 미확인'} · {date(row.occurred_at)}</span><span style={{color:typeof row.payload.attackerWon!=='boolean'?'#71717a':row.payload.attackerWon===(section==='attack')?'#15803d':'#dc2626',fontWeight:700}}>{typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'우리 길드 승리':'우리 길드 패배'):'결과 미확인'}</span></div><div className="grid gap-3 md:grid-cols-2"><BattleSide result={typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'win':'loss'):null} title={section==='attack'?'공격자 · 우리 길드':'공격자 · 상대 길드'} showHeroSpeeds={canViewHeroStats(currentUser)} heroStats={heroSpeeds[row.id]?.stats?.attacker} heroHealth={heroSpeeds[row.id]?.health?.attacker} heroSpeeds={heroSpeeds[row.id]?.attacker} side={row.payload.attacker} speed={row.payload.firstSkillSide?row.payload.firstSkillSide==='attacker':undefined}/><BattleSide result={typeof row.payload.attackerWon==='boolean'?(row.payload.attackerWon===(section==='attack')?'win':'loss'):null} title={section==='defense'?'방어자 · 우리 길드':'방어자 · 상대 길드'} showHeroSpeeds={canViewHeroStats(currentUser)} heroStats={heroSpeeds[row.id]?.stats?.defender} heroHealth={heroSpeeds[row.id]?.health?.defender} heroSpeeds={heroSpeeds[row.id]?.defender} side={row.payload.defender} speed={row.payload.firstSkillSide?row.payload.firstSkillSide==='defender':undefined}/></div></article>)}
           {loading&&battles.length>0&&<p role="status">추가 기록 불러오는 중…</p>}
           {hasMore&&!loading&&<button type="button" className={button} onClick={()=>setBattleOffset(battles.length)}>기록 30건 더 보기</button>}
         </div>}

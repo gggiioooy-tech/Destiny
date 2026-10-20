@@ -58,10 +58,23 @@ def extract(pool,data,row,direction,record):
                 result['heroHealth'][side].append({'heroId':hero.TemplateId,'value':hero.MaxHP})
             if side and hero.TemplateId in record['payload'][side]['heroIds'] and hero.HasField('AttackSpeed') and 0<=hero.AttackSpeed<=1000000:
                 result['heroSpeeds'][side].append({'heroId':hero.TemplateId,'value':hero.AttackSpeed})
+    result['heroStats']={side:[] for side in ('attacker','defender')}
+    stat_type=message_factory.GetMessageClass(pool.FindMessageTypeByName('re.ACBattleRoomCharacterStatNoti'))
+    stat_ids={1:'physicalAttack',3:'magicalAttack',5:'defence',7:'hp',9:'attackSpeed',10:'critical',11:'criticalDamage',12:'weakPoint',13:'accuracyRate',14:'resistRate',17:'blockRate',18:'takeDamageRate',21:'damageIncrease',22:'fracture',23:'resilience',24:'rejuvenation'}
+    for packet in pack.Packet:
+        if packet.MessageID!=stat_type().MessageID:continue
+        detail=parse('ACBattleRoomCharacterStatNoti',packet.Data)
+        for hero in detail.Stats:
+            team,hero_id=objects.get(hero.ObjectID,(None,None))
+            side={1:'attacker',2:'defender'}.get(team)
+            if not side or hero_id not in record['payload'][side]['heroIds']:continue
+            values={stat_ids[v.StatTID]:v.Value for v in hero.Stat.Stats if v.StatTID in stat_ids and abs(v.Value)<=2147483647}
+            if values:result['heroStats'][side].append({'heroId':hero_id,'stats':values})
+        break
     return result
 
 def enrich(pool,jobs,state_dir):
-    cache=Path(state_dir)/'replay-skills-v4';cache.mkdir(exist_ok=True)
+    cache=Path(state_dir)/'replay-skills-v5';cache.mkdir(exist_ok=True)
     def run(job):
         direction,row,record=job
         try:
@@ -80,15 +93,18 @@ def enrich(pool,jobs,state_dir):
             if result.get('firstSkillSide') in ('attacker','defender'):record['payload']['firstSkillSide']=result['firstSkillSide']
             if result.get('heroSpeeds'):record['payload']['heroSpeeds']=result['heroSpeeds']
             if result.get('heroHealth'):record['payload']['heroHealth']=result['heroHealth']
+            if result.get('heroStats'):record['payload']['heroStats']=result['heroStats']
         except Exception:
             # Preserve previously decoded reservations if a replay has expired.
             try:
                 name=record['sourceKey'].split(':')[1]+'.json'
-                old_file=Path(state_dir)/'replay-skills-v3'/name
+                old_file=Path(state_dir)/'replay-skills-v4'/name
+                if not old_file.exists():old_file=Path(state_dir)/'replay-skills-v3'/name
                 if not old_file.exists():old_file=Path(state_dir)/'replay-skills-v2'/name
                 if not old_file.exists():old_file=Path(state_dir)/'replay-skills-v1'/name
                 old=json.loads(old_file.read_text(encoding='utf8'))
                 for side in ('attacker','defender'):record['payload'][side]['skills']=old[side]
+                if old.get('heroHealth'):record['payload']['heroHealth']=old['heroHealth']
                 if old.get('heroSpeeds'):record['payload']['heroSpeeds']=old['heroSpeeds']
                 if old.get('firstSkillSide') in ('attacker','defender'):record['payload']['firstSkillSide']=old['firstSkillSide']
             except (OSError,ValueError,KeyError):pass
