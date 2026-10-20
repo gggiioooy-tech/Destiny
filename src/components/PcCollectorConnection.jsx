@@ -30,9 +30,9 @@ export default function PcCollectorConnection({ currentUser }) {
           if(!data||!['recorded','duplicate','held'].includes(data.status))throw new Error('서버 저장 응답을 확인하지 못했습니다.');
           if(data.status==='held')throw new Error('길드 탭이 등록되지 않아 서버에서 보류됐습니다.');
           c.done.set(row.sourceKey,revision);
-          if(active&&connection.current===c){setSaved(c.done.size);setLastSavedAt(new Date().toISOString());if(data.status==='duplicate')setDuplicates(n=>n+1);setError('');}
+          if(active&&connection.current===c){setSaved(c.done.size);setLastSavedAt(new Date().toISOString());c.saveError='';if(data.status==='duplicate')setDuplicates(n=>n+1);setError('');}
         }
-      }catch(e){if(active&&connection.current===c){setError(e.message||'저장 실패. 연결 상태를 확인한 뒤 다시 시도합니다.');c.retryAt=Date.now()+15000;}}
+      }catch(e){if(active&&connection.current===c){c.saveError=e.message||'저장 실패. 연결 상태를 확인한 뒤 다시 시도합니다.';setError(c.saveError);c.retryAt=Date.now()+15000;}}
       finally{c.uploading=false;if(active&&connection.current===c)setUploading(false);}
     }
     function receive(event){
@@ -52,7 +52,7 @@ export default function PcCollectorConnection({ currentUser }) {
       if(!d.needsSetup&&!d.supportsPeriods)setError('지난 길드전 자동 분류를 위해 최신 연결 프로그램을 다시 설치해 주세요.');
       if(!d.needsSetup&&!c.started){c.started=true;c.popup.postMessage({type:'15month-collector-start',nonce:c.nonce},LOCAL_ORIGIN);}
       setState({captureActive:d.captureActive===true,needsSetup:d.needsSetup===true,lastReceivedAt:typeof d.lastReceivedAt==='string'?d.lastReceivedAt:null,attack:d.attack,defense:d.defense,held:d.held,reason:[typeof d.periodSyncStatus==='string'?d.periodSyncStatus:'',typeof d.captureStatus==='string'?d.captureStatus:'',typeof d.reason==='string'?d.reason.slice(0,200):'',...Object.entries(d.heldReasons||{}).slice(0,8).map(([reason,count])=>`${reason}: ${count}건`)].filter(Boolean).join(' · '),updatedAt:typeof d.updatedAt==='string'?d.updatedAt:null});
-      c.popup.postMessage({type:'15month-collector-ack',nonce:c.nonce,saved:c.done.size},LOCAL_ORIGIN);
+      c.popup.postMessage({type:'15month-collector-ack',nonce:c.nonce,saved:c.done.size,error:c.saveError||''},LOCAL_ORIGIN);
       if(Array.isArray(d.records)&&d.records.length<=1000)void upload(c,d.records);
     }
     window.addEventListener('message',receive);

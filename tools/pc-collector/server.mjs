@@ -14,6 +14,7 @@ const cookie=randomBytes(32).toString('hex');
 fs.mkdirSync(stateDir,{recursive:true});
 function updateInfo(){try{return fs.readFileSync(path.join(here,'update-status.txt'),'utf8').slice(0,300);}catch{return '수집기를 실행할 때 새 버전을 확인합니다.';}}
 let capture=null,captureStatus='수집 시작 버튼을 눌러 주세요.';
+let captureIssue='';
 let settingUp=false,periodSyncStatus='매칭 정보 연결 대기';
 function readPeriods(){try{return JSON.parse(fs.readFileSync(path.join(stateDir,'match-periods.json'),'utf8'));}catch{return [];}}
 
@@ -77,7 +78,7 @@ const server=http.createServer(async(req,res)=>{
   }
   if(url.pathname==='/capture/stop' && req.method==='POST'){
     if(!localAuthorized||req.headers['x-collector-action']!=='stop')return send(403,'text/plain','Forbidden');
-    try{await stopCapture();captureStatus='수집을 종료했어요. 저장된 기록은 그대로 유지됩니다.';return send(200,'application/json; charset=utf-8',JSON.stringify({message:captureStatus}));}
+    try{await stopCapture();captureIssue='';captureStatus='수집을 종료했어요. 저장된 기록은 그대로 유지됩니다.';return send(200,'application/json; charset=utf-8',JSON.stringify({message:captureStatus}));}
     catch{return send(409,'application/json; charset=utf-8',JSON.stringify({message:'수집 종료에 실패했어요. 다시 눌러 주세요.'}));}
   }
   if(url.pathname==='/capture' && req.method==='POST'){
@@ -89,10 +90,10 @@ const server=http.createServer(async(req,res)=>{
     try{
       const config=JSON.parse(fs.readFileSync(path.join(stateDir,'config.json'),'utf8').replace(/^\uFEFF/,''));
       if(!config.python || !fs.existsSync(config.python))throw new Error();
-      captureStatus='게임 연결 확인 중…';
+      captureIssue='';captureStatus='게임 연결 확인 중…';
       const child=spawn(config.python,['-u',path.join(here,'capture.py'),stateDir],{windowsHide:true,stdio:['ignore','pipe','pipe']});capture=child;
       child.stdout.on('data',b=>{if(b.toString().includes('CAPTURE_RECONNECT'))captureStatus='게임 연결 대기 · 재접속하면 자동으로 다시 수집합니다.';if(b.toString().includes('CAPTURE_READY'))captureStatus='수집 중 · 게임에서 전장과 기록 목록을 열어 주세요. (최대 10분)';});
-      child.stderr.on('data',()=>{captureStatus='수집 실패 · 게임 실행, Npcap 및 PC 설정을 확인해 주세요.';});
+      child.stderr.on('data',b=>{if(capture!==child)return;const detail=b.toString();captureIssue=/wpcap|Npcap|DLL|CAPTURE_OPEN_FAILED/i.test(detail)?'Npcap 장치에 접근하지 못했어요. Npcap 설치 상태와 관리자 권한을 확인해 주세요.':/PermissionError|Access is denied|permission denied/i.test(detail)?'수집 파일 또는 장치 접근 권한이 없어요. 프로그램 실행 권한을 확인해 주세요.':/ModuleNotFoundError|No module named/i.test(detail)?'게임 수집에 필요한 라이브러리가 없어요. 최신 설치 파일로 다시 설치해 주세요.':'게임 데이터 수집 중 오류가 발생했어요. 게임 실행 상태를 확인하고 수집 시작을 다시 눌러 주세요.';});
       child.on('error',()=>{if(capture!==child)return;captureStatus='수집 프로그램 실행 실패';capture=null;});
       child.on('exit',code=>{if(capture!==child)return;capture=null;captureStatus=code===0?'수집 완료 · 다시 수집하려면 수집 시작을 누르세요.':'수집 실패 · 게임 실행, Npcap 및 PC 설정을 확인해 주세요.';});
       return send(200,'application/json',JSON.stringify({message:captureStatus}));
@@ -103,15 +104,15 @@ const server=http.createServer(async(req,res)=>{
     if(req.headers.cookie!==`collector=${cookie}` || (req.headers.origin && req.headers.origin!==`http://${host}`) || (req.headers['sec-fetch-site'] && req.headers['sec-fetch-site']!=='same-origin'))return send(403,'text/plain','Forbidden');
     try {
       const data=JSON.parse(fs.readFileSync(path.join(stateDir,'status.json'),'utf8'));
-      data.updateStatus=updateInfo();data.captureStatus=captureStatus;data.captureActive=Boolean(capture);data.settingUp=settingUp;
+      data.captureIssue=captureIssue;data.updateStatus=updateInfo();data.captureStatus=captureStatus;data.captureActive=Boolean(capture);data.settingUp=settingUp;
       data.periods=readPeriods();
-      data.supportsPeriods=true;data.collectorVersion='2026.10.20.8';data.periodSyncStatus=periodSyncStatus;
+      data.supportsPeriods=true;data.collectorVersion='2026.10.20.9';data.periodSyncStatus=periodSyncStatus;
       data.needsSetup=!fs.existsSync(path.join(stateDir,'config.json'));
       const field=(data.records||[]).find(r=>r.kind==='defense_snapshot')?.payload;
       if(field){const castles=['외성1','외성2','외성3','외성4','외성5','내성1','내성2','내성3','본성'];const missing=castles.filter(c=>!field.defenses.some(d=>d.castle===c));data.captureStatus+=` · 상대 방어팀 ${field.defenses.length}/${field.total}개${missing.length?' · 미수집: '+missing.join(', '):''}`;}
       for(const file of ['decode-error.txt','match-warning.txt'])try{const error=fs.readFileSync(path.join(stateDir,file),'utf8');if(error)data.captureStatus+=' · '+error;}catch{}
       return send(200,'application/json; charset=utf-8',JSON.stringify(data));
-    }catch{return send(200,'application/json; charset=utf-8',JSON.stringify({attack:0,defense:0,held:0,supportsPeriods:true,collectorVersion:'2026.10.20.8',periodSyncStatus,periods:readPeriods(),needsSetup:!fs.existsSync(path.join(stateDir,'config.json')),updateStatus:updateInfo(),captureStatus,captureActive:Boolean(capture),settingUp,lastReceivedAt:null,reason:'게임을 실행하고 사이트에 연결하면 자동으로 설정합니다.',updatedAt:null,groups:[],records:[]}));}
+    }catch{return send(200,'application/json; charset=utf-8',JSON.stringify({attack:0,defense:0,held:0,supportsPeriods:true,collectorVersion:'2026.10.20.9',periodSyncStatus,periods:readPeriods(),needsSetup:!fs.existsSync(path.join(stateDir,'config.json')),captureIssue,updateStatus:updateInfo(),captureStatus,captureActive:Boolean(capture),settingUp,lastReceivedAt:null,reason:'게임을 실행하고 사이트에 연결하면 자동으로 설정합니다.',updatedAt:null,groups:[],records:[]}));}
   }
   const assets={'/connect':['connect.html','text/html; charset=utf-8'],'/connect.js':['connect.js','text/javascript; charset=utf-8'],'/connect.css':['connect.css','text/css; charset=utf-8']};
   const asset=assets[url.pathname];
