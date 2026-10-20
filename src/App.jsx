@@ -2579,6 +2579,7 @@ function DeletedCounterManagement({ reloadData }) {
 
 function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, reloadData }) {
   const [selectedGuild, setSelectedGuild] = useState(null);
+  const [openLevels, setOpenLevels] = useState({});
   const canEditMemo = currentUser.isOwner === true;
   const [weeklyCounts, setWeeklyCounts] = useState(null);
   const [statsError, setStatsError] = useState('');
@@ -2696,9 +2697,9 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
       <p className="mb-4 text-xs text-zinc-500">이번주 카운터 작성 횟수: 한국시간 월요일 00:00부터 새로 등록한 덱 수입니다. 기능 적용 이후부터 집계하며, 수정·재저장은 제외합니다.</p>
       {statsError && <p role="alert" className="mb-4 text-sm text-red-600">{statsError}</p>}
 
-      <section className="mb-5 rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="mb-5 rounded-2xl border border-zinc-200 bg-white p-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-zinc-950">그룹별 인원</h2>
+          <h2 className="text-sm font-semibold text-zinc-950">그룹별 인원</h2>
           <span className="text-xs font-semibold text-zinc-400">관리자 메모 기준</span>
         </div>
 
@@ -2743,36 +2744,47 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
         )}
       </section>
 
-      <section className="rounded-2xl border border-zinc-200 bg-white p-5">
+      <section className="rounded-2xl border border-zinc-200 bg-white p-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-zinc-950">가입 승인 대기</h2>
+          <h2 className="text-sm font-semibold text-zinc-950">가입 승인 대기</h2>
           <span className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-semibold text-zinc-700">{pending.length}건</span>
         </div>
         <MemberTable currentUser={currentUser} weeklyCounts={weeklyCounts} list={pending} pending updateUser={updateUser} deleteUser={deleteUser} />
       </section>
 
-      <section className="mt-5 rounded-2xl border border-zinc-200 bg-white p-5">
-        <h2 className="text-lg font-semibold text-zinc-950">전체 회원</h2>
-        <MemberTable currentUser={currentUser} weeklyCounts={weeklyCounts} list={members} updateUser={updateUser} deleteUser={deleteUser} />
-      </section>
+      <div className="mt-3 space-y-2">
+        {[1, 2, 3, 4].map(level => {
+          const levelMembers = members.filter(user => (user.isOwner ? 4 : { guest: 1, member: 2, admin: 3 }[user.role]) === level);
+          const open = Boolean(openLevels[level]);
+          return <section key={level} className="rounded-xl border border-zinc-200 bg-white p-3">
+            <button type="button" aria-expanded={open} aria-controls={`member-level-${level}`} onClick={() => setOpenLevels(prev => ({ ...prev, [level]: !prev[level] }))} className="flex w-full items-center justify-between gap-2 rounded-lg px-1 py-2 text-left text-sm font-semibold text-zinc-950">
+              <span>권한등급 {level}등급 <span className="ml-2 text-xs text-zinc-500">{levelMembers.length}명</span></span>
+              <span aria-hidden="true" className="text-zinc-500">{open ? '▴' : '▾'}</span>
+            </button>
+            <div id={`member-level-${level}`} hidden={!open}>
+              {open && <MemberTable currentUser={currentUser} weeklyCounts={weeklyCounts} list={levelMembers} updateUser={updateUser} deleteUser={deleteUser} />}
+            </div>
+          </section>;
+        })}
+      </div>
     </PageShell>
   );
 }
 
 function MemberTable({ list, pending, updateUser, deleteUser, currentUser, weeklyCounts }) {
   return (
-    <div className="member-table-region mt-4">
+    <div className="member-table-region member-table-compact mt-2">
       <table className="member-table w-full text-left text-sm">
         <thead>
           <tr className="border-b border-zinc-200 text-xs font-semibold uppercase text-zinc-400">
-            <th className="px-3 py-3">게임 닉네임</th>
-            <th className="px-3 py-3">아이디</th>
-            <th className="px-3 py-3">상태</th>
-            <th className="px-3 py-3">등급</th>
-            <th className="px-3 py-3">마지막 접속</th>
-            <th className="px-3 py-3">이번주 카운터 작성 횟수</th>
-            <th className="px-3 py-3">관리자 메모</th>
-            <th className="px-3 py-3 text-right">관리</th>
+            <th className="px-2 py-2">게임 닉네임</th>
+            <th className="px-2 py-2">아이디</th>
+            <th className="px-2 py-2">상태</th>
+            <th className="px-2 py-2">등급</th>
+            <th className="px-2 py-2">마지막 접속</th>
+            <th className="px-2 py-2">이번주 카운터 작성 횟수</th>
+            <th className="px-2 py-2">관리자 메모</th>
+            <th className="px-2 py-2 text-right">관리</th>
           </tr>
         </thead>
         <tbody>
@@ -2805,13 +2817,13 @@ function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, week
 
   return (
     <tr className="border-b border-zinc-100 align-top">
-      <td data-label="게임 닉네임" className="px-3 py-4 font-semibold text-zinc-950">{u.gameNickname}</td>
-      <td data-label="아이디" className="px-3 py-4 text-zinc-600">{u.id}</td>
-      <td data-label="상태" className="px-3 py-4"><StatusBadge status={u.status} /></td>
-      <td data-label="등급" className="px-3 py-4"><RoleBadge role={u.role} isOwner={u.isOwner} /></td>
-      <td data-label="마지막 접속" className="px-3 py-4 text-xs text-zinc-500">{formatLastSeen(u.lastSeenAt)}</td>
-      <td data-label="이번주 카운터 작성 횟수" className="px-3 py-4 font-semibold text-zinc-950">{weeklyCount === null ? "—" : `${weeklyCount}회`}</td>
-      <td data-label="관리자 메모" className="px-3 py-4">
+      <td data-label="게임 닉네임" className="px-2 py-2 font-semibold text-zinc-950">{u.gameNickname}</td>
+      <td data-label="아이디" className="px-2 py-2 text-zinc-600">{u.id}</td>
+      <td data-label="상태" className="px-2 py-2"><StatusBadge status={u.status} /></td>
+      <td data-label="등급" className="px-2 py-2"><RoleBadge role={u.role} isOwner={u.isOwner} /></td>
+      <td data-label="마지막 접속" className="px-2 py-2 text-xs text-zinc-500">{formatLastSeen(u.lastSeenAt)}</td>
+      <td data-label="이번주 카운터 작성 횟수" className="px-2 py-2 font-semibold text-zinc-950">{weeklyCount === null ? "—" : `${weeklyCount}회`}</td>
+      <td data-label="관리자 메모" className="px-2 py-2">
         <div className="member-memo flex min-w-0 gap-2">
           <input
             readOnly={!canEditMemo}
@@ -2826,7 +2838,7 @@ function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, week
           {canEditMemo && <Button onClick={saveMemo} variant="secondary" className="shrink-0 px-3 py-2 text-xs">저장</Button>}
         </div>
       </td>
-      <td data-label="관리" className="px-3 py-4">
+      <td data-label="관리" className="px-2 py-2">
         <div className="flex flex-wrap justify-end gap-2">
           {pending ? (
             <>
