@@ -32,7 +32,7 @@ export function useMemberBattleStats() {
     try {
       const { data, error } = await supabase.rpc('reset_member_guild_battle_statistics');
       if (error) throw error;
-      if (mounted.current) { setStats({}); setResetAt(data?.resetAt || null); await refresh(); }
+      if (mounted.current) { setStats({}); setResetAt(data?.resetAt || null); window.dispatchEvent(new Event('member-battle-stats-reset')); await refresh(); }
       return true;
     } catch (error) {
       if (mounted.current) setError(error.message || '통계를 초기화하지 못했습니다.');

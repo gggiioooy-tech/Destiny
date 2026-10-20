@@ -1,3 +1,4 @@
+import AccountBattleSummary from "./components/AccountBattleSummary.jsx";
 import { useTabNavigation } from "./lib/useTabNavigation.js";
 import { pageTables, pageQuery } from "./lib/pageData.js";
 import { guildTabId, memoGuilds } from "./lib/guildWar.js";
@@ -125,8 +126,13 @@ function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, se
         </nav>
         <div className="border-t border-zinc-200 p-4">
           <div className="rounded-xl bg-zinc-50 p-3">
-            <div className="text-sm font-semibold text-zinc-950">{currentUser.gameNickname}</div>
-            <div className="mt-1 text-xs text-zinc-500">{roleLabel(currentUser.role, currentUser.isOwner)}</div>
+            <div className="grid grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] items-start gap-2">
+              <div className="min-w-0 break-words">
+                <div className="text-sm font-semibold text-zinc-950">{currentUser.gameNickname}</div>
+                <div className="mt-1 text-[10px] text-zinc-500">{roleLabel(currentUser.role, currentUser.isOwner)}</div>
+              </div>
+              <AccountBattleSummary key={currentUser.authUserId} currentUser={currentUser} />
+            </div>
             {currentUser.role === "admin" && <WeeklyCounterSummary currentUser={currentUser} />}
           </div>
           <Button onClick={logout} variant="secondary" className="mt-3 w-full"><LogOut size={16} /> 로그아웃</Button>

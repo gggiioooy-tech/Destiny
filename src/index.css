@@ -118,7 +118,7 @@ body {
   pointer-events: none;
   background-image: linear-gradient(90deg, rgb(225 247 244 / .35), rgb(231 243 249 / .16) 55%, rgb(213 236 237 / .06)), url('/themes/miku-illustration.png');
   background-size: cover, auto 100%;
-  background-position: center, right center;
+  background-position: center, center;
   background-repeat: no-repeat;
 }
 :is(.miku, .alya, .marciana, .elaina, .yuno, .emilia, .cinderella) .site-theme .site-page { background: transparent; }
