@@ -4,7 +4,7 @@ export function pageTables(page, user) {
   const admin = user.role === 'admin';
   if (page === 'members' || page === 'guildWarAdd' || page === 'board') return admin ? ['profiles'] : [];
   if (page === 'attack' || page === 'temporaryAttack') return user?.role === 'guest' ? [] : ['enemy_defense_teams', 'attack_teams'];
-  if (page?.startsWith('guildWar:')) return admin ? ['enemy_defense_teams'] : [];
+  if (page?.startsWith('guildWar:')) return user.role !== 'guest' ? ['enemy_defense_teams'] : [];
   if (page === 'total') return user.role === 'guest' ? [] : ['total_war_teams'];
   return [];
 }

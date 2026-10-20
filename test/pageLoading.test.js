@@ -11,6 +11,7 @@ test('tab queries do not fetch unrelated content or member profiles', () => {
   assert.deepEqual(pageTables('members', {role:'admin'}), ['profiles']);
   assert.deepEqual(pageTables('guildWar:서리', {role:'guest'}), []);
   assert.deepEqual(pageTables('guildWar:서리', {role:'admin'}), ['enemy_defense_teams']);
+  assert.deepEqual(pageTables('guildWar:서리', {role:'member'}), ['enemy_defense_teams']);
   assert.deepEqual(pageTables('total', {role:'member'}), ['total_war_teams']);
   assert.deepEqual(pageTables('attack', {role:'member'}), ['enemy_defense_teams','attack_teams']);
 });
