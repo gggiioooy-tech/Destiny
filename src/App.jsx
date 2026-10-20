@@ -3,7 +3,7 @@ import GuildWarPage, { AddGuildWarTab } from "./components/GuildWarPage.jsx";
 import { guildTabId, memoGuilds } from "./lib/guildWar.js";
 import AccountWatermark from "./components/AccountWatermark.jsx";
 import CounterTransferButton from "./components/CounterTransferButton.jsx";
-import { ThemeToggle, AnimeThemeMenu, TransparencyControl } from "./components/ThemeProvider.jsx";
+import { ThemeToggle, AnimeThemeMenu, TransparencyControl, useAnimeThemeAccess } from "./components/ThemeProvider.jsx";
 import GuildWarRecognition from "./components/GuildWarRecognition.jsx";
 import { CounterOrderFields, CounterOrderDisplay } from "./components/CounterOrderFields.jsx";
 import { parseCounterOrder, describeCounterOrder } from "./lib/counterOrders.js";
@@ -200,6 +200,7 @@ function mapProfile(row) {
     id: row.user_id,
     authUserId: row.auth_user_id,
     isOwner: row.is_owner,
+    animeThemeAllowed: row.anime_theme_allowed === true,
     mustChangePassword: row.must_change_password,
     gameNickname: row.game_nickname,
     role: row.role,
@@ -2686,6 +2687,7 @@ function MemberManagementPage({ users, setUsers, currentUser, setCurrentUser, re
     const dbPatch = {};
     if (patch.status) dbPatch.status = patch.status;
     if (patch.role) dbPatch.role = patch.role;
+    if (Object.prototype.hasOwnProperty.call(patch, "animeThemeAllowed")) dbPatch.anime_theme_allowed = patch.animeThemeAllowed === true;
     if (Object.prototype.hasOwnProperty.call(patch, "memo")) dbPatch.memo = patch.memo;
 
     if (isOwner && patch.status === "approved") {
@@ -2849,11 +2851,17 @@ function MemberTable({ list, pending, updateUser, deleteUser, currentUser, weekl
 function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, weeklyCount }) {
   const canEditMemo = currentUser.isOwner === true;
   const protectedAdmin = (u.isOwner && !isSuperAdminId(currentUser.id)) || isSuperAdminId(u.id) || (!canEditMemo && u.role === "admin");
+  const [themeSaving, setThemeSaving] = useState(false);
   const [memo, setMemo] = useState(u.memo || "");
   useEffect(() => setMemo(u.memo || ""), [u.memo]);
 
   const saveMemo = () => {
     updateUser(u, { memo });
+  };
+  const toggleAnimeAccess = async () => {
+    setThemeSaving(true);
+    try { await updateUser(u, { animeThemeAllowed: !u.animeThemeAllowed }); }
+    finally { setThemeSaving(false); }
   };
 
   return (
@@ -2903,6 +2911,9 @@ function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, week
                 <option value="admin">권한등급 3등급</option>
                 {(u.isOwner || (canEditMemo && u.status === 'approved')) && <option value="super_admin">권한등급 4등급</option>}
               </select>
+              <Button variant="secondary" disabled={themeSaving} aria-pressed={u.animeThemeAllowed} onClick={toggleAnimeAccess}>
+                {themeSaving ? '저장 중…' : u.animeThemeAllowed ? '씹덕모드 해제' : '씹덕모드 허용'}
+              </Button>
               {!protectedAdmin && !u.isOwner && <DeleteButton onConfirm={() => deleteUser(u)}>삭제</DeleteButton>}
             </>
           )}
@@ -2932,6 +2943,7 @@ export default function App() {
   const [arenaTeams, setArenaTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
+  useAnimeThemeAccess(currentUser);
   const [active, setActive] = useState("attack");
   const [menuOpen, setMenuOpen] = useState(false);
 

@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useEffect, useState, useId } from 'react';
+import React, { createContext, useContext, useEffect, useState, useId, useLayoutEffect } from 'react';
 import { Moon, Sun, Sparkles, Snowflake, Waves, WandSparkles } from 'lucide-react';
 const ThemeContext = createContext(null);
 const STORAGE_KEY = '15month_theme';
 const TRANSPARENCY_KEY = '15month_transparency';
+const animeThemes = new Set(['miku', 'alya', 'marciana', 'elaina', 'yuno', 'emilia', 'cinderella']);
 function initialTransparency() {
   try {
     const saved = localStorage.getItem(TRANSPARENCY_KEY);
@@ -15,13 +16,19 @@ function initialTheme() {
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(initialTheme);
+  const [selectedTheme, setSelectedTheme] = useState(initialTheme);
+  const [animeAllowed, setAnimeAllowed] = useState(false);
+  const theme = animeThemes.has(selectedTheme) && !animeAllowed ? 'light' : selectedTheme;
+  const setTheme = next => setSelectedTheme(previous => {
+    const value = typeof next === 'function' ? next(previous) : next;
+    return animeThemes.has(value) && !animeAllowed ? 'light' : value;
+  });
   const [transparency, setTransparency] = useState(initialTransparency);
   useEffect(() => {
     document.documentElement.style.setProperty('--panel-alpha', String(1 - transparency / 100));
     try { localStorage.setItem(TRANSPARENCY_KEY, String(transparency)); } catch {}
   }, [transparency]);
-  useEffect(() => {
+  useLayoutEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
     document.documentElement.classList.toggle('miku', theme === 'miku');
     document.documentElement.classList.toggle('alya', theme === 'alya');
@@ -31,9 +38,17 @@ export function ThemeProvider({ children }) {
     document.documentElement.classList.toggle('emilia', theme === 'emilia');
     document.documentElement.classList.toggle('cinderella', theme === 'cinderella');
     document.documentElement.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
-    try { localStorage.setItem(STORAGE_KEY, theme); } catch {}
-  }, [theme]);
-  return <ThemeContext.Provider value={{ toggleCinderella: () => setTheme(value => value === 'cinderella' ? 'light' : 'cinderella'), theme, transparency, setTransparency, toggleEmilia: () => setTheme(value => value === 'emilia' ? 'light' : 'emilia'), toggleYuno: () => setTheme(value => value === 'yuno' ? 'light' : 'yuno'), toggleElaina: () => setTheme(value => value === 'elaina' ? 'light' : 'elaina'), toggleMarciana: () => setTheme(value => value === 'marciana' ? 'light' : 'marciana'), toggleAlya: () => setTheme(value => value === 'alya' ? 'light' : 'alya'), toggleMiku: () => setTheme(value => value === 'miku' ? 'light' : 'miku'), toggle: () => setTheme(value => value === 'dark' ? 'light' : 'dark') }}>{children}</ThemeContext.Provider>;
+    try { if (animeAllowed || !animeThemes.has(selectedTheme)) localStorage.setItem(STORAGE_KEY, selectedTheme); } catch {}
+  }, [theme, selectedTheme, animeAllowed]);
+  return <ThemeContext.Provider value={{ animeAllowed, setAnimeAllowed, toggleCinderella: () => setTheme(value => value === 'cinderella' ? 'light' : 'cinderella'), theme, transparency, setTransparency, toggleEmilia: () => setTheme(value => value === 'emilia' ? 'light' : 'emilia'), toggleYuno: () => setTheme(value => value === 'yuno' ? 'light' : 'yuno'), toggleElaina: () => setTheme(value => value === 'elaina' ? 'light' : 'elaina'), toggleMarciana: () => setTheme(value => value === 'marciana' ? 'light' : 'marciana'), toggleAlya: () => setTheme(value => value === 'alya' ? 'light' : 'alya'), toggleMiku: () => setTheme(value => value === 'miku' ? 'light' : 'miku'), toggle: () => setTheme(value => value === 'dark' ? 'light' : 'dark') }}>{children}</ThemeContext.Provider>;
+}
+export function useAnimeThemeAccess(user) {
+  const { setAnimeAllowed } = useContext(ThemeContext);
+  const allowed = user?.status === 'approved' && !user?.mustChangePassword && user?.animeThemeAllowed === true;
+  useLayoutEffect(() => {
+    setAnimeAllowed(allowed);
+    return () => setAnimeAllowed(false);
+  }, [user?.id, allowed, setAnimeAllowed]);
 }
 export function TransparencyControl({ className = '' }) {
   const { transparency, setTransparency } = useContext(ThemeContext);
@@ -88,8 +103,10 @@ export function ElainaThemeToggle({ compact = false, className = '' }) {
 }
 
 export function AnimeThemeMenu({ compact = false, className = '' }) {
+  const { animeAllowed } = useContext(ThemeContext);
   const [open, setOpen] = useState(false);
   const id = useId();
+  if (!animeAllowed) return null;
   return <div className={`relative ${className}`}>
     <button type="button" aria-expanded={open} aria-controls={id} onClick={() => setOpen(value => !value)}
       className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 ${compact ? '' : 'w-full'}`}>
