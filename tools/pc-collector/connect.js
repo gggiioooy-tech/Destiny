@@ -8,7 +8,7 @@ if(paired)document.getElementById('connection').textContent='15월사이트와 �
 const captureButton=document.createElement('button');captureButton.textContent='수집 시작';document.querySelector('main').prepend(captureButton);
 const captureInfo=document.createElement('p');captureButton.after(captureInfo);
 const syncInfo=document.createElement('p');captureInfo.after(syncInfo);
-let syncError='';let setupTask=Promise.resolve();
+let lastSavedAt=null;let lastSavedCount=0;let syncError='';let setupTask=Promise.resolve();
 async function startCapture(){
   captureButton.disabled=true;
   try{await setupTask;const r=await fetch('/capture',{method:'POST',headers:{'X-Collector-Action':'start'}});const d=await r.json();captureInfo.textContent=d.message;}
@@ -23,7 +23,7 @@ window.addEventListener('message',event=>{
   }
   if(event.data.type==='15month-collector-periods')setupTask.then(()=>fetch('/periods',{method:'POST',headers:{'Content-Type':'application/json','X-Collector-Action':'periods'},body:JSON.stringify(event.data.periods)})).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.message||`동기화 오류 ${r.status}`);syncError='';}).catch(e=>{syncError=e.message||'매칭 정보 연결 실패';syncInfo.textContent=syncError;});
   if(event.data.type==='15month-collector-start')void startCapture();
-  if(event.data.type==='15month-collector-ack')document.getElementById('connection').textContent='15월사이트 연결됨 · 저장 확인 '+(event.data.saved||0)+'건';
+  if(event.data.type==='15month-collector-ack'){const count=event.data.saved||0;if(count>lastSavedCount)lastSavedAt=new Date().toLocaleString('ko-KR');lastSavedCount=count;document.getElementById('connection').textContent='15월사이트 연결됨 · 저장 확인 '+count+'건 · 마지막 저장 확인: '+(lastSavedAt||'아직 없음');}
 });
 async function update(){
   try{
@@ -32,7 +32,7 @@ async function update(){
     if(data.captureStatus)captureInfo.textContent=data.captureStatus;
     document.getElementById('counts').textContent=`공격 ${data.attack||0}건 · 방어 ${data.defense||0}건 · 확인 대기 ${data.held||0}건`;
     document.getElementById('reason').textContent=[data.reason,...Object.entries(data.heldReasons||{}).map(([r,n])=>`${r}: ${n}건`)].filter(Boolean).join(' · ');
-    document.getElementById('updated').textContent=data.updatedAt?`마지막 기록 갱신: ${new Date(data.updatedAt).toLocaleString('ko-KR')}`:data.held?'기록은 수신됐지만 매칭 정보 확인 전이라 저장 대기 중입니다.':'아직 수신된 기록이 없습니다.';
+    document.getElementById('updated').textContent=(data.lastReceivedAt?'마지막 게임 데이터 수신: '+new Date(data.lastReceivedAt).toLocaleString('ko-KR')+' · ':'')+(data.updatedAt?`마지막 기록 갱신: ${new Date(data.updatedAt).toLocaleString('ko-KR')}`:data.held?'기록은 수신됐지만 매칭 정보 확인 전이라 저장 대기 중입니다.':'아직 수신된 기록이 없습니다. 게임에서 전장 또는 기록 화면을 열어 주세요.');
     const list=document.getElementById('groups');list.replaceChildren();
     for(const group of (data.groups||[]).slice(0,30)){const li=document.createElement('li');li.textContent=`${group.guild||'미확인'} · ${group.direction==='attack'?'공격':'방어'} ${group.count}건`;list.append(li);}
     if(paired&&!window.opener.closed)window.opener.postMessage({type:'15month-collector-status',nonce,data},target);

@@ -39,6 +39,7 @@ async function update(){
   let old={};try{old=JSON.parse(fs.readFileSync(path.join(home,'status.json'),'utf8'));}catch{}
   const known=new Map((old.records||[]).map(r=>[r.sourceKey,JSON.stringify(r.payload)]));
   const changed=(data.records||[]).some(r=>known.get(r.sourceKey)!==JSON.stringify(r.payload));
+  data.lastReceivedAt=frames.length?new Date().toISOString():old.lastReceivedAt||null;
   data.updatedAt=changed?new Date().toISOString():old.updatedAt||null;
   if(!data.records?.length&&!data.held){lastSignature=signature;return;}
   fs.writeFileSync(path.join(home,'status.json.tmp'),JSON.stringify(data));fs.renameSync(path.join(home,'status.json.tmp'),path.join(home,'status.json'));
