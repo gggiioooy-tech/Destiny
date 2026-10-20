@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">15월</string>
+    <string name="title_activity_main">15월</string>
+    <string name="package_name">com.fifteenmonth.guild</string>
+    <string name="custom_url_scheme">com.fifteenmonth.guild</string>
+</resources>

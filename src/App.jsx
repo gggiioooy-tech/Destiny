@@ -13,6 +13,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspens
 import { supabase } from "./lib/supabase.js";
 import { SecureAuth, PasswordChange } from "./components/SecureAuth.jsx";
 import {
+  Download,
   XCircle,
   Shield,
   Swords,
@@ -113,7 +114,7 @@ function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, se
           </div>
           <button onClick={() => setIsOpen(false)} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100 lg:hidden"><X size={18} /></button>
         </div>
-        <nav className="flex-1 space-y-1 p-3">
+        <nav className="flex flex-1 flex-col gap-1 p-3">
           {availableNav.map((item) => {
             const Icon = item.icon;
             const selected = active === item.id;
@@ -123,6 +124,7 @@ function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, se
               </button>
             );
           })}
+          <a href="/downloads/15month.apk" download="15월.apk" className="mt-auto flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950"><Download size={17} className="shrink-0" />Android APK 설치</a>
         </nav>
         <div className="border-t border-zinc-200 p-4">
           <div className="rounded-xl bg-zinc-50 p-3">

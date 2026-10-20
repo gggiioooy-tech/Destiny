@@ -1,0 +1,9 @@
+{
+  "appId": "com.fifteenmonth.guild",
+  "appName": "15월",
+  "webDir": "dist",
+  "server": {
+    "url": "https://xn--15-7l8j.site",
+    "cleartext": false
+  }
+}
