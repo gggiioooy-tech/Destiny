@@ -1,4 +1,4 @@
-﻿﻿$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $installRoot = Join-Path $env:LOCALAPPDATA '15month-collector\app'
 New-Item -ItemType Directory -Path $installRoot -Force | Out-Null
 Get-CimInstance Win32_Process | Where-Object { $_.Name -in @('node.exe','python.exe') -and $_.ExecutablePath -and $_.ExecutablePath.StartsWith($installRoot+'\',[StringComparison]::OrdinalIgnoreCase) } | ForEach-Object { Stop-Process -Id $_.ProcessId -ErrorAction SilentlyContinue }

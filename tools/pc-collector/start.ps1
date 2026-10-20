@@ -1,5 +1,5 @@
 ﻿param([switch]$SkipUpdate)
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 $collectorRoot = $PSScriptRoot
 $stateRoot = Join-Path $env:LOCALAPPDATA '15month-collector'
 New-Item -ItemType Directory -Path $stateRoot -Force | Out-Null

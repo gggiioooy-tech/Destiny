@@ -5,6 +5,9 @@ root=Path(__file__).resolve().parent.parent
 source=root/'tools/pc-collector'
 downloads=root/'public/downloads'
 names=['start.ps1','desktop.ps1','update.ps1','release.json','server.mjs','watch.mjs','summarize.py','normalize.py','replay_skills.py','capture.py','capture_worker.py','battlefield.py','match_period.py','setup_game.py','prepare.ps1','gameCatalog.json','connect.html','connect.js','connect.css','uninstall.ps1']
+for script in source.glob('*.ps1'):
+ text=script.read_text(encoding='utf-8-sig')
+ assert '\ufeff' not in text, f'Duplicate or embedded BOM: {script.name}'
 archive=downloads/'collector-update.zip'
 with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_DEFLATED) as z:
  for name in names:z.write(source/name,name)
