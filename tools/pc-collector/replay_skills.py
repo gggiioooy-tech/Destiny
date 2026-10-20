@@ -49,16 +49,19 @@ def extract(pool,data,row,direction,record):
             event=parse('ACUseSkillNoti',packet.Data)
             actions.append([(action.SourceObjectId,action.SkillGroupId) for action in event.SkillResult])
     result['firstSkillSide']=first_active_side(actions,objects,record['payload'])
+    result['heroHealth']={side:[] for side in ('attacker','defender')}
     result['heroSpeeds']={side:[] for side in ('attacker','defender')}
     for mid in (20053,20007):
         for hero in events[mid].Datas:
             side={1:'attacker',2:'defender'}.get(hero.Team)
+            if side and hero.TemplateId in record['payload'][side]['heroIds'] and hero.HasField('MaxHP') and 1<=hero.MaxHP<=2147483647:
+                result['heroHealth'][side].append({'heroId':hero.TemplateId,'value':hero.MaxHP})
             if side and hero.TemplateId in record['payload'][side]['heroIds'] and hero.HasField('AttackSpeed') and 0<=hero.AttackSpeed<=1000000:
                 result['heroSpeeds'][side].append({'heroId':hero.TemplateId,'value':hero.AttackSpeed})
     return result
 
 def enrich(pool,jobs,state_dir):
-    cache=Path(state_dir)/'replay-skills-v3';cache.mkdir(exist_ok=True)
+    cache=Path(state_dir)/'replay-skills-v4';cache.mkdir(exist_ok=True)
     def run(job):
         direction,row,record=job
         try:
@@ -76,14 +79,17 @@ def enrich(pool,jobs,state_dir):
             for side in ('attacker','defender'):record['payload'][side]['skills']=result[side]
             if result.get('firstSkillSide') in ('attacker','defender'):record['payload']['firstSkillSide']=result['firstSkillSide']
             if result.get('heroSpeeds'):record['payload']['heroSpeeds']=result['heroSpeeds']
+            if result.get('heroHealth'):record['payload']['heroHealth']=result['heroHealth']
         except Exception:
             # Preserve previously decoded reservations if a replay has expired.
             try:
                 name=record['sourceKey'].split(':')[1]+'.json'
-                old_file=Path(state_dir)/'replay-skills-v2'/name
+                old_file=Path(state_dir)/'replay-skills-v3'/name
+                if not old_file.exists():old_file=Path(state_dir)/'replay-skills-v2'/name
                 if not old_file.exists():old_file=Path(state_dir)/'replay-skills-v1'/name
                 old=json.loads(old_file.read_text(encoding='utf8'))
                 for side in ('attacker','defender'):record['payload'][side]['skills']=old[side]
+                if old.get('heroSpeeds'):record['payload']['heroSpeeds']=old['heroSpeeds']
                 if old.get('firstSkillSide') in ('attacker','defender'):record['payload']['firstSkillSide']=old['firstSkillSide']
             except (OSError,ValueError,KeyError):pass
     with ThreadPoolExecutor(max_workers=4) as executor:list(executor.map(run,jobs))

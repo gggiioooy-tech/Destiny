@@ -17,12 +17,13 @@ export function collectorRecord(row,guild){
     return resolveGameSide({nickname:s.nickname,heroes:s.heroes,heroIds:s.heroIds,pet:s.pet,petId:s.petId,namesResolved:s.namesResolved===true,skills});
   }
   const privateFields={};
-  if(p.heroSpeeds){
-    privateFields.heroSpeeds={};
+  for(const [field,max] of [['heroSpeeds',1000000],['heroHealth',2147483647]]){
+    if(!p[field])continue;
+    privateFields[field]={};
     for(const name of ['attacker','defender']){
-      const values=p.heroSpeeds[name];
-      if(!Array.isArray(values)||values.length>3||new Set(values.map(v=>v.heroId)).size!==values.length||!values.every(v=>p[name].heroIds.includes(v.heroId)&&Number.isSafeInteger(v.value)&&v.value>=0&&v.value<=1000000))throw new Error('영웅 속공 정보 오류');
-      privateFields.heroSpeeds[name]=values.map(({heroId,value})=>({heroId,value}));
+      const values=p[field][name];
+      if(!Array.isArray(values)||values.length>3||new Set(values.map(v=>v.heroId)).size!==values.length||!values.every(v=>p[name].heroIds.includes(v.heroId)&&Number.isSafeInteger(v.value)&&v.value>=(field==='heroHealth'?1:0)&&v.value<=max))throw new Error('영웅 전투 능력치 정보 오류');
+      privateFields[field][name]=values.map(({heroId,value})=>({heroId,value}));
     }
   }
   return {p_kind:'battle',p_source_key:row.sourceKey,p_occurred_at:row.occurredAt,p_payload:{warDate:p.warDate,direction:p.direction,sourceGuild:p.sourceGuild,opponentGuild:p.opponentGuild,periodSource:p.periodSource==='game-match'?'game-match':'owner-confirmed',castle:p.castle,firstSkillSide:['attacker','defender'].includes(p.firstSkillSide)?p.firstSkillSide:null,attackerWon:p.attackerWon,attacker:side(p.attacker),defender:side(p.defender),...privateFields}};
