@@ -1,0 +1,132 @@
+{
+  "checkedAt": "2026-10-21",
+  "basis": {
+    "transcendence": 6,
+    "enhancement": 5,
+    "skillEnhancement": "full",
+    "scope": "all hero skill references; does not normalize equipment-dependent stats"
+  },
+  "sourceType": "namu.wiki contributors via public namu.moe mirror",
+  "license": "CC BY-NC-SA 2.0 KR",
+  "pets": {
+    "count": 44,
+    "names": [
+      "루",
+      "이린",
+      "리첼",
+      "크리",
+      "파이크",
+      "델로",
+      "윈디",
+      "제브",
+      "유",
+      "요랑",
+      "연지",
+      "카람",
+      "제오",
+      "멜패로",
+      "아이반",
+      "카렌",
+      "리쿠",
+      "쥬시",
+      "헬레핀",
+      "헤리핀",
+      "제니퍼",
+      "유우",
+      "크로아",
+      "파라곤",
+      "노트",
+      "베이",
+      "니키",
+      "세리",
+      "R-rl",
+      "푸리",
+      "아야",
+      "라구리",
+      "해르피",
+      "사란",
+      "니나",
+      "풍소협",
+      "뮤뮤",
+      "믹",
+      "더지",
+      "에리",
+      "미믹",
+      "두",
+      "이그리트",
+      "카마도 네즈코"
+    ],
+    "readUrl": "https://www.namu.moe/w/세븐나이츠 리버스/펫",
+    "localSnapshot": "tmp/wiki-research/pets-reference.json",
+    "status": "reference_sections_captured_not_all_executable"
+  },
+  "accessories": {
+    "count": 32,
+    "names": [
+      "부활의 반지",
+      "불사의 반지",
+      "권능의 반지",
+      "기합의 반지",
+      "철벽의 반지",
+      "건강의 반지",
+      "토벌의 반지",
+      "공성의 반지",
+      "섬멸의 반지",
+      "근성의 반지",
+      "마법의 반지",
+      "시간의 반지",
+      "기회의 반지",
+      "저주의 반지",
+      "죽음의 반지",
+      "재앙의 반지",
+      "번뜩이는 반지",
+      "공포의 반지",
+      "설원의 반지",
+      "매두사의 반지",
+      "꿈의 반지",
+      "가시 반지",
+      "샐러맨더의 반지",
+      "독사 반지",
+      "복수의 반지",
+      "보호의 반지",
+      "행운의 반지",
+      "수호의 반지",
+      "집중의 반지",
+      "자연의 반지",
+      "적중의 반지",
+      "저항의 반지"
+    ],
+    "readUrl": "https://www.namu.moe/w/세븐나이츠 리버스/장비",
+    "localSnapshot": "tmp/wiki-research/rings-reference.json",
+    "status": "reference_sections_captured_not_all_executable"
+  },
+  "sets": {
+    "count": 9,
+    "status": "numeric_reference_captured_not_applied_to_final_stats",
+    "names": [
+      "선봉장",
+      "추적자",
+      "성기사",
+      "수문장",
+      "수호자",
+      "암살자",
+      "복수자",
+      "주술사",
+      "조율자"
+    ]
+  },
+  "snapshots": [
+    {
+      "file": "tmp/wiki-research/rules-%EC%8B%9C%EC%8A%A4%ED%85%9C.html",
+      "sha256": "4203d36182de7fa55cc95aba1d30f61079e0b014130e586a5109ede4300183b4"
+    },
+    {
+      "file": "tmp/wiki-research/rules-%EC%9E%A5%EB%B9%84.html",
+      "sha256": "2860c465e9eee67a8ef08447af4071b7a9ebfb1db9eeb5202592914e96a0732a"
+    },
+    {
+      "file": "tmp/wiki-research/rules-%ED%8E%AB.html",
+      "sha256": "cae54e55a4f8167eab4872e1a21f0f0b7d002a28437b511aa65ad2b922479736"
+    }
+  ]
+}

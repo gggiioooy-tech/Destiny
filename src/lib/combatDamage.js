@@ -1,7 +1,18 @@
 // Community model supplied by the user; not an independently verified game engine.
 // Percent inputs are percentage points: 150 means 150%, not 1.5.
 export const DEFENSE_COEFFICIENT=0.00214;
+export const HERO_GROWTH=Object.freeze({transcendence:6,enhancement:5,skills:'full',label:'6초월 · 5강 · 풀스킬 강화'});
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
+export function effectProbability({baseChance,accuracy=0,resistance=0}){
+  const remainingResistance=clamp(resistance-accuracy,0,100)/100;
+  const skillChance=clamp(baseChance,0,100)/100;
+  return {remainingResistance,skillChance,applied:skillChance*(1-remainingResistance)};
+}
+export function rollEffect(settings,random){
+  const {remainingResistance,skillChance}=effectProbability(settings);
+  if(random()<remainingResistance)return false;
+  return random()<skillChance;
+}
 export function criticalMultiplier(critDamage,elasticity,critical=true){
   return critical?Math.max(1,(critDamage-elasticity)/100):1;
 }
