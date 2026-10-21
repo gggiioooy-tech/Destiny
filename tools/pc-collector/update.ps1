@@ -18,7 +18,7 @@ try {
     if ($local -and ([version]$local.version -ge [version]$manifest.version)) { [IO.File]::WriteAllText($log,'최신 버전입니다.'); return }
     # Never interrupt an active game capture. Apply on the next manual launch.
     $processes = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($root+'\',[StringComparison]::OrdinalIgnoreCase) })
-    if ($processes | Where-Object { $_.Name -eq 'python.exe' -and $_.CommandLine -match 'capture(_worker)?\.py' }) { [IO.File]::WriteAllText($log,'수집 중이라 업데이트를 보류했습니다. 다음 실행 때 적용합니다.'); return }
+    if ($processes | Where-Object { ($_.Name -eq 'python.exe' -and $_.CommandLine -match 'capture(_worker)?\.py') -or ($_.Name -eq 'node.exe' -and $_.CommandLine -match 'watch\.mjs.*--red') }) { [IO.File]::WriteAllText($log,'수집 중이라 업데이트를 보류했습니다. 다음 실행 때 적용합니다.'); return }
     $stage = Join-Path ([IO.Path]::GetTempPath()) ('15month-update-'+[Guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $stage | Out-Null
     $archive = Join-Path $stage 'update.zip'
@@ -42,7 +42,7 @@ try {
     New-Item -ItemType Directory -Path $backup -Force | Out-Null
     foreach ($name in $allowed) { if (Test-Path -LiteralPath (Join-Path $root $name)) { Copy-Item -LiteralPath (Join-Path $root $name) -Destination (Join-Path $backup $name) } }
     $processes = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -and $_.ExecutablePath.StartsWith($root+'\',[StringComparison]::OrdinalIgnoreCase) })
-    if ($processes | Where-Object { $_.Name -eq 'python.exe' -and $_.CommandLine -match 'capture(_worker)?\.py' }) { [IO.File]::WriteAllText($log,'수집 중이라 업데이트를 보류했습니다. 다음 실행 때 적용합니다.'); return }
+    if ($processes | Where-Object { ($_.Name -eq 'python.exe' -and $_.CommandLine -match 'capture(_worker)?\.py') -or ($_.Name -eq 'node.exe' -and $_.CommandLine -match 'watch\.mjs.*--red') }) { [IO.File]::WriteAllText($log,'수집 중이라 업데이트를 보류했습니다. 다음 실행 때 적용합니다.'); return }
     $processes | Where-Object { $_.Name -eq 'node.exe' -and $_.CommandLine -match '(server|watch)\.mjs' } | ForEach-Object { Stop-Process -Id $_.ProcessId -ErrorAction SilentlyContinue }
     foreach ($name in $allowed) {
         $applied += $name

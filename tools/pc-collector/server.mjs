@@ -33,6 +33,22 @@ async function stopCapture(){
   await new Promise((resolve,reject)=>{const stop=spawn('taskkill.exe',['/PID',String(previous.pid),'/T','/F'],{windowsHide:true,stdio:'ignore'});const timeout=setTimeout(()=>{stop.kill();reject(new Error('stop timeout'));},5000);stop.once('error',e=>{clearTimeout(timeout);reject(e);});stop.once('exit',code=>{clearTimeout(timeout);if(code===0||capture!==previous)resolve();else reject(new Error('stop failed'));});});
   if(capture===previous)capture=null;
 }
+
+let redAnalyzer=null,redTimer=null,redAuth=null,redStatus='PC 수집기가 받은 전투 기록을 분석합니다.';
+async function isRedOwner(token,apikey){
+ if(typeof token!=='string'||token.length>8192||!token.startsWith('Bearer ')||typeof apikey!=='string'||apikey.length>4096)return false;
+ try{const r=await fetch('https://kqygrszkbuzxmmfndhye.supabase.co/rest/v1/rpc/red_collector_access',{method:'POST',headers:{Authorization:token,apikey,'Content-Type':'application/json'},body:'{}',signal:AbortSignal.timeout(5000)});return r.ok&&(await r.json())===true;}catch{return false;}
+}
+async function stopRed(){
+ const child=redAnalyzer;redAnalyzer=null;redAuth=null;clearTimeout(redTimer);
+ if(child)await new Promise(resolve=>{const stop=spawn('taskkill.exe',['/PID',String(child.pid),'/T','/F'],{windowsHide:true,stdio:'ignore'});const timeout=setTimeout(()=>{stop.kill();resolve();},5000);const done=()=>{clearTimeout(timeout);resolve();};stop.once('error',done);stop.once('exit',done);});
+ redStatus='빨간약 수집을 종료했습니다. 리플레이 다운로드를 중단했습니다.';
+}
+function passiveStatus(data){
+ const result=structuredClone(data);
+ for(const row of result.records||[]){if(row.kind==='battle'){for(const key of ['heroSpeeds','heroHealth','heroStats','firstSkillSide'])delete row.payload?.[key];for(const side of ['attacker','defender'])if(row.payload?.[side])row.payload[side].skills=[];}}
+ return result;
+}
 const server=http.createServer(async(req,res)=>{
   res.setHeader('Cache-Control','no-store');
   res.setHeader('X-Content-Type-Options','nosniff');
@@ -44,6 +60,30 @@ const server=http.createServer(async(req,res)=>{
   if(req.headers.host!==host)return send(403,'text/plain','Forbidden');
   const url=new URL(req.url,`http://${host}`);
   const localAuthorized=req.headers.cookie===`collector=${cookie}` && (!req.headers.origin || req.headers.origin===`http://${host}`) && (!req.headers['sec-fetch-site'] || req.headers['sec-fetch-site']==='same-origin');
+  if(url.pathname==='/red/stop'&&req.method==='POST'){
+    if(!localAuthorized||req.headers['x-collector-action']!=='stop')return send(403,'text/plain','Forbidden');
+    await stopRed();return send(200,'application/json; charset=utf-8',JSON.stringify({message:redStatus}));
+  }
+  if((url.pathname==='/red/start'&&req.method==='POST')||(url.pathname==='/red/status'&&req.method==='GET')){
+    if(!localAuthorized||(req.method==='POST'&&req.headers['x-collector-action']!=='start'))return send(403,'text/plain','Forbidden');
+    if(!await isRedOwner(req.headers.authorization,req.headers['x-supabase-key'])){await stopRed();return send(403,'application/json; charset=utf-8',JSON.stringify({message:'권한등급 4등급만 빨간약 수집기를 사용할 수 있습니다.'}));}
+    if(redAnalyzer)redAuth={token:req.headers.authorization,apikey:req.headers['x-supabase-key']};
+    if(req.method==='POST'){
+      if(!fs.existsSync(path.join(stateDir,'config.json')))return send(400,'application/json; charset=utf-8',JSON.stringify({message:'먼저 PC 수집기를 연결해 전투 기록을 수집해 주세요.'}));
+      if(!redAnalyzer){
+        const child=spawn(process.execPath,[path.join(here,'watch.mjs'),'--red'],{windowsHide:true,stdio:'ignore'});redAnalyzer=child;redStatus='빨간약 수집 중 · PC 수집기가 받은 리플레이를 분석합니다.';
+        child.on('error',()=>{if(redAnalyzer===child){redAnalyzer=null;redStatus='빨간약 분석기를 실행하지 못했습니다.';}});
+        child.on('exit',()=>{if(redAnalyzer===child){redAnalyzer=null;redStatus='빨간약 분석이 종료됐습니다.';}});
+        redTimer=setTimeout(()=>{void stopRed();},600000);
+      }
+      redAuth={token:req.headers.authorization,apikey:req.headers['x-supabase-key']};
+      return send(200,'application/json; charset=utf-8',JSON.stringify({message:redStatus}));
+    }
+    let data={attack:0,defense:0,held:0,records:[],updatedAt:null};try{data=JSON.parse(fs.readFileSync(path.join(stateDir,'status-red.json'),'utf8'));}catch{}
+    data.captureActive=Boolean(redAnalyzer);data.captureStatus=redStatus;data.needsSetup=!fs.existsSync(path.join(stateDir,'config.json'));data.supportsPeriods=true;data.periods=readPeriods();data.periodSyncStatus=periodSyncStatus;data.updateStatus=updateInfo();data.collectorVersion='2026.10.21.3';data.collectorMode='red';
+    try{data.captureIssue=fs.readFileSync(path.join(stateDir,'decode-red-error.txt'),'utf8');}catch{}
+    return send(200,'application/json; charset=utf-8',JSON.stringify(data));
+  }
   if(url.pathname==='/setup' && req.method==='POST'){
     if(!localAuthorized || req.headers['x-collector-action']!=='setup')return send(403,'text/plain','Forbidden');
     if(settingUp)return send(409,'application/json','{"message":"자동 설정 진행 중"}');
@@ -106,19 +146,20 @@ const server=http.createServer(async(req,res)=>{
       const data=JSON.parse(fs.readFileSync(path.join(stateDir,'status.json'),'utf8'));
       data.captureIssue=captureIssue;data.updateStatus=updateInfo();data.captureStatus=captureStatus;data.captureActive=Boolean(capture);data.settingUp=settingUp;
       data.periods=readPeriods();
-      data.supportsPeriods=true;data.collectorVersion='2026.10.21.2';data.periodSyncStatus=periodSyncStatus;
+      data.supportsPeriods=true;data.collectorVersion='2026.10.21.3';data.periodSyncStatus=periodSyncStatus;
       data.needsSetup=!fs.existsSync(path.join(stateDir,'config.json'));
       const field=(data.records||[]).find(r=>r.kind==='defense_snapshot')?.payload;
       if(field){const castles=['외성1','외성2','외성3','외성4','외성5','내성1','내성2','내성3','본성'];const missing=castles.filter(c=>!field.defenses.some(d=>d.castle===c));data.captureStatus+=` · 상대 방어팀 ${field.defenses.length}/${field.total}개${missing.length?' · 미수집: '+missing.join(', '):''}`;}
       for(const file of ['decode-error.txt','match-warning.txt'])try{const error=fs.readFileSync(path.join(stateDir,file),'utf8');if(error)data.captureStatus+=' · '+error;}catch{}
-      return send(200,'application/json; charset=utf-8',JSON.stringify(data));
-    }catch{return send(200,'application/json; charset=utf-8',JSON.stringify({attack:0,defense:0,held:0,supportsPeriods:true,collectorVersion:'2026.10.21.2',periodSyncStatus,periods:readPeriods(),needsSetup:!fs.existsSync(path.join(stateDir,'config.json')),captureIssue,updateStatus:updateInfo(),captureStatus,captureActive:Boolean(capture),settingUp,lastReceivedAt:null,reason:'게임을 실행하고 사이트에 연결하면 자동으로 설정합니다.',updatedAt:null,groups:[],records:[]}));}
+      return send(200,'application/json; charset=utf-8',JSON.stringify(passiveStatus(data)));
+    }catch{return send(200,'application/json; charset=utf-8',JSON.stringify({attack:0,defense:0,held:0,supportsPeriods:true,collectorVersion:'2026.10.21.3',periodSyncStatus,periods:readPeriods(),needsSetup:!fs.existsSync(path.join(stateDir,'config.json')),captureIssue,updateStatus:updateInfo(),captureStatus,captureActive:Boolean(capture),settingUp,lastReceivedAt:null,reason:'게임을 실행하고 사이트에 연결하면 자동으로 설정합니다.',updatedAt:null,groups:[],records:[]}));}
   }
-  const assets={'/connect':['connect.html','text/html; charset=utf-8'],'/connect.js':['connect.js','text/javascript; charset=utf-8'],'/connect.css':['connect.css','text/css; charset=utf-8']};
+  const assets={'/red-connect':['connect.html','text/html; charset=utf-8'],'/connect':['connect.html','text/html; charset=utf-8'],'/connect.js':['connect.js','text/javascript; charset=utf-8'],'/connect.css':['connect.css','text/css; charset=utf-8']};
   const asset=assets[url.pathname];
   if(!asset)return send(404,'text/plain','Not found');
-  if(url.pathname==='/connect')res.setHeader('Set-Cookie',`collector=${cookie}; HttpOnly; SameSite=Strict; Path=/`);
-  send(200,asset[1],fs.readFileSync(path.join(here,asset[0])));
+  if(url.pathname==='/connect'||url.pathname==='/red-connect')res.setHeader('Set-Cookie',`collector=${cookie}; HttpOnly; SameSite=Strict; Path=/`);
+  let body=fs.readFileSync(path.join(here,asset[0]));if(url.pathname==='/red-connect')body=body.toString('utf8').replace('<body>','<body data-collector-mode="red">').replace('<title>15월 PC 수집기</title>','<title>15월 빨간약 수집기</title>');send(200,asset[1],body);
 });
+const redLease=setInterval(async()=>{if(redAnalyzer&&(!redAuth||!await isRedOwner(redAuth.token,redAuth.apikey)))await stopRed();},15000);redLease.unref();
 server.on('error',e=>{console.error(e.code==='EADDRINUSE'?'이미 PC 연결 창이 실행 중입니다.':'PC 연결 창을 시작하지 못했습니다.');process.exitCode=1;});
 server.listen(port,'127.0.0.1',()=>console.log(`15월 PC 연결 준비: http://${host}/connect`));

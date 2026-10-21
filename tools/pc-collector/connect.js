@@ -1,9 +1,13 @@
+const redMode=document.body.dataset.collectorMode==='red';
+let redToken='',redApiKey='';
+const requestHeaders=extra=>({...extra,...(redMode?{Authorization:'Bearer '+redToken,'X-Supabase-Key':redApiKey}:{})});
+if(redMode){document.getElementById('collector-title').textContent='빨간약 수집중';document.getElementById('collector-brand').textContent='❄ 15월 빨간약 수집기';}
 const params=new URLSearchParams(location.hash.slice(1));
 const nonce=params.get('nonce');
 const target=params.get('origin');
 const allowed=new Set(['https://xn--15-7l8j.site','https://destiny-lemon-sigma.vercel.app','http://localhost:5178']);
 const paired=window.opener && /^[a-f0-9]{64}$/.test(nonce||'') && allowed.has(target);
-history.replaceState(null,'','/connect');
+history.replaceState(null,'',redMode?'/red-connect':'/connect');
 if(paired)document.getElementById('connection').textContent='15월사이트와 연결 중입니다.';
 const captureButton=document.getElementById('capture-start');
 const stopButton=document.getElementById('capture-stop');
@@ -37,18 +41,19 @@ async function startCapture(restart=false){
   changingCapture=true;actionError='';showProblems();
   captureInfo.textContent='수집을 시작하고 있어요…';
   captureButton.disabled=true;
-  try{await setupTask.catch(()=>{});const r=await fetch('/capture',{method:'POST',headers:{'X-Collector-Action':'start','X-Collector-Restart':String(restart)}});const d=await r.json();captureInfo.textContent=d.message;if(!r.ok)throw new Error(d.message||'수집 시작 실패');actionError='';}
+  try{await setupTask.catch(()=>{});const r=await fetch(redMode?'/red/start':'/capture',{method:'POST',headers:requestHeaders({'X-Collector-Action':'start','X-Collector-Restart':String(restart)})});const d=await r.json();captureInfo.textContent=d.message;if(!r.ok)throw new Error(d.message||'수집 시작 실패');actionError='';}
   catch(e){actionError=e.message||'수집기를 다시 연결해 주세요.';captureInfo.textContent=actionError;showProblems();}finally{captureButton.disabled=false;changingCapture=false;}
 }
 captureButton.addEventListener('click',()=>startCapture(true));
 async function stopCapture(){
   if(changingCapture)return;changingCapture=true;stopButton.disabled=true;captureInfo.textContent='수집을 종료하고 있어요…';
-  try{const r=await fetch('/capture/stop',{method:'POST',headers:{'X-Collector-Action':'stop'}});const d=await r.json();captureInfo.textContent=d.message;if(!r.ok)throw new Error(d.message);actionError='';}
+  try{const r=await fetch(redMode?'/red/stop':'/capture/stop',{method:'POST',headers:requestHeaders({'X-Collector-Action':'stop'})});const d=await r.json();captureInfo.textContent=d.message;if(!r.ok)throw new Error(d.message);actionError='';}
   catch(e){actionError=e.message||'수집 종료에 실패했어요.';captureInfo.textContent=actionError;showProblems();}finally{changingCapture=false;stopButton.disabled=false;void update();}
 }
 stopButton.addEventListener('click',stopCapture);
 window.addEventListener('message',event=>{
   if(!paired||event.source!==window.opener||event.origin!==target||event.data?.nonce!==nonce)return;
+  if(redMode&&event.data.type==='15month-collector-red-auth'){redToken=event.data.token||'';redApiKey=event.data.apikey||'';void update();}
   if(event.data.type==='15month-collector-setup'){
     setupTask=fetch('/setup',{method:'POST',headers:{'Content-Type':'application/json','X-Collector-Action':'setup'},body:JSON.stringify(event.data.profile)}).then(async r=>{const d=await r.json();if(!r.ok||!d.ready)throw new Error(d.message||'자동 설정 실패');syncError='';syncInfo.textContent=d.message||'자동 설정 완료';});
     setupTask.catch(e=>{syncError=e.message;syncInfo.textContent=syncError;showProblems();});
@@ -60,7 +65,8 @@ window.addEventListener('message',event=>{
 });
 async function update(){
   try{
-    const response=await fetch('/status');if(!response.ok)throw new Error();const data=await response.json();showProblems(data);
+    if(redMode&&!redToken){if(paired&&!window.opener.closed)window.opener.postMessage({type:'15month-collector-status',nonce,data:{attack:0,defense:0,held:0,records:[],needsSetup:true,redAuthorizationPending:true}},target);return;}
+    const response=await fetch(redMode?'/red/status':'/status',{headers:requestHeaders({})});if(!response.ok){const failure=await response.json().catch(()=>({}));throw new Error(failure.message||'수집기 연결 실패');}const data=await response.json();showProblems(data);
     document.getElementById('update-info').textContent=data.updateStatus||'자동 업데이트를 사용하려면 최신 설치본을 한 번 설치해 주세요.';
     syncInfo.textContent=syncError||data.periodSyncStatus||'최신 설치본으로 업데이트해 주세요.';
     if(data.captureStatus)captureInfo.textContent=data.captureStatus;
@@ -73,6 +79,6 @@ async function update(){
     const list=document.getElementById('groups');list.replaceChildren();
     for(const group of (data.groups||[]).slice(0,30)){const li=document.createElement('li');li.textContent=`${group.guild||'미확인'} · ${group.direction==='attack'?'공격':'방어'} ${group.count}건`;list.append(li);}
     if(paired&&!window.opener.closed)window.opener.postMessage({type:'15month-collector-status',nonce,data},target);
-  }catch{const box=document.getElementById('problem-info');box.hidden=false;box.textContent='PC 수집기와 연결이 끊겼어요.\n프로그램이 켜져 있는지 확인한 뒤 사이트에서 다시 연결해 주세요.';document.getElementById('activity').textContent='연결 확인 필요';document.getElementById('activity').dataset.active='false';document.getElementById('connection').textContent='PC 수집기 연결을 확인해 주세요.';}
+  }catch(e){const box=document.getElementById('problem-info');box.hidden=false;box.textContent=(redMode?e.message+'\n':'')+'PC 수집기와 연결이 끊겼어요.\n프로그램이 켜져 있는지 확인한 뒤 사이트에서 다시 연결해 주세요.';document.getElementById('activity').textContent='연결 확인 필요';document.getElementById('activity').dataset.active='false';document.getElementById('connection').textContent='PC 수집기 연결을 확인해 주세요.';}
 }
 update();setInterval(update,2000);

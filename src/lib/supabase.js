@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = "https://kqygrszkbuzxmmfndhye.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxeWdyc3prYnV6eG1tZm5kaHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MjI2OTUsImV4cCI6MjA5NzQ5ODY5NX0.SDIjG-rrBt4apIxTYT-qg9vyJuVgzN9uxiwpQ_QkOLs";
+export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtxeWdyc3prYnV6eG1tZm5kaHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5MjI2OTUsImV4cCI6MjA5NzQ5ODY5NX0.SDIjG-rrBt4apIxTYT-qg9vyJuVgzN9uxiwpQ_QkOLs";
 const ID_KEY = '15month_remembered_id';
 // Discard all legacy password and client-trusted session data on this origin.
 for (const key of ['destiny_guild_saved_login_pw', 'destiny_guild_saved_login_id', 'destiny_guild_remember_login', 'seori_guild_current_user_id', 'seori_guild_session_expires_at']) {

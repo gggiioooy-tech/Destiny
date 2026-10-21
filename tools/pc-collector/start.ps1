@@ -12,7 +12,7 @@ $serverPath = Join-Path $collectorRoot 'server.mjs'
 $watchPath = Join-Path $collectorRoot 'watch.mjs'
 $runningNodes = @(Get-CimInstance Win32_Process -Filter "name='node.exe'")
 $serverRunning = $runningNodes | Where-Object { $_.CommandLine -like '*tools/pc-collector/server.mjs*' -or $_.CommandLine -like '*15month-collector\app\server.mjs*' -or $_.CommandLine -like "*$serverPath*" }
-$watchRunning = $runningNodes | Where-Object { $_.CommandLine -like '*tools/pc-collector/watch.mjs*' -or $_.CommandLine -like '*15month-collector\app\watch.mjs*' -or $_.CommandLine -like "*$watchPath*" }
+$watchRunning = $runningNodes | Where-Object { $_.CommandLine -notmatch '--red' } | Where-Object { $_.CommandLine -like '*tools/pc-collector/watch.mjs*' -or $_.CommandLine -like '*15month-collector\app\watch.mjs*' -or $_.CommandLine -like "*$watchPath*" }
 if (-not $serverRunning) {
     Start-Process -FilePath $nodePath -ArgumentList @('"' + $serverPath + '"') -WorkingDirectory $collectorRoot -WindowStyle Hidden -RedirectStandardOutput (Join-Path $stateRoot 'server.log') -RedirectStandardError (Join-Path $stateRoot 'server-error.log')
 }

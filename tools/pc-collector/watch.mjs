@@ -5,6 +5,9 @@ import {createDecipheriv} from 'node:crypto';import {spawn} from 'node:child_pro
 const here=path.dirname(fileURLToPath(import.meta.url));
 const home=process.env.COLLECTOR_STATE_DIR||path.join(process.env.LOCALAPPDATA,'15month-collector');
 const configPath=path.join(home,'config.json');let config=JSON.parse(fs.readFileSync(configPath,'utf8').replace(/^\uFEFF/,''));
+const redMode=process.argv.includes('--red');
+const statusFile=path.join(home,redMode?'status-red.json':'status.json');
+const errorFile=path.join(home,redMode?'decode-red-error.txt':'decode-error.txt');
 let previous=-1,running=false,lastSignature='';
 async function update(){
  if(running)return;running=true;
@@ -34,17 +37,17 @@ async function update(){
    if([16837,16841,16849,16857].includes(id)){const c=createDecipheriv('chacha20',Buffer.from(config.key,'hex'),Buffer.from(config.iv,'hex'));frames.push({id,data:Buffer.concat([c.update(stream.subarray(pos+8,pos+4+n)),c.final()]).toString('base64')});}pos+=4+n;
   }
   const signature=JSON.stringify(frames);if(signature===lastSignature)return;
-  const result=await new Promise((resolve,reject)=>{const child=spawn(config.python,[path.join(here,'summarize.py'),configPath],{windowsHide:true,stdio:['pipe','pipe','pipe']});let output='';child.stdout.on('data',x=>output+=x);child.stderr.resume();child.on('error',reject);child.on('exit',code=>code?reject(new Error('decode failed')):resolve(output));child.stdin.end(JSON.stringify(frames));});
+  const result=await new Promise((resolve,reject)=>{const child=spawn(config.python,[path.join(here,'summarize.py'),configPath,...(redMode?['--allow-replay']:[])],{windowsHide:true,stdio:['pipe','pipe','pipe']});let output='';child.stdout.on('data',x=>output+=x);child.stderr.resume();child.on('error',reject);child.on('exit',code=>code?reject(new Error('decode failed')):resolve(output));child.stdin.end(JSON.stringify(frames));});
   const data=JSON.parse(result);
-  let old={};try{old=JSON.parse(fs.readFileSync(path.join(home,'status.json'),'utf8'));}catch{}
+  let old={};try{old=JSON.parse(fs.readFileSync(statusFile,'utf8'));}catch{}
   const known=new Map((old.records||[]).map(r=>[r.sourceKey,JSON.stringify(r.payload)]));
   const changed=(data.records||[]).some(r=>known.get(r.sourceKey)!==JSON.stringify(r.payload));
   data.lastReceivedAt=frames.length?new Date().toISOString():old.lastReceivedAt||null;
   data.updatedAt=changed?new Date().toISOString():old.updatedAt||null;
   if(!data.records?.length&&!data.held){lastSignature=signature;return;}
-  fs.writeFileSync(path.join(home,'status.json.tmp'),JSON.stringify(data));fs.renameSync(path.join(home,'status.json.tmp'),path.join(home,'status.json'));
-  fs.writeFileSync(path.join(home,'decode-error.txt'),'');lastSignature=signature;
+  fs.writeFileSync(statusFile+'.tmp',JSON.stringify(data));fs.renameSync(statusFile+'.tmp',statusFile);
+  fs.writeFileSync(errorFile,'');lastSignature=signature;
   console.log(`수신: 공격 ${data.attack}건, 방어 ${data.defense}건 (보류 ${data.held}건)`);
- }catch(e){previous=-1;fs.writeFileSync(path.join(home,'decode-error.txt'),'게임 데이터 해석 대기 · 게임 재접속 후 수집 시작을 다시 눌러 주세요.');console.error('수집 데이터 확인 대기:',e.message);}finally{running=false;}
+ }catch(e){previous=-1;fs.writeFileSync(errorFile,'게임 데이터 해석 대기 · 게임 재접속 후 수집 시작을 다시 눌러 주세요.');console.error('수집 데이터 확인 대기:',e.message);}finally{running=false;}
 }
 await update();setInterval(update,2000);

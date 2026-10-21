@@ -1,9 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { supabase } from '../lib/supabase.js';
+import {canViewHeroStats} from '../lib/heroBattleStats.js';
+import { supabase, SUPABASE_ANON_KEY } from '../lib/supabase.js';
 import { memoGuilds } from '../lib/guildWar.js';
 import { collectorRecord } from '../lib/collectorRecords.js';
 const LOCAL_ORIGIN='http://127.0.0.1:15150';
-export default function PcCollectorConnection({ currentUser }) {
+export default function PcCollectorConnection({ currentUser, mode='pc' }) {
+  const isRed=mode==='red';
+  const permitted=!isRed||canViewHeroStats(currentUser);
+  const collectorName=isRed?'빨간약 수집기':'PC 수집기';
   const connection=useRef(null);
   const [state,setState]=useState(null);
   const [error,setError]=useState('');
@@ -14,6 +18,7 @@ export default function PcCollectorConnection({ currentUser }) {
   const [uploading,setUploading]=useState(false);
   useEffect(()=>{
     let active=true;
+    if(!permitted)return;
     async function upload(c,rows){
       if(c.uploading||c.failed||Date.now()<(c.retryAt||0))return;
       const guilds=memoGuilds(currentUser?.memo);
@@ -41,6 +46,11 @@ export default function PcCollectorConnection({ currentUser }) {
       const d=event.data.data;
       if(!d||!['attack','defense','held'].every(k=>Number.isSafeInteger(d[k])&&d[k]>=0&&d[k]<=100000))return;
       c.lastSeen=Date.now();setWaiting(false);
+      if(isRed&&!c.authorizing&&Date.now()>(c.nextAuth||0)){
+        c.authorizing=true;c.nextAuth=Date.now()+60000;
+        supabase.auth.getSession().then(({data,error})=>{if(!active||connection.current!==c)return;if(error||!data.session?.access_token){setError('4등급 계정으로 다시 로그인해 주세요.');return;}c.popup.postMessage({type:'15month-collector-red-auth',nonce:c.nonce,token:data.session.access_token,apikey:SUPABASE_ANON_KEY},LOCAL_ORIGIN);}).catch(()=>{if(active)setError('4등급 인증을 확인하지 못했습니다. 다시 연결해 주세요.');}).finally(()=>{c.authorizing=false;});
+      }
+
       if(!c.setupRequested){c.setupRequested=true;supabase.rpc('collector_setup_profile').then(({data,error})=>{if(!active||connection.current!==c)return;if(error){setError(error.message);c.setupRequested=false;return;}c.popup.postMessage({type:'15month-collector-setup',nonce:c.nonce,profile:data},LOCAL_ORIGIN);});}
       if(!d.needsSetup&&d.supportsPeriods&&!c.syncing&&Date.now()>(c.nextSync||0)){
         c.syncing=true;c.nextSync=Date.now()+30000;
@@ -60,20 +70,22 @@ export default function PcCollectorConnection({ currentUser }) {
       const c=connection.current;if(!c)return;
       if(c.popup.closed||Date.now()-c.lastSeen>45000){setState(null);setWaiting(false);setError('연결되지 않았습니다. 처음 쓰는 PC라면 아래 설치 안내를 확인하세요. 설치했다면 프로그램 열기를 허용하고 다시 연결하세요.');connection.current=null;}
     },2000);
-    return()=>{active=false;window.removeEventListener('message',receive);clearInterval(timer);connection.current=null;};
-  },[currentUser?.id,currentUser?.memo]);
+    return()=>{active=false;const c=connection.current;if(isRed&&c&&!c.popup.closed)c.popup.postMessage({type:'15month-collector-stop',nonce:c.nonce},LOCAL_ORIGIN);window.removeEventListener('message',receive);clearInterval(timer);connection.current=null;};
+  },[currentUser?.id,currentUser?.memo,mode,permitted]);
   function connect(launch=true){
+    if(!permitted)return;
     const nonce=Array.from(crypto.getRandomValues(new Uint8Array(32)),x=>x.toString(16).padStart(2,'0')).join('');
-    const url=launch?`/pc-connect.html#${new URLSearchParams({nonce})}`:`${LOCAL_ORIGIN}/connect#${new URLSearchParams({nonce,origin:location.origin})}`;
-    const popup=window.open(url,'15month-pc-collector','width=640,height=720');
+    const url=launch?`/pc-connect.html${isRed?'?mode=red':''}#${new URLSearchParams({nonce})}`:`${LOCAL_ORIGIN}/${isRed?'red-connect':'connect'}#${new URLSearchParams({nonce,origin:location.origin})}`;
+    const popup=window.open(url,isRed?'15month-red-collector':'15month-pc-collector','width=640,height=720');
     if(!popup){setError('팝업을 허용한 뒤 다시 연결해 주세요.');return;}
     connection.current={popup,nonce,lastSeen:Date.now(),done:new Map()};setError('');setWaiting(true);setState(null);setSaved(0);setLastSavedAt(null);setDuplicates(0);setUploading(false);
     if(launch)window.location.href='month15-collector://start';
   }
+  if(!permitted)return null;
   return <div className="min-w-0 rounded-2xl border border-zinc-200 bg-white p-4">
-    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold">PC 수집기 <span className="text-sm font-normal text-zinc-500">수동 실행</span></h2><button type="button" className="site-button rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm" onClick={()=>connect()}>{state?'PC 수집기 다시 연결':'PC 수집기 연결'}</button></div>
-    <p className="mt-2 text-sm text-zinc-500">PC 시작 시 자동 실행하지 않습니다. 설치한 PC에서는 버튼으로 프로그램을 실행합니다. 브라우저에서 물으면 ‘열기’를 선택하고 연결 창과 사이트를 열어 두세요.</p>
-    <details className="mt-3 text-sm"><summary className="cursor-pointer">처음 쓰는 PC / 연결이 안 될 때</summary><div className="mt-2 space-y-2"><p>Windows 10·11에서 아래 파일을 내려받고 압축을 푼 뒤 이거누르면설치됨.cmd를 실행하세요. PC마다 최초 1회 설치합니다. 이후 직접 실행할 때 새 버전을 자동 확인합니다. 자동 업데이트가 없는 구버전은 이번에 한 번 재설치하세요.</p><a className="inline-block underline" href="/downloads/15month-pc-connect.zip?v=20261020-7" download>Windows 연결 프로그램 설치</a><p>설치 후 게임을 켜고 사이트에서 연결하면 이 PC의 수집 설정을 자동으로 준비합니다. 게임 버전이 지원되지 않으면 오류를 표시합니다.</p><button type="button" className="underline" onClick={()=>connect(false)}>프로그램이 이미 켜져 있어요 — 바로 연결</button></div></details>
+    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className={`font-semibold ${isRed?'text-red-700':''}`}>{collectorName} <span className="text-sm font-normal text-zinc-500">수동 실행</span></h2><button type="button" className="site-button rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm" onClick={()=>connect()}>{state?`${collectorName} 다시 연결`:`${collectorName} 연결`}</button></div>
+    <p className="mt-2 text-sm text-zinc-500">{isRed?'PC 수집기가 받은 기록의 리플레이를 직접 내려받아 분석합니다. 실행과 분석 정보 조회는 4등급 전용입니다.':'게임에서 들어오는 통신만 읽으며 리플레이 다운로드 요청을 보내지 않습니다.'}</p><p className="mt-2 text-sm text-zinc-500">PC 시작 시 자동 실행하지 않습니다. 설치한 PC에서는 버튼으로 프로그램을 실행합니다. 브라우저에서 물으면 ‘열기’를 선택하고 연결 창과 사이트를 열어 두세요.</p>
+    <details className="mt-3 text-sm"><summary className="cursor-pointer">처음 쓰는 PC / 연결이 안 될 때</summary><div className="mt-2 space-y-2"><p>Windows 10·11에서 아래 파일을 내려받고 압축을 푼 뒤 이거누르면설치됨.cmd를 실행하세요. PC마다 최초 1회 설치합니다. 이후 직접 실행할 때 새 버전을 자동 확인합니다. 자동 업데이트가 없는 구버전은 이번에 한 번 재설치하세요.</p><a className="inline-block underline" href="/downloads/15month-pc-connect.zip?v=20261021-3" download>Windows 연결 프로그램 설치</a><p>설치 후 게임을 켜고 사이트에서 연결하면 이 PC의 수집 설정을 자동으로 준비합니다. 게임 버전이 지원되지 않으면 오류를 표시합니다.</p><button type="button" className="underline" onClick={()=>connect(false)}>프로그램이 이미 켜져 있어요 — 바로 연결</button></div></details>
     {state&&<button type="button" className="site-button mt-3 rounded-xl border px-4 py-2" onClick={()=>{const c=connection.current;if(c)c.popup.postMessage({type:'15month-collector-start',nonce:c.nonce,restart:true},LOCAL_ORIGIN);}}>수집 시작</button>}
     {state&&<button type="button" className="site-button ml-2 mt-3 rounded-xl border px-4 py-2" onClick={()=>{const c=connection.current;if(c)c.popup.postMessage({type:'15month-collector-stop',nonce:c.nonce},LOCAL_ORIGIN);}}>수집 종료</button>}
     {waiting&&<p role="status" className="mt-2 text-sm">PC 연결 확인 중…</p>}
