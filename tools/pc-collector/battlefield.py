@@ -11,6 +11,18 @@ def overlaps_previous_match(rows,match,old):
     prior={r.get('nickname') for r in old.get('defenses',[]) if r.get('nickname')}
     return len(names & prior)>=3
 
+def defense_skills(deck):
+    by_position={hero.get('Position'):hero.get('HeroTID') for hero in deck.get('Heroes',[])}
+    uid_to_hero={str(deck.get('Deck',{}).get(f'DeckPositionUID{position}',0)):hero for position,hero in by_position.items() if hero and int(deck.get('Deck',{}).get(f'DeckPositionUID{position}',0))>0}
+    skills=[]
+    for skill in sorted(deck.get('PreOrderSkillData',[]),key=lambda item:item.get('Sequence',0)):
+        hero=uid_to_hero.get(str(skill.get('HeroUniqueID','')))
+        order=skill.get('Sequence');kind=skill.get('SkillType')
+        if hero and kind in (2,3,7) and isinstance(order,int) and 1<=order<=3:
+            skills.append({'heroId':hero,'skillType':kind,'order':order})
+    if len(skills)>3 or len({s['order'] for s in skills})!=len(skills):return []
+    return skills
+
 def snapshot(pool,frames,config):
     instant=datetime.fromtimestamp(Path(config['capturePath']).stat().st_mtime,timezone.utc)
     matches=[p for p in config.get('periods',[]) if p.get('matchKey') and p['from']<=instant.astimezone(timezone(timedelta(hours=9))).isoformat()<p['until']]
@@ -53,7 +65,7 @@ def snapshot(pool,frames,config):
             if not deck:continue
             ids=[h['HeroTID'] for h in sorted(deck.get('Heroes',[]),key=lambda h:h['Position'])];pet=deck.get('Pet',{}).get('PetTID',0)
             if len(ids)!=3:continue
-            rows.append({'castle':CASTLES[place],'nickname':player['PlayerInfo'].get('PlayerName',''),'heroIds':ids,'heroes':[heroes.get(str(i),f'영웅 #{i}') for i in ids],'petId':pet,'pet':pets.get(str(pet),f'펫 #{pet}') if pet else '펫 없음'})
+            rows.append({'castle':CASTLES[place],'nickname':player['PlayerInfo'].get('PlayerName',''),'heroIds':ids,'heroes':[heroes.get(str(i),f'영웅 #{i}') for i in ids],'petId':pet,'pet':pets.get(str(pet),f'펫 #{pet}') if pet else '펫 없음','skills':defense_skills(deck)})
     guilds={p['guild'] for p in config.get('periods',[])}
     if len(guilds)!=1:return None
     instant=datetime.fromtimestamp(Path(config['capturePath']).stat().st_mtime,timezone.utc)

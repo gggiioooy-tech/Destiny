@@ -1,3 +1,4 @@
+import DefenseSkillView from './DefenseSkillView.jsx';
 import HeroBattleStats from './HeroBattleStats.jsx';
 import {canViewHeroStats} from '../lib/heroBattleStats.js';
 import DetailDialog from "./DetailDialog.jsx";
@@ -90,8 +91,10 @@ function DefenseCounterTabs({group,decks,currentUser}){
     {tab!==null&&(tab==='saved'?<><p className="text-xs text-zinc-500">상대 영웅 조합 기준 · 펫별 적합성은 확인해 주세요.</p>{decks.length?decks.map((deck,i)=><CounterDetails key={i} deck={deck}/>):<p className="text-sm text-zinc-500">저장된 카운터 없음</p>}</>:<HistoryCounterSearch currentUser={currentUser} defenseHeroes={group.heroes}/>)}
   </div>;
 }
-function DefenseGroups({ snapshot, counterTeams, castle, search, currentUser }) {
+export function DefenseGroups({ snapshot, counterTeams, castle, search, currentUser }) {
   const [overview,setOverview]=useState(false);
+  const [showSkills,setShowSkills]=useState(false);
+  const skillsVisible=canViewHeroStats(currentUser)&&showSkills;
   const [copyStatus,setCopyStatus]=useState('');
   const [manualCopy,setManualCopy]=useState('');
   const copyText=defenseCopyText((snapshot?.payload?.defenses||[]).map(resolveGameSide));
@@ -104,19 +107,20 @@ function DefenseGroups({ snapshot, counterTeams, castle, search, currentUser }) 
   const keyword=search.replace(/\s/g,'').toLowerCase();
   const groups=groupDefenses(snapshot?.payload?.defenses).filter(g=>(!castle||g.castle===castle)&&(!keyword||[...g.heroes,g.pet,...g.members].join(' ').replace(/\s/g,'').toLowerCase().includes(keyword)));
   return <div className="space-y-3">
-    <div className="flex flex-wrap gap-2">{[[false,'상세보기'],[true,'몰아보기']].map(([value,label])=><button type="button" key={label} aria-pressed={overview===value} className={`${button} ${overview===value?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>setOverview(value)}>{label}</button>)}<button type="button" className={button} disabled={!copyText} onClick={copyDefenses}>상대 방어팀 복사하기</button></div>
+    <div className="flex flex-wrap gap-2">{[[false,'상세보기'],[true,'몰아보기']].map(([value,label])=><button type="button" key={label} aria-pressed={!skillsVisible&&overview===value} className={`${button} ${!skillsVisible&&overview===value?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>{setShowSkills(false);setOverview(value);}}>{label}</button>)}{canViewHeroStats(currentUser)&&<button type="button" disabled={!snapshot} aria-pressed={skillsVisible} className={`${button} ${skillsVisible?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>setShowSkills(value=>!value)}>스킬보기</button>}<button type="button" className={button} disabled={!copyText} onClick={copyDefenses}>상대 방어팀 복사하기</button></div>
     {copyStatus&&<p role="status" className="text-sm">{copyStatus}</p>}
     {manualCopy&&<textarea aria-label="상대 방어팀 복사 내용" readOnly value={manualCopy} onFocus={e=>e.target.select()} className="w-full rounded-xl border border-zinc-200 bg-white p-3" rows={12}/>}
     {snapshot&&<p className="text-xs text-zinc-500">수집 시각: {date(snapshot.occurred_at)} · 수집 {Array.isArray(snapshot.payload.defenses)?snapshot.payload.defenses.length:0}개 / 전체 {Number.isInteger(snapshot.payload.total)?snapshot.payload.total:'미확인'}개</p>}
     {!groups.length&&<div className={box}><p>{snapshot?'조건에 맞는 상대 방어팀이 없습니다.':'아직 수집된 상대 방어팀이 없습니다.'}</p>{!snapshot&&<p className="mt-2 text-sm text-zinc-500">PC 수집기 연결 후 전장 정보를 수신하면 표시됩니다.</p>}</div>}
-    {overview&&<div className="grid min-w-0 grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">{castles.filter(name=>!castle||castle===name).map(name=>{
+    {skillsVisible&&<DefenseSkillView snapshot={snapshot} currentUser={currentUser} castle={castle} search={search}/>}
+    {!skillsVisible&&overview&&<div className="grid min-w-0 grid-cols-1 items-start gap-3 md:grid-cols-2 xl:grid-cols-3">{castles.filter(name=>!castle||castle===name).map(name=>{
       const rows=groups.filter(group=>group.castle===name);
       return <section key={name} className="min-w-0 rounded-2xl border border-zinc-200 bg-white p-4"><h3 className="mb-3 flex items-center justify-between gap-2 font-bold"><span>{name}</span><span className="text-sm font-normal text-zinc-500">{rows.reduce((sum,row)=>sum+row.count,0)}팀 · {rows.length}조합</span></h3><div className="space-y-3">{rows.map(group=>{
         const decks=sortByRecommendation(counterTeams.filter(t=>heroKey(t.heroes)===heroKey(group.heroes)).flatMap(t=>t.decks||[]));
         return <div key={group.key} className="min-w-0 rounded-xl border border-zinc-200 p-3"><div className="flex items-start justify-between gap-2"><p className="min-w-0 break-words text-sm font-semibold">{group.heroes.join(' · ')}</p><strong className="shrink-0 text-blue-600">×{group.count}</strong></div><p className="mt-1 break-words text-xs text-zinc-500">펫: {group.pet||'미확인'}</p><details className="mt-2 text-xs"><summary className="cursor-pointer">상대 목록</summary><p className="my-2 break-words">{group.members.join(' · ')}</p></details><div className="mt-3">{['member','admin'].includes(currentUser?.role)&&<DefenseCounterTabs group={group} decks={decks} currentUser={currentUser}/>}</div></div>;
       })}{!rows.length&&<p className="text-sm text-zinc-500">{search?'검색 결과 없음':'수집된 방어팀 없음'}</p>}</div></section>;
     })}</div>}
-    {!overview&&groups.map(group=>{
+    {!skillsVisible&&!overview&&groups.map(group=>{
       const decks=sortByRecommendation(counterTeams.filter(t=>heroKey(t.heroes)===heroKey(group.heroes)).flatMap(t=>t.decks||[]));
       return <article key={group.key} className={`${box} grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]`}>
         <div><p className="text-xs text-zinc-500">{group.castle}</p><h3 className="mt-1 font-semibold">{group.heroes.join(' · ')} <span>×{group.count}</span></h3><p className="mt-2 text-sm">펫: {group.pet||'미확인'}</p><details className="mt-3 text-sm"><summary className="cursor-pointer">상대 목록</summary><p>{group.members.join(' · ')}</p></details></div>
