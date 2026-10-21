@@ -28,15 +28,15 @@ export default function DefenseSkillView({snapshot,currentUser,castle,search}){
   <p className="text-xs text-zinc-500">상대 시작 예약 스킬 · 15초마다 자동 갱신 · 같은 조합도 상대마다 순서가 다를 수 있습니다.</p>
   {locations.filter(name=>!castle||name===castle).map(name=>{
    const members=rows.filter(row=>row.castle===name);
-   return <section key={name} className="min-w-0 rounded-2xl border border-zinc-200 bg-white p-3 sm:p-4" aria-label={`${name} 상대 시작 스킬`}>
-    <h3 className="mb-3 flex flex-wrap items-center gap-2 border-b border-zinc-200 pb-3 font-bold"><span>{name}</span><span className="text-xs font-normal text-zinc-500">{members.length}팀 · 스킬 수집 {members.filter(row=>row.skills.length).length}팀</span></h3>
-    <div className="grid min-w-0 gap-3 md:grid-cols-2 xl:grid-cols-3">{members.map(row=><article key={row.index} className="min-w-0 rounded-xl border border-zinc-200 bg-white p-4">
+   return <details key={name} className="min-w-0 rounded-2xl border border-zinc-200 bg-white p-3 sm:p-4" aria-label={`${name} 상대 시작 스킬`}>
+    <summary className="cursor-pointer font-bold"><span>{name}</span><span className="ml-2 text-xs font-normal text-zinc-500">{members.length}팀 · 스킬 수집 {members.filter(row=>row.skills.length).length}팀</span></summary>
+    <div className="mt-3 grid min-w-0 gap-3 border-t border-zinc-200 pt-3 md:grid-cols-2 xl:grid-cols-3">{members.map(row=><article key={row.index} className="min-w-0 rounded-xl border border-zinc-200 bg-white p-4">
      <h4 className="break-words font-semibold">{row.nickname||'닉네임 미확인'}</h4>
      <p className="mt-2 break-words text-sm">{row.heroes.join(' · ')}</p><p className="mt-1 text-xs text-zinc-500">펫: {row.pet||'미확인'}</p>
      {row.skills.length?<ol className="mt-3 space-y-2 border-t border-zinc-200 pt-3 text-sm">{[...row.skills].sort((a,b)=>a.order-b.order).map(skill=><li key={skill.order} className="flex gap-2"><span className="text-zinc-500">{skill.order}.</span><span className="min-w-0 break-words">{row.heroes[row.heroIds.indexOf(skill.heroId)]||`영웅 #${skill.heroId}`} <b className="whitespace-nowrap">{defenseSkillLabel(skill.skillType)}</b></span></li>)}</ol>:<p className="mt-3 text-sm text-zinc-500">시작 스킬 미수집 · 최신 수집기를 켜고 게임에서 {name} 목록을 열어 주세요.</p>}
     </article>)}</div>
     {!members.length&&<p className="text-sm text-zinc-500">{search?'검색 결과 없음':'수집된 방어팀 없음'}</p>}
-   </section>;
+   </details>;
   })}
  </div>;
 }
