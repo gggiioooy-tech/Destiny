@@ -15,9 +15,9 @@ const port=15367, base=`http://127.0.0.1:${port}`;
 let child;
 try{
  for(const name of ['server.mjs','connect.html','connect.css','connect.js'])fs.copyFileSync(path.join(source,name),path.join(root,name));
- fs.writeFileSync(path.join(root,'watch.mjs'),`import fs from 'node:fs';fs.writeFileSync(${JSON.stringify(path.join(root,'red-started'))},String(process.pid));setInterval(()=>{},1000);`);
+ fs.writeFileSync(path.join(root,'watch.mjs'),`import fs from 'node:fs';import {spawn} from 'node:child_process';const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{windowsHide:true,stdio:'ignore'});fs.writeFileSync(${JSON.stringify(path.join(root,'red-started'))},JSON.stringify([process.pid,child.pid]));setInterval(()=>{},1000);`);
  // Isolated fake auth service: never contacts Supabase and never uses a real session.
- fs.writeFileSync(path.join(root,'mock.mjs'),`globalThis.fetch=async(url,options)=>{if(url!=='https://kqygrszkbuzxmmfndhye.supabase.co/rest/v1/rpc/red_collector_access')throw Error('unexpected remote request');return new Response(JSON.stringify(options.headers.Authorization==='Bearer fixture-owner'),{status:200});};`);
+ fs.writeFileSync(path.join(root,'mock.mjs'),`globalThis.fetch=async(url,options)=>{if(url!=='https://kqygrszkbuzxmmfndhye.supabase.co/rest/v1/rpc/red_collector_access')throw Error('unexpected remote request');if(options.headers.Authorization==='Bearer fixture-owner-slow')await new Promise(r=>setTimeout(r,400));return new Response(JSON.stringify(options.headers.Authorization.startsWith('Bearer fixture-owner')),{status:200});};`);
  const payload={attacker:{skills:[{hero:'fixture'}]},defender:{skills:[]},heroSpeeds:{},heroHealth:{},heroStats:{},firstSkillSide:'attacker'};
  const status={attack:1,defense:0,held:0,records:[{kind:'battle',payload}]};
  for(const name of ['status.json','status-red.json'])fs.writeFileSync(path.join(root,name),JSON.stringify(status));
@@ -40,10 +40,14 @@ try{
  for(let n=0;n<20&&!fs.existsSync(path.join(root,'red-started'));n++)await delay(50);
  assert.ok(fs.existsSync(path.join(root,'red-started')));
  const red=await (await fetch(base+'/red/status',{headers:owner})).json();assert.equal(red.captureActive,true);assert.equal(red.records[0].payload.firstSkillSide,'attacker');
- const pid=Number(fs.readFileSync(path.join(root,'red-started')));
+ const pids=JSON.parse(fs.readFileSync(path.join(root,'red-started')));
  assert.equal((await fetch(base+'/red/stop',{method:'POST',headers:{Cookie:cookie,'X-Collector-Action':'stop'}})).status,200);
- await delay(100);assert.throws(()=>process.kill(pid,0));
+ await delay(100);for(const pid of pids)assert.throws(()=>process.kill(pid,0));
  assert.equal((await (await fetch(base+'/red/status',{headers:owner})).json()).captureActive,false);
+ fs.unlinkSync(path.join(root,'red-started'));
+ const pending=fetch(base+'/red/start',{method:'POST',headers:{...owner,Authorization:'Bearer fixture-owner-slow'}});
+ await delay(100);assert.equal((await fetch(base+'/red/stop',{method:'POST',headers:{Cookie:cookie,'X-Collector-Action':'stop'}})).status,200);
+ assert.equal((await pending).status,409);assert.ok(!fs.existsSync(path.join(root,'red-started')),'pending auth cannot restart after stop');
  console.log('PASS passive sanitization; unauthorized red blocked; owner red start/status/stop; owned analyzer terminated');
 }finally{
  if(child){child.kill();await delay(150);}

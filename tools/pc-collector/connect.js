@@ -12,6 +12,7 @@ if(paired)document.getElementById('connection').textContent='15월사이트와 �
 const captureButton=document.getElementById('capture-start');
 const stopButton=document.getElementById('capture-stop');
 let changingCapture=false;
+let manuallyStopped=false,actionGeneration=0;
 const captureInfo=document.getElementById('capture-info');
 const syncInfo=document.getElementById('sync-info');
 const video=document.getElementById('mascot-video');
@@ -37,18 +38,20 @@ function showProblems(data){
 }
 let lastSavedAt=null;let lastSavedCount=0;let syncError='';let setupTask=Promise.resolve();
 async function startCapture(restart=false){
+  if(redMode&&manuallyStopped&&!restart)return;
   if(changingCapture)return;
+  const generation=++actionGeneration;manuallyStopped=false;
   changingCapture=true;actionError='';showProblems();
   captureInfo.textContent='수집을 시작하고 있어요…';
   captureButton.disabled=true;
-  try{await setupTask.catch(()=>{});const r=await fetch(redMode?'/red/start':'/capture',{method:'POST',headers:requestHeaders({'X-Collector-Action':'start','X-Collector-Restart':String(restart)})});const d=await r.json();captureInfo.textContent=d.message;if(!r.ok)throw new Error(d.message||'수집 시작 실패');actionError='';}
-  catch(e){actionError=e.message||'수집기를 다시 연결해 주세요.';captureInfo.textContent=actionError;showProblems();}finally{captureButton.disabled=false;changingCapture=false;}
+  try{await setupTask.catch(()=>{});if(generation!==actionGeneration)return;const r=await fetch(redMode?'/red/start':'/capture',{method:'POST',headers:requestHeaders({'X-Collector-Action':'start','X-Collector-Restart':String(restart)})});const d=await r.json();if(generation!==actionGeneration)return;captureInfo.textContent=d.message;if(!r.ok)throw new Error(d.message||'수집 시작 실패');actionError='';}
+  catch(e){if(generation===actionGeneration){actionError=e.message||'수집기를 다시 연결해 주세요.';captureInfo.textContent=actionError;showProblems();}}finally{if(generation===actionGeneration){captureButton.disabled=false;changingCapture=false;}}
 }
 captureButton.addEventListener('click',()=>startCapture(true));
 async function stopCapture(){
-  if(changingCapture)return;changingCapture=true;stopButton.disabled=true;captureInfo.textContent='수집을 종료하고 있어요…';
+  if(stopButton.disabled)return;if(changingCapture&&!redMode)return;actionGeneration++;manuallyStopped=true;changingCapture=true;captureButton.disabled=true;stopButton.disabled=true;captureInfo.textContent='수집을 종료하고 있어요…';
   try{const r=await fetch(redMode?'/red/stop':'/capture/stop',{method:'POST',headers:requestHeaders({'X-Collector-Action':'stop'})});const d=await r.json();captureInfo.textContent=d.message;if(!r.ok)throw new Error(d.message);actionError='';}
-  catch(e){actionError=e.message||'수집 종료에 실패했어요.';captureInfo.textContent=actionError;showProblems();}finally{changingCapture=false;stopButton.disabled=false;void update();}
+  catch(e){actionError=e.message||'수집 종료에 실패했어요.';captureInfo.textContent=actionError;showProblems();}finally{changingCapture=false;captureButton.disabled=false;stopButton.disabled=false;void update();}
 }
 stopButton.addEventListener('click',stopCapture);
 window.addEventListener('message',event=>{
