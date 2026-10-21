@@ -2,12 +2,12 @@ import React,{useEffect,useState} from 'react';
 import {canViewHeroStats} from '../lib/heroBattleStats.js';
 import {SIM_HEROES,MODEL_LIMITS,prepareHeroes,createBattle,advanceBattle} from '../lib/experimentalBattle.js';
 
-const fields=[['attack','공격력'],['defense','방어력'],['maxHp','생명력'],['speed','속공'],['crit','치명타 %'],['critDamage','치명피해 %'],['accuracy','효과적중 %'],['resist','효과저항 %']];
+const fields=[['attack','공격력'],['defense','방어력'],['maxHp','생명력'],['speed','속공'],['crit','치명타 %'],['critDamage','치명피해 %'],['accuracy','효과적중 %'],['resist','효과저항 %'],['block','막기 %'],['shred','파쇄 %'],['elasticity','탄성 %'],['blockBuff','추가 막기 버프 %'],['blockDebuff','막기 디버프 %'],['blockReduction','막기 피해감소 %']];
 const number=n=>Math.round(n).toLocaleString('ko-KR');
 export default function ExperimentalBattle({currentUser,report}){
   const permitted=canViewHeroStats(currentUser);
   const [draft,setDraft]=useState(()=>prepareHeroes(report));
-  const [battle,setBattle]=useState(null),[running,setRunning]=useState(false),[speed,setSpeed]=useState(1),[seed,setSeed]=useState(1),[armor,setArmor]=useState(1000),[error,setError]=useState('');
+  const [battle,setBattle]=useState(null),[running,setRunning]=useState(false),[speed,setSpeed]=useState(1),[seed,setSeed]=useState(1),[error,setError]=useState('');
   useEffect(()=>{
     if(!running||!permitted)return;
     const id=setInterval(()=>setBattle(old=>old?advanceBattle(old):old),1000/speed);
@@ -16,13 +16,13 @@ export default function ExperimentalBattle({currentUser,report}){
   useEffect(()=>{if(battle?.done)setRunning(false);},[battle?.done]);
   if(!permitted)return null;
   function edit(i,key,value){setDraft(old=>old.map((h,j)=>j===i?{...h,[key]:value,origin:'직접 설정'}:h));}
-  function start(){try{setBattle(createBattle(draft,{seed,armor}));setRunning(true);setError('');}catch(e){setError(e.message);}}
+  function start(){try{setBattle(createBattle(draft,{seed}));setRunning(true);setError('');}catch(e){setError(e.message);}}
   const units=battle?.units||draft;
   return <div className="space-y-4">
     <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"><strong>실시간 계산 · 실험판</strong><p className="mt-1">{MODEL_LIMITS}</p><p className="mt-1">현재 연희·쥬리·각성 윤건 지원. 스킬 배율 일부와 보호막·무효화·수면·방어 감소·불사를 적용합니다. 대상 선택은 앞줄 우선 / 스킬은 전체 공격으로 단순화하며, 2스 → 1스 → 평타 순으로 행동합니다. 지속시간은 해당 영웅 행동 횟수로 셉니다.</p></div>
     <details open={!battle} className="rounded-2xl border border-zinc-200 bg-white p-4"><summary className="cursor-pointer font-bold">영웅 배치 · 스탯 설정</summary><p className="my-3 text-xs text-zinc-500">같은 팀·같은 영웅의 수집 스탯이 있으면 불러옵니다. 나머지는 테스트 기본값입니다. 영웅 변경 시 스탯은 유지되므로 직접 조정해 주세요.</p>
       <div className="grid gap-3 lg:grid-cols-2">{['attacker','defender'].map(side=><fieldset key={side} className="min-w-0 space-y-3"><legend className="mb-2 font-bold">{side==='attacker'?'공격팀':'방어팀'}</legend>{draft.map((h,i)=>h.side===side&&<div key={h.id} className="rounded-xl border border-zinc-200 p-3"><div className="flex items-center justify-between gap-2"><select aria-label={`${side==='attacker'?'공격':'방어'} ${i%3+1}번 영웅`} value={h.name} onChange={e=>edit(i,'name',e.target.value)} className="rounded-lg border p-2 font-semibold">{SIM_HEROES.map(name=><option key={name}>{name}</option>)}</select><small>{h.origin}</small></div><div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">{fields.map(([key,label])=><label key={key} className="text-xs text-zinc-600">{label}<input type="number" min={key==='resist'?-1000000:key==='maxHp'?1:0} max="1000000" value={h[key]} onChange={e=>edit(i,key,e.target.value===''?'':Number(e.target.value))} className="mt-1 w-full rounded-lg border p-2 text-zinc-900"/></label>)}</div></div>)}</fieldset>)}</div>
-      <div className="mt-4 flex flex-wrap gap-4"><label className="text-xs">난수 시드<input type="number" value={seed} onChange={e=>setSeed(Number(e.target.value))} className="ml-2 w-24 rounded border p-2"/></label><label className="text-xs">임시 방어 보정 상수<input type="number" min="1" max="100000" value={armor} onChange={e=>setArmor(Number(e.target.value))} className="ml-2 w-24 rounded border p-2"/></label></div><p className="mt-2 text-xs text-zinc-500">추정 피해 = 스킬 기초 피해 × 상수 ÷ (상수 + 보정 방어력) × 치명타 배율. 장비·펫의 스탯 증가분은 입력값에 포함해 주세요. 동일 설정·시드는 동일 결과가 나옵니다.</p>
+      <div className="mt-4 flex flex-wrap gap-4"><label className="text-xs">난수 시드<input type="number" value={seed} onChange={e=>setSeed(Number(e.target.value))} className="ml-2 w-24 rounded border p-2"/></label></div><p className="mt-2 text-xs text-zinc-500">방어 분모 = 1 + 보정 방어력 × 0.00214. 탄성은 치명피해에서 차감하며 최소 100%입니다. 막기는 기본값+추가 버프를 100%로 제한한 뒤 디버프·파쇄를 차감합니다. 수집된 막기에 이미 포함된 버프는 중복 입력하지 마세요. 막기 피해감소 기본값은 50%인 실험 설정입니다. 같은 설정·시드는 같은 결과가 나옵니다.</p>
     </details>
     <section className="overflow-hidden rounded-2xl border border-slate-600 bg-slate-950 p-4 text-slate-100 sm:p-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs tracking-widest text-amber-200">15MONTH · LIVE BATTLE</p><h2 className="text-xl font-bold">{battle?.done?(battle.winner?(battle.winner==='attacker'?'공격팀':'방어팀')+' 승리':'판정 보류'):running?'전투 진행 중':'전투 대기'}</h2></div><span className="rounded-full border border-slate-600 px-3 py-1 text-xs">라운드 {battle?.round||0} · 행동 {battle?.step||0} · 추정 계산</span></div>

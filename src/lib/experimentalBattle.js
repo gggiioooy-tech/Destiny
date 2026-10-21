@@ -1,20 +1,20 @@
-// Experimental model: coefficients are explicit assumptions, never fitted replay damage.
+import {hitProbabilities,calculateHit} from './combatDamage.js';
+// Experimental community model; action scheduling is still a prototype.
 export const SIM_HEROES=['연희','쥬리','윤건'];
-export const MODEL_LIMITS='실험 모델: 방어 보정·행동 순서·쿨타임은 임시 규칙입니다. 펫·장비 개별 효과, 각성기, 협공·추가타·연속 발동·일부 패시브는 미구현이며 실제 승패 예측에 사용할 수 없습니다. 입력 스탯에 포함된 상시 증가는 다시 적용하지 않습니다.';
+export const MODEL_LIMITS='실험 모델: 사용자 제공 방어 계수 0.00214 및 탄성·막기·파쇄 차감 규칙을 적용합니다. 확률 판정 순서는 독립 검증 전입니다. 행동 순서·쿨타임은 임시 규칙이며 펫·장비 개별 효과, 각성기, 협공·추가타·일부 패시브는 미구현입니다. 입력 스탯에 포함된 상시 증가는 다시 적용하지 않습니다.';
 export function prepareHeroes(report){
   return Array.from({length:6},(_,i)=>{
     const side=i<3?'attacker':'defender',name=SIM_HEROES[i%3];
     const source=report?.heroes.find(h=>h.side===side&&h.name===name);
     const s=source?.stats;
-    return {id:i,name,side,attack:s?Math.max(s['1']||0,s['3']||0):8000,defense:s?.['5']??1800,maxHp:s?.['7']??10000,speed:s?.['9']??(100-i),crit:(s?.['10']??750)/10,critDamage:(s?.['11']??1500)/10,accuracy:(s?.['13']??0)/10,resist:(s?.['14']??0)/10,origin:source?'수집된 시작 스탯':'테스트 기본값'};
+    return {id:i,name,side,attack:s?Math.max(s['1']||0,s['3']||0):8000,defense:s?.['5']??1800,maxHp:s?.['7']??10000,speed:s?.['9']??(100-i),crit:(s?.['10']??750)/10,critDamage:(s?.['11']??1500)/10,accuracy:(s?.['13']??0)/10,resist:(s?.['14']??0)/10,block:(s?.['17']??0)/10,shred:(s?.['22']??0)/10,elasticity:(s?.['23']??0)/10,blockBuff:0,blockDebuff:0,blockReduction:50,origin:source?'수집된 시작 스탯':'테스트 기본값'};
   });
 }
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-export function createBattle(heroes,{seed=1,armor=1000}={}){
+export function createBattle(heroes,{seed=1}={}){
   if(heroes.length!==6||heroes.filter(h=>h.side==='attacker').length!==3||heroes.filter(h=>h.side==='defender').length!==3||heroes.some(h=>!SIM_HEROES.includes(h.name)))throw Error('지원 영웅을 양 팀에 3명씩 배치해 주세요.');
-  for(const h of heroes)for(const k of ['attack','defense','maxHp','speed','crit','critDamage','accuracy','resist'])if(!Number.isFinite(h[k])||Math.abs(h[k])>1000000||(h[k]<0&&k!=='resist')||(k==='maxHp'&&h[k]<1))throw Error('스탯은 유효한 숫자로 입력해 주세요.');
-  if(!Number.isFinite(armor)||armor<1||armor>100000)throw Error('방어 보정 상수는 1~100,000으로 입력해 주세요.');
-  return {units:heroes.map((h,i)=>({...h,id:i,hp:h.maxHp,barrier:h.name==='윤건'?Math.round(h.attack*1.85):0,nullify:h.name==='쥬리'?3:0,sleep:0,defDown:0,defTurns:0,immortal:0,revived:false,triggered:false,actions:0})),seed:(Number(seed)>>>0)||1,armor,step:0,round:0,queue:[],log:[],done:false,winner:null,active:null,targets:[]};
+  for(const h of heroes)for(const k of ['attack','defense','maxHp','speed','crit','critDamage','accuracy','resist','block','shred','elasticity','blockBuff','blockDebuff','blockReduction'])if(!Number.isFinite(h[k])||Math.abs(h[k])>1000000||(h[k]<0&&k!=='resist')||(k==='maxHp'&&h[k]<1)||(k==='blockReduction'&&h[k]>100))throw Error('스탯은 유효한 숫자로 입력해 주세요. 막기 피해감소는 0~100%입니다.');
+  return {units:heroes.map((h,i)=>({...h,id:i,hp:h.maxHp,barrier:h.name==='윤건'?Math.round(h.attack*1.85):0,nullify:h.name==='쥬리'?3:0,sleep:0,defDown:0,defTurns:0,immortal:0,revived:false,triggered:false,actions:0})),seed:(Number(seed)>>>0)||1,step:0,round:0,queue:[],log:[],done:false,winner:null,active:null,targets:[]};
 }
 function random(s){s.seed=(Math.imul(s.seed,1664525)+1013904223)>>>0;return s.seed/4294967296;}
 export function advanceBattle(previous){
@@ -32,12 +32,12 @@ export function advanceBattle(previous){
     if(target.hp<=0)return;
     s.targets.push(target.id);
     if(target.nullify>0&&!pierce){target.nullify--;events.push(`${target.name} 피해 무효화`);return;}
-    const critical=random(s)<clamp(actor.crit/100,0,1);
-    const defense=target.defense*(1-target.defDown)*(1-ignore);
-    let damage=Math.max(1,Math.round(base*s.armor/(s.armor+defense)*(critical?Math.max(1,actor.critDamage/100):1)));
+    const chances=hitProbabilities({crit:actor.crit,block:target.block,blockBuff:target.blockBuff,blockDebuff:target.blockDebuff,shred:actor.shred});
+    const roll=random(s),critical=roll<chances.critical,isBlock=roll>=chances.critical&&roll<chances.critical+chances.blocked;
+    let damage=calculateHit({base,defense:target.defense,defenseDecrease:target.defDown,ignore,critDamage:actor.critDamage,elasticity:target.elasticity,critical,blocked:isBlock,blockReduction:target.blockReduction});
     const blocked=Math.min(target.barrier,damage);target.barrier-=blocked;damage-=blocked;
     target.hp=Math.max(target.immortal>0?1:0,target.hp-damage);
-    events.push(`${target.name} −${damage.toLocaleString()}${critical?' 치명타':''}${blocked?' · 보호막 '+blocked.toLocaleString():''}`);
+    events.push(`${target.name} −${damage.toLocaleString()}${critical?' 치명타':''}${isBlock?' 막기':''}${blocked?' · 보호막 '+blocked.toLocaleString():''}`);
     if(target.sleep&&damage>0)target.sleep=0;
     if(target.name==='연희'&&!target.triggered&&target.hp>0&&target.hp<=target.maxHp*.7){target.nullify=4;target.triggered=true;events.push('연희 · 피해 무효화 4회');}
     if(target.name==='쥬리'&&target.hp===0&&!target.revived){target.hp=1;target.immortal=3;target.revived=true;events.push('쥬리 · 불사 3회 행동');}
