@@ -7,3 +7,4 @@ dist
 tmp/
 output/
 supabase/.temp/
+__pycache__/
