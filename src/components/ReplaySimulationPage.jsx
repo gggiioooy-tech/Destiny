@@ -28,7 +28,7 @@ export default function ReplaySimulationPage({currentUser}){
     try{if(file.size>2097152)throw new Error('2MB 이하의 분석 JSON 파일만 열 수 있습니다.');const data=validateReplayReport(JSON.parse(await file.text()));setSelected('');setReport({identity,data});setError('');setLoading(false);}catch(e){setError(e.message||'파일을 읽지 못했습니다.');}
   }
   return <section className="min-w-0 space-y-4 p-4 sm:p-6">
-    <header><p className="text-xs font-semibold text-zinc-500">권한등급 4등급 전용</p><h1 className="mt-1 text-2xl font-bold">시뮬레이션</h1><p className="mt-2 text-sm text-zinc-600">영웅과 스탯을 배치해 새로운 전투를 계산하는 실험판입니다. 아래 저장 전투를 선택하면 지원 영웅의 시작 스탯을 불러옵니다.</p></header>
+    <header><p className="text-xs font-semibold text-zinc-500">권한등급 4등급 전용</p><h1 className="mt-1 text-2xl font-bold">시뮬레이션</h1><p className="mt-2 text-sm text-zinc-600">영웅을 배치하고 스킬 순서를 정해 전투를 진행하세요. 저장 전투의 실제 조합과 시작 스탯을 불러오거나 전체 영웅 목록에서 교체할 수 있습니다.</p></header>
     <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-zinc-200 bg-white p-4">
       <label className="min-w-0 flex-1 text-sm font-semibold">저장된 테스트 전투<select className="mt-2 block w-full rounded-xl border border-zinc-300 bg-white p-3 text-sm font-normal" value={selected} onChange={e=>setSelected(e.target.value)}><option value="">전투 선택</option>{items.map(item=><option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
       <label className="cursor-pointer rounded-xl border border-zinc-300 bg-white px-4 py-3 text-sm font-semibold">분석 JSON 열기<input aria-label="분석 JSON 파일 선택" className="sr-only" type="file" accept=".json,application/json" onChange={openLocal}/></label>

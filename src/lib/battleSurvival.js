@@ -27,7 +27,7 @@ export function receiveDamage(unit,amount,{pierce=false}={}){
 export function tickPersonalTurn(unit,before){
   const next={...unit},events=[];
   // Only durations that existed before this basic-attack turn are ticked.
-  for(const key of ['sleep','defTurns','immunity','controlImmune','annihilation','barrierTurns','damageBuffTurns']){
+  for(const key of ['sleep','control','silence','healBlock','defTurns','immunity','controlImmune','annihilation','barrierTurns','damageBuffTurns']){
     if(before[key]>0&&next[key]>0&&next[key]<=before[key])next[key]--;
   }
   if(!next.defTurns)next.defDown=0;
