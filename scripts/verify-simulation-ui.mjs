@@ -18,7 +18,7 @@ try{
   assert.ok(html.includes('aria-valuenow='));assert.ok(html.includes('no-referrer'));
   for(const currentUser of [null,{role:'member'},{role:'admin',isOwner:false}])assert.equal(renderToStaticMarkup(React.createElement(Simulation,{currentUser})), '');
   const owner=renderToStaticMarkup(React.createElement(Simulation,{currentUser:{role:'admin',isOwner:true}}));
-  assert.ok(owner.includes('176종 영웅 선택'));assert.ok(owner.includes('전투 종료'));assert.ok(owner.includes('스킬·패시브 자료'));
+  assert.ok(owner.includes('176종 영웅 선택'));assert.ok(owner.includes('전투 종료'));assert.ok(owner.includes('영웅을 선택해 스탯 편집'));
   assert.equal((owner.match(/role="tab"/g)||[]).length,3);
   assert.ok(owner.includes('100회 비교'));assert.ok(owner.includes('계산 중지'));assert.ok(owner.includes('90% 정확도를 달성하지 못했습니다'));
   assert.ok(owner.includes('영웅 정보창 · 전투 전'));assert.ok(owner.includes('펫 잠재 4줄'));assert.ok(owner.includes('자동 계산된 전투 시작 수치'));
@@ -28,12 +28,13 @@ try{
   const page=renderToStaticMarkup(React.createElement(Page,{currentUser:{role:'admin',isOwner:true}}));
   for(const label of ['사이트에 저장된 전투','분석 JSON 열기','실전 기록 불러옴'])assert.ok(!page.includes(label));
   const setup=renderToStaticMarkup(React.createElement(Setup,{draft,plans:defaultSkillPlans(),seed:1,setDraft(){},setPlans(){},setSeed(){}}));
-  assert.equal((setup.match(/type="number"/g)||[]).length,STAT_FIELDS.length+1);
+  assert.equal((setup.match(/type="number"/g)||[]).length,1);
   assert.equal((setup.match(/class="sim-seat /g)||[]).length,10);
+  assert.ok(!setup.includes('영웅 스탯 입력'));assert.ok(!setup.includes('sim-stat-primary'));assert.equal((setup.match(/aria-haspopup="dialog"/g)||[]).length,6);
   assert.ok(setup.includes('자리 배치'));assert.ok(setup.includes('낮은 자리번호'));
   assert.ok(owner.indexOf('펫 잠재 4줄')<owner.indexOf('자리 배치'));
 
-  for(const text of ['내 조합 저장','스탯 표 붙여넣기','빠른 계산','공격·방어 교환'])assert.ok(owner.includes(text));
+  for(const text of ['내 조합 저장','빠른 계산','공격·방어 교환'])assert.ok(owner.includes(text));
   const finished=finishSession({frames:[createBattle(draft)],cursor:0},advanceBattle);
   const resultHtml=renderToStaticMarkup(React.createElement(Results,{session:finished,onSeek(){}}));
   assert.equal((resultHtml.match(/<polyline/g)||[]).length,6);assert.ok(resultHtml.includes('행동 로그 팀 필터'));assert.ok(resultHtml.includes('이 장면 보기'));
