@@ -61,26 +61,46 @@ def wiki_skills(hero):
             for e in s.get('perHit', []):
                 if e['effect'] == '감전':
                     text += f"\n- 각 공격마다 감전 [{e['chancePercent']}% 확률] [{e['turns']}턴 지속]"
-            result.append({'code':code,'name':s.get('name','기본 공격'),'text':text,'enhanced':'','upgrades':'','targets':s.get('targetCount',3),'cooldown':s.get('cooldown',0),'icon':''})
+                elif e['effect'] == '방어력 감소':
+                    text += f"\n- 각 공격마다 방어력 감소 {e['percentPerStack']}% [100% 확률] 1중첩 [최대 {e['maxStacks']}중첩]"
+            result.append({'code':code,'name':s.get('name','기본 공격'),'text':text,'enhanced':'','upgrades':'','targets':s.get('targetCount',3),'cooldown':s.get('cooldown',0),'gauge':s.get('gauge',0),'icon':''})
         result.append({'code':4,'name':d['passive']['name'],'text':'자신\n- 모든 피해 무효화 [피격 4회]\n- 사망 시 생명력 100%로 부활 (전투당 1회 발동)','enhanced':'','upgrades':'','targets':1,'cooldown':0,'icon':''})
         return result
     sections = []
+    nested = False
     for line in hero['lines']:
         text = line['text'].strip()
-        if re.match(r'^#{3,5}\s+\d+\.\d+\.\d+\.', text):
-            sections.append({'name':re.sub(r'^#+\s+\d+(?:\.\d+)*\.\s*', '', text), 'lines':[]})
-        elif sections:
+        heading = re.match(r'^#{3,5}\s+\d+\.\d+\.(\d+)\.(?:\s|$)', text)
+        if heading:
+            nested = False
+            sections.append({'name':re.sub(r'^#+\s+\d+(?:\.\d+)*\.\s*', '', text), 'number':int(heading[1]), 'lines':[], 'variantsOmitted':False})
+        elif re.match(r'^#+\s+\d+\.\d+\.\d+\.\d+',text):
+            nested = True
+            if sections:
+                sections[-1]['variantsOmitted'] = True
+        elif sections and not nested:
             sections[-1]['lines'].append(text)
     skills = []
     for i, section in enumerate(sections):
-        code = 1 if i == 0 else 4 if '고유 지속' in section['name'] else 7 if '각성' in section['name'] or i >= 4 else i+1
+        code = 4 if '고유 지속' in section['name'] else 7 if section['number'] >= 5 else section['number']
         lines = section['lines']
         # Keep numerical rules and target labels, exclude quotes/art and editorial prose.
-        rules = [t for t in lines if t.startswith('- ') or re.match(r'^[\[(]?(?:모든 |단일 |적군|아군|자신|스킬 강화|[26]\s*초월|쿨타임)', t)]
-        cooldown = re.search(r'쿨타임[^\d]*(\d+)', '\n'.join(lines))
+        detail_start = next((j for j,t in enumerate(lines) if t.startswith('부가효과 상세')), len(lines))
+        main_lines = lines[:detail_start]
+        rules = [t for t in main_lines if t.startswith('- ') or re.match(r'^[\[(]?(?:모든 |단일 |적군|아군|자신|스킬 강화|[26]\s*초월|쿨타임)', t)]
+        definitions = {}
+        label = None
+        for t in lines[detail_start:]:
+            if t.startswith('- '):
+                label = t[2:].strip()
+            elif label and re.search(r'(?:감소|증가|피해|회복|초과|넘을|무시|적용|해제|수 없|고정|감전|중독)',t) and not re.search(r'평가|PVP|PVE|기댓값|추천|편이다|좋다|나쁘다|유저',t):
+                definitions.setdefault(label, []).append(t)
+                label = None
+        cooldown = re.search(r'^\[쿨타임\][ \t]*:[ \t]*(\d+)[ \t]*$', '\n'.join(lines), re.M)
+        gauge = re.search(r'^\[각성\s*게이지\]\s*:[ \t]*(\d+)[ \t]*$', '\n'.join(lines), re.M)
         skills.append({'code':code, 'name':section['name'].split(' - ')[-1], 'text':'\n'.join(rules),
-                       'enhanced':'', 'upgrades':'', 'targets':None,
-                       'cooldown':int(cooldown[1]) if cooldown else 0, 'icon':''})
+                       'enhanced':'', 'upgrades':'', 'targets':None, 'definitions':definitions,
+                       'cooldown':int(cooldown[1]) if cooldown else 0, 'gauge':int(gauge[1]) if gauge else 0, 'variantsOmitted':section['variantsOmitted'], 'icon':''})
     return skills
 
 def main():
@@ -100,17 +120,29 @@ def main():
                 hero = f.result(); heroes[hero['name']] = hero
             except Exception as e:
                 errors.append({'name':futures[f], 'error':str(e)})
-    research = json.loads((ROOT/'tmp/wiki-research/skill-reference.json').read_text(encoding='utf-8'))
-    for h in research['heroes']:
-        name = canonical(h['title'])
-        previous = heroes.get(name, {'name':name,'tid':0,'role':0,'rarity':4,'portrait':''})
-        heroes[name] = {**previous, 'awakened':h['awakened'], 'source':h['sourceUrl'],
-                        'basis':'사용자 지정 한국판 나무위키 기준', 'skills':wiki_skills(h)}
+    research_file = ROOT/'tmp/wiki-research/skill-reference.json'
+    overrides = 0
+    if research_file.exists():
+        research = json.loads(research_file.read_text(encoding='utf-8'))
+        for h in research['heroes']:
+            name = canonical(h['title'])
+            previous = heroes.get(name, {'name':name,'tid':0,'role':0,'rarity':4,'portrait':''})
+            heroes[name] = {**previous, 'awakened':h['awakened'], 'source':h['sourceUrl'],
+                            'basis':'사용자 지정 한국판 나무위키 기준', 'skills':wiki_skills(h)}
+            overrides += 1
+    else:
+        # A clean checkout retains the reviewed Korean snapshot instead of replacing
+        # awakened skills with the public database's normal/global versions.
+        existing = json.loads((ROOT/'src/lib/simulationRoster.json').read_text(encoding='utf-8'))
+        for h in existing['heroes']:
+            if h.get('basis') == '사용자 지정 한국판 나무위키 기준':
+                heroes[h['name']] = h
+                overrides += 1
     output = {'checkedAt':'2026-10-22', 'growth':'6초월·5강·풀스킬 강화',
               'sources':[BASE+'/heroes.html', '나무위키 각 문서 기여자 · CC BY-NC-SA 2.0 KR'],
               'heroes':sorted(heroes.values(), key=lambda h:h['name']), 'unavailable':errors}
     (ROOT/'src/lib/simulationRoster.json').write_text(json.dumps(output,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
-    print(json.dumps({'heroes':len(heroes),'wikiOverrides':len(research['heroes']),'failed':errors},ensure_ascii=True))
+    print(json.dumps({'heroes':len(heroes),'wikiOverrides':overrides,'failed':errors},ensure_ascii=True))
 
 if __name__ == '__main__':
     main()

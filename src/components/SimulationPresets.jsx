@@ -1,0 +1,18 @@
+import React,{useEffect,useRef,useState} from 'react';
+import {canViewHeroStats} from '../lib/heroBattleStats.js';
+import {setupDocument,loadPresets,savePresets,readSetupFile} from '../lib/simulationWorkspace.js';
+
+export default function SimulationPresets({currentUser,snapshot,onLoad,disabled=false}){
+  const identity=currentUser?.authUserId||currentUser?.id||'',permitted=canViewHeroStats(currentUser);
+  const [rows,setRows]=useState([]),[name,setName]=useState('내 조합'),[selected,setSelected]=useState(''),[notice,setNotice]=useState(''),[error,setError]=useState('');
+  const fileInput=useRef(null);
+  useEffect(()=>{if(permitted){setRows(loadPresets(localStorage,identity));setName('내 조합');setSelected('');setNotice('');setError('');}},[identity,permitted]);
+  if(!permitted)return null;
+  function persist(next){try{savePresets(localStorage,identity,next);setRows(next);setError('');return true;}catch{setError('이 브라우저에 조합을 저장하지 못했습니다. JSON 내보내기를 이용해 주세요.');return false;}}
+  function save(){try{const doc=setupDocument(snapshot,name);const next=[doc,...rows.filter(r=>r.name!==doc.name)];if(persist(next)){setSelected(doc.name);setNotice('이 계정의 브라우저 저장소에 저장했습니다.');}}catch(e){setError(e.message);}}
+  function load(){const doc=rows.find(r=>r.name===selected);if(doc){onLoad(doc);setName(doc.name);setNotice('저장한 조합을 불러왔습니다.');setError('');}}
+  function remove(){if(persist(rows.filter(r=>r.name!==selected))){setSelected('');setNotice('저장한 조합을 삭제했습니다.');}}
+  function exportFile(){try{const doc=setupDocument(snapshot,name),url=URL.createObjectURL(new Blob([JSON.stringify(doc,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='15month-battle-setup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);setError('');}catch(e){setError(e.message);}}
+  async function importFile(event){const file=event.target.files?.[0];event.target.value='';if(!file)return;try{if(file.size>131072)throw Error('128KB 이하의 조합 JSON만 열 수 있습니다.');const doc=readSetupFile(await file.text());onLoad(doc);setName(doc.name);setNotice('조합 파일을 열었습니다. 브라우저 저장은 저장 버튼을 눌러 주세요.');setError('');}catch(e){setError(e.message||'조합 파일을 확인해 주세요.');}}
+  return <details className="sim-presets"><summary>내 조합 저장 · 불러오기 <span>{rows.length}/20</span></summary><div className="sim-presets-body"><div className="sim-preset-row"><label>조합 이름<input type="text" maxLength={80} value={name} disabled={disabled} onChange={e=>setName(e.target.value)}/></label><button type="button" className="sim-button" disabled={disabled} onClick={save}>조합 저장</button><button type="button" className="sim-button" disabled={disabled} onClick={exportFile}>JSON 내보내기</button><button type="button" className="sim-button" disabled={disabled} onClick={()=>fileInput.current.click()}>JSON 가져오기</button><input ref={fileInput} type="file" hidden accept=".json,application/json" aria-label="조합 JSON 파일 가져오기" onChange={importFile}/></div><div className="sim-preset-row"><label>저장한 조합<select disabled={disabled} value={selected} onChange={e=>setSelected(e.target.value)}><option value="">조합 선택</option>{rows.map(r=><option key={r.name} value={r.name}>{r.name}</option>)}</select></label><button type="button" className="sim-button" disabled={disabled||!selected} onClick={load}>불러오기</button><button type="button" className="sim-button" disabled={disabled||!selected} onClick={remove}>저장 삭제</button></div><p className="sim-source-note">직접 저장한 조합만 이 브라우저에 보관합니다. 파일과 스탯은 자동 업로드하지 않습니다.</p>{notice&&<p role="status" className="sim-notice">{notice}</p>}{error&&<p role="alert" className="sim-error">{error}</p>}</div></details>;
+}

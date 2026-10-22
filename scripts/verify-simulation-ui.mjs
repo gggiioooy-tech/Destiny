@@ -6,7 +6,10 @@ const vite=await createServer({optimizeDeps:{noDiscovery:true,include:[]},server
 try{
   const {default:Arena}=await vite.ssrLoadModule('/src/components/BattleArena.jsx');
   const {default:Simulation}=await vite.ssrLoadModule('/src/components/ExperimentalBattle.jsx');
-  const {prepareHeroes,createBattle,advanceBattle}=await vite.ssrLoadModule('/src/lib/experimentalBattle.js');
+  const {default:Results}=await vite.ssrLoadModule('/src/components/SimulationResults.jsx');
+  const {default:Setup}=await vite.ssrLoadModule('/src/components/BattleSetup.jsx');
+  const {STAT_FIELDS,finishSession}=await vite.ssrLoadModule('/src/lib/simulationWorkspace.js');
+  const {prepareHeroes,createBattle,advanceBattle,defaultSkillPlans}=await vite.ssrLoadModule('/src/lib/experimentalBattle.js');
   const draft=prepareHeroes(),battle=advanceBattle(createBattle(draft));
   const html=renderToStaticMarkup(React.createElement(Arena,{draft,battle,running:true}));
   assert.equal((html.match(/class="battle-fighter battle-slot-/g)||[]).length,6);
@@ -16,7 +19,14 @@ try{
   for(const currentUser of [null,{role:'member'},{role:'admin',isOwner:false}])assert.equal(renderToStaticMarkup(React.createElement(Simulation,{currentUser})), '');
   const owner=renderToStaticMarkup(React.createElement(Simulation,{currentUser:{role:'admin',isOwner:true}}));
   assert.ok(owner.includes('176종 영웅 선택'));assert.ok(owner.includes('전투 종료'));assert.ok(owner.includes('스킬·패시브 자료'));
+  assert.equal((owner.match(/role="tab"/g)||[]).length,3);
+  const setup=renderToStaticMarkup(React.createElement(Setup,{draft,plans:defaultSkillPlans(),seed:1,setDraft(){},setPlans(){},setSeed(){}}));
+  assert.equal((setup.match(/type="number"/g)||[]).length,STAT_FIELDS.length+1);
+  for(const text of ['내 조합 저장','스탯 표 붙여넣기','빠른 계산','공격·방어 교환'])assert.ok(owner.includes(text));
+  const finished=finishSession({frames:[createBattle(draft)],cursor:0},advanceBattle);
+  const resultHtml=renderToStaticMarkup(React.createElement(Results,{session:finished,onSeek(){}}));
+  assert.equal((resultHtml.match(/<polyline/g)||[]).length,6);assert.ok(resultHtml.includes('행동 로그 팀 필터'));assert.ok(resultHtml.includes('이 장면 보기'));
   const stopped=renderToStaticMarkup(React.createElement(Arena,{draft,battle:{...battle,done:true,stopped:true,winner:null},running:false}));
   assert.ok(stopped.includes('사용자가 전투를 종료했습니다'));assert.ok(stopped.includes('전투 중단'));
-  console.log('PASS six fighters, HP bars, action/impact markup, manual stop, roster setup and tier-four UI guard');
+  console.log('PASS six fighters, HP bars, tabs, single hero editor, presets, quick run, HP graphs, logs, manual stop and tier-four UI guard');
 }finally{await vite.close();}
