@@ -4,6 +4,7 @@ import {SIM_ROSTER,heroProfile,heroSkills,coverageFor} from '../lib/simulationSk
 import {STAT_FIELDS,parseStatPaste} from '../lib/simulationWorkspace.js';
 import {matchesHeroSearch} from '../lib/heroSearch.js';
 import {HeroPortrait} from './BattleArena.jsx';
+import {BASE_STATS} from '../lib/prebattleStats.js';
 
 function HeroPicker({selected,excluded,onPick,onClose}){
   const dialog=useRef(null),[query,setQuery]=useState(''),[filter,setFilter]=useState('all');
@@ -20,14 +21,14 @@ export default function BattleSetup({draft,setDraft,plans,setPlans,report,seed,s
   const h=draft[selected],profile=heroProfile(h.name);
   function applyValues(unit,values){
     const panelEntered=[...new Set([...(unit.panelEntered||[]),...Object.keys(values)])];
-    const exampleStats=inputBasis==='panel'&&unit.exampleStats===true&&['attack','defense','maxHp','speed'].some(k=>!panelEntered.includes(k));
+    const exampleStats=inputBasis==='panel'&&(unit.exampleStats===true||unit.origin?.includes('테스트 기본값'))&&['attack','defense','maxHp','speed'].some(k=>!panelEntered.includes(k));
     return {...unit,...values,panelEntered,exampleStats,origin:exampleStats?'테스트 기본값 포함 · 공격력·방어력·생명력·속공 입력 필요':inputBasis==='panel'?'직접 입력한 영웅 정보창 수치':'직접 입력한 시작 스탯'};
   }
   function edit(key,value){setDraft(old=>old.map((unit,i)=>i===selected?applyValues(unit,{[key]:value}):unit));}
   function pasteStats(){try{const values=parseStatPaste(paste,h.name);setDraft(old=>old.map((u,i)=>i===selected?applyValues(u,values):u));setPaste('');setPasteOpen(false);setPasteError('');}catch(e){setPasteError(e.message);}}
   function statField([key,label]){return <label key={key} className="sim-stat-label">{label}<input inputMode="decimal" type="number" min={['resist','crit','weakPoint','block'].includes(key)?-1000000:key==='maxHp'?1:0} max="1000000" value={h[key]} onChange={e=>edit(key,e.target.value===''?'':Number(e.target.value))}/></label>;}
   function pick(name){
-    setDraft(old=>changeHero(old,picker,name,report));
+    setDraft(old=>changeHero(old,picker,name,report).map((h,i)=>i===picker&&inputBasis==='panel'?{...h,attack:BASE_STATS[name]?.attack||0,defense:BASE_STATS[name]?.defense||0,maxHp:BASE_STATS[name]?.maxHp||1,speed:0,crit:5,critDamage:150,exampleStats:true,panelEntered:[],origin:'테스트 기본값 · 영웅 정보창 수치 입력 필요'}:h));
     setPlans(old=>Object.fromEntries(Object.entries(old).map(([side,rows])=>[side,rows.map(p=>p.id===picker&&!heroSkills(name).some(s=>s.code===p.code)?{...p,code:heroSkills(name).find(s=>[2,3].includes(s.code))?.code||2}:p)])));
     setSelected(picker);setPicker(null);setPaste('');setPasteError('');
   }
