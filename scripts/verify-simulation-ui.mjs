@@ -31,7 +31,7 @@ try{
   assert.equal((setup.match(/type="number"/g)||[]).length,STAT_FIELDS.length+1);
   assert.equal((setup.match(/class="sim-seat /g)||[]).length,10);
   assert.ok(setup.includes('자리 배치'));assert.ok(setup.includes('낮은 자리번호'));
-  assert.ok(owner.indexOf('자리 배치')<owner.indexOf('펫 잠재 4줄'));
+  assert.ok(owner.indexOf('펫 잠재 4줄')<owner.indexOf('자리 배치'));
 
   for(const text of ['내 조합 저장','스탯 표 붙여넣기','빠른 계산','공격·방어 교환'])assert.ok(owner.includes(text));
   const finished=finishSession({frames:[createBattle(draft)],cursor:0},advanceBattle);
