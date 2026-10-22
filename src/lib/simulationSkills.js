@@ -36,6 +36,7 @@ export function compileSkill(raw){
     pierce:/관통/.test(compact),ignore:/방어 무시/.test(compact)?.4:0,
     hpRatio:hp?Number(hp[1])/100:0,hpCap:cap?Number(cap[1])/100:0,
     cooldown:raw.cooldown||0,effects:[],unsupported:[],raw};
+  if(skill.ignore){const rule=definitions['방어 무시']?.join(' ')||'';skill.ignore=Number(rule.match(/([\d.]+)%/)?.[1]||40)/100;}
   if(raw.variantsOmitted)skill.unsupported.push('변신 후 스킬 분기는 미반영입니다.');
   const ratioBoost=damage?.match(/대상(?:이|의)?\s*(현재|잃은) 생명력.*?최대\s*([\d.]+)%/);
   skill.hpBoost=ratioBoost?{kind:ratioBoost[1]==='잃은'?'lost':'current',value:Number(ratioBoost[2])/100}:null;
@@ -57,7 +58,12 @@ export function compileSkill(raw){
     const duration=Number(line.match(/(\d+)\s*턴/)?.[1]||(/중첩/.test(line)?999:1));
     const chance=Number(line.match(/([\d.]+)%\s*확률/)?.[1]||100);
     const each=/각 공격마다/.test(line);
-    const add=(type,extra={})=>skill.effects.push({type,group,duration,chance,each,...extra});
+    const add=(type,extra={})=>skill.effects.push({type,group,duration,chance,each,before:!each&&Boolean(damage)&&lines.indexOf(line)<lines.indexOf(damage),...extra});
+    const dot=line.match(/(?:^[- ]*|각 공격마다\s*)(화상|극독|중독)\s*\[/);
+    if(dot){
+      const rule=definitions[dot[1]]?.join(' ')||'',ratio=rule.match(/(?:공격력|최대 생명력)의?\s*([\d.]+)%/),cap=rule.match(/공격력의\s*([\d.]+)%.*(?:넘|초과)/);
+      if(ratio){add('dot',{status:dot[1],value:Number(ratio[1])/100,scale:rule.includes('최대 생명력')?'targetHp':'attack',cap:cap?Number(cap[1])/100:null,pierce:false});continue;}
+    }
     const cc=line.match(/(?:^[- ]*|각 공격마다\s*)(감전|기절|마비|수면|깊은 수면|빙결|침묵|공포|실명)\s*\[/);
     if(cc){const upgraded=lines.find(l=>l.includes('확률 상승')&&l.includes(cc[1]));add('control',{status:cc[1],chance:Number(upgraded?.match(/([\d.]+)%/)?.[1]||chance)});continue;}
     if(/절멸\s*\[/.test(line)){add('annihilation');continue;}
@@ -75,6 +81,10 @@ export function compileSkill(raw){
     if(/행동 제어 면역\s*\[/.test(line)){add('controlImmune');continue;}
     if(/디버프 해제/.test(line)){add('cleanse');continue;}
     if(/회복 불가\s*\[/.test(line)){add('healBlock');continue;}
+    const blockDown=line.match(/막기 확률 감소(?:\s*([\d.]+)%)?/);
+    if(blockDown&&(blockDown[1]||definedValue('막기 확률 감소'))){add('blockDown',{value:Number(blockDown[1]||definedValue('막기 확률 감소'))});continue;}
+    const remove=line.match(/버프 해제\s*(\d+)개/);
+    if(remove){add('dispel',{value:Number(remove[1])});continue;}
     const reduce=line.match(/턴제 버프 감소\s*(\d+)턴/);
     if(reduce){add('reduceBuff',{value:Number(reduce[1])});continue;}
     if(line===damage||/^[- ]*(?:효과 추가\s*[:：]\s*)?(?:관통|방어 무시)$/.test(line))continue;

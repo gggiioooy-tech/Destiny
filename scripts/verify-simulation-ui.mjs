@@ -20,6 +20,7 @@ try{
   const owner=renderToStaticMarkup(React.createElement(Simulation,{currentUser:{role:'admin',isOwner:true}}));
   assert.ok(owner.includes('176종 영웅 선택'));assert.ok(owner.includes('전투 종료'));assert.ok(owner.includes('스킬·패시브 자료'));
   assert.equal((owner.match(/role="tab"/g)||[]).length,3);
+  assert.ok(owner.includes('100회 비교'));assert.ok(owner.includes('계산 중지'));assert.ok(owner.includes('90% 정확도를 달성하지 못했습니다'));
   const setup=renderToStaticMarkup(React.createElement(Setup,{draft,plans:defaultSkillPlans(),seed:1,setDraft(){},setPlans(){},setSeed(){}}));
   assert.equal((setup.match(/type="number"/g)||[]).length,STAT_FIELDS.length+1);
   for(const text of ['내 조합 저장','스탯 표 붙여넣기','빠른 계산','공격·방어 교환'])assert.ok(owner.includes(text));

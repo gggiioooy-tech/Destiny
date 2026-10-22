@@ -16,7 +16,7 @@ export function parseStatPaste(input,name){
     const values=m[2].split(/[\s\t]+/).map(v=>Number(v.replace(/[,%]/g,'')));
     if(values.length>1&&column===null)throw Error('여러 영웅의 표라면 첫 줄에 영웅 이름을 포함해 주세요.');
     const value=values[column??0];
-    if(!Number.isFinite(value)||Math.abs(value)>1000000||(value<0&&key!=='resist'))throw Error('스탯 값과 선택한 영웅 열을 확인해 주세요.');
+    if(!Number.isFinite(value)||Math.abs(value)>1000000||(value<0&&!['resist','crit','weakPoint','block'].includes(key)))throw Error('스탯 값과 선택한 영웅 열을 확인해 주세요.');
     result[key]=key==='attack'&&result[key]!==undefined?Math.max(result[key],value):value;
   }
   if(!Object.keys(result).length)throw Error('공격력·방어력·생명력처럼 항목 이름과 숫자가 함께 있는 표를 붙여넣어 주세요.');

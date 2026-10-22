@@ -8,6 +8,7 @@ import BattleSetup from './BattleSetup.jsx';
 import BattleArena from './BattleArena.jsx';
 import SimulationPresets from './SimulationPresets.jsx';
 import SimulationResults from './SimulationResults.jsx';
+import BattlePrediction from './BattlePrediction.jsx';
 import './simulationWorkspace.css';
 
 export default function ExperimentalBattle({currentUser,report}){
@@ -47,6 +48,7 @@ export default function ExperimentalBattle({currentUser,report}){
       <SimulationPresets currentUser={currentUser} snapshot={{draft,plans,seed}} onLoad={load} disabled={running}/>
       <div className="sim-setup-toolbar"><p>{readiness.exampleCount?`예시 스탯 ${readiness.exampleCount}명 · 실제 비교에는 수치를 입력해 주세요.`:'입력한 시작 스탯으로 전투를 계산합니다.'}</p><div><button type="button" className="sim-button" onClick={swap}>공격·방어 교환</button><button type="button" className="sim-button" onClick={reset}>{report?'저장 전투로 초기화':'기본 편성으로 초기화'}</button></div></div>
       <BattleSetup draft={draft} setDraft={setDraft} plans={plans} setPlans={setPlans} report={report} seed={seed} setSeed={setSeed}/>
+      <BattlePrediction draft={draft} plans={plans} seed={seed} disabled={running||readiness.errors.length>0} exampleCount={readiness.exampleCount}/>
     </section>
     <section id="sim-panel-battle" role="tabpanel" aria-labelledby="sim-tab-battle" hidden={view!=='battle'}><BattleArena draft={draft} battle={battle} running={running}/>{session&&<div className="sim-scrubber"><button type="button" className="sim-button" disabled={running||session.cursor===0} onClick={()=>seek(session.cursor-1)}>← 이전</button><label>장면 {session.cursor} / {session.frames.length-1}<input aria-label="전투 장면 이동" type="range" min="0" max={session.frames.length-1} value={session.cursor} onChange={e=>seek(e.target.value)}/></label><button type="button" className="sim-button" disabled={running||battle?.done} onClick={()=>setSession(old=>advanceSession(old,advanceBattle))}>다음 →</button></div>}</section>
     <section id="sim-panel-results" role="tabpanel" aria-labelledby="sim-tab-results" hidden={view!=='results'}><SimulationResults session={session} onSeek={seek}/></section>

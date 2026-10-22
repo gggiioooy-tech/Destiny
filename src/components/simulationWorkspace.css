@@ -31,3 +31,6 @@
 :root.dark .sim-workspace .battle-pick-card[aria-pressed=true]{background:#34516b}
 :root.dark .sim-workspace :is(.battle-pick-card small,.battle-skill-preview pre){color:#aebfd1}
 :root.dark .sim-workspace .text-blue-700{color:#9dc9ef}
+.sim-prediction{margin-top:20px;padding:20px;border:1px solid var(--sim-border,#cbd5e1);border-radius:16px;background:var(--sim-panel,#fff);color:var(--sim-text,#17243a)}
+.sim-prediction h3{margin:0 0 8px}.sim-prediction p{line-height:1.6}.sim-prediction small{display:block;line-height:1.6}
+.dark .sim-prediction{background:#111c2e;color:#e5edf8;border-color:#40516b}

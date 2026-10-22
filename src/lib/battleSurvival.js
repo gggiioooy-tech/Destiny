@@ -9,28 +9,44 @@ export function receiveDamage(unit,amount,{pierce=false}={}){
   if(target.immunity>0&&!pierce){result.kind='immune';events.push('피해 면역');return result;}
   // Penetration bypasses immunity, not hit-count nullification.
   if(target.nullify>0){target.nullify--;result.kind='nullify';events.push('피해 무효화');return result;}
+  if(target.indomitableHits>0){
+    target.indomitableHits--;target.hp=target.indomitableHits>0?1:0;
+    result.kind='indomitable';result.damage=target.hp===0?1:0;events.push(target.hp?'불굴 · 남은 피격 '+target.indomitableHits+'회':'불굴 만료 · 사망');return result;
+  }
   let pending=Math.max(0,Math.round(amount));
   if(target.blessing>0)pending=Math.min(pending,Math.floor(target.maxHp*target.blessing/100));
   result.absorbed=Math.min(target.barrier||0,pending);target.barrier=(target.barrier||0)-result.absorbed;pending-=result.absorbed;
   const before=target.hp;target.hp=Math.max(0,before-pending);
-  if(target.immortal>0)target.hp=1;
+  if(target.immortal>0)target.hp=Math.max(1,target.hp);
   if(target.hp===0&&target.guts&&!target.gutsUsed){
     target.hp=1;target.gutsUsed=true;events.push('권능');
     target.barrier=Math.max(target.barrier,calculateShield({base:target.attack*(target.gutsShieldPercent||0)/100,regeneration:target.regeneration||0}));
   }
   if(target.hp===0&&!target.annihilation&&!target.revived){
-    if(target.reviveImmortalTurns){target.hp=1;target.immortal=target.reviveImmortalTurns;target.controlImmune=target.reviveImmortalTurns;target.revived=true;events.push('불사 부활');}
+    if(target.reviveIndomitableHits){target.hp=1;target.indomitableHits=target.reviveIndomitableHits;target.revived=true;events.push('불굴 부활');}
+    else if(target.reviveImmortalTurns){target.hp=1;target.immortal=target.reviveImmortalTurns;target.controlImmune=target.reviveImmortalTurns;target.revived=true;events.push('불사 부활');}
     else if(target.revivePercent){target.hp=Math.max(1,Math.round(target.maxHp*target.revivePercent/100));target.revived=true;events.push('부활');}
+    if(target.revived){
+      for(const key of ['sleep','control','silence','blind','healBlock','defDown','defTurns'])target[key]=0;
+      if(target.reviveImmunity)target.immunity=target.reviveImmunity;
+      target.dots=[];
+    }
   }
-  result.damage=Math.min(before,pending);return result;
+  // Revival HP is a separate recovery; immortality and guts cannot lose the
+  // final point of HP. Do not count blocked lethal damage as life steal input.
+  result.damage=Math.min(before,pending);
+  if(target.immortal>0&&!events.includes('불사 부활')||events.includes('권능'))result.damage=Math.min(result.damage,Math.max(0,before-1));
+  return result;
 }
 export function tickPersonalTurn(unit,before){
   const next={...unit},events=[];
   // Only durations that existed before this basic-attack turn are ticked.
-  for(const key of ['sleep','control','silence','blind','healBlock','defTurns','immunity','controlImmune','annihilation','barrierTurns','damageBuffTurns']){
+  for(const key of ['sleep','control','silence','blind','healBlock','defTurns','immunity','controlImmune','annihilation','barrierTurns','damageBuffTurns','superiority','superiorityMissTurns','blockDownTurns']){
     if(before[key]>0&&next[key]>0&&next[key]<=before[key])next[key]--;
   }
   if(!next.defTurns)next.defDown=0;
+  if(!next.superiorityMissTurns)next.superiorityMiss=0;
+  if(before.blockDownTurns>0&&!next.blockDownTurns)next.blockDebuff=0;
   if(before.barrierTurns>0&&!next.barrierTurns)next.barrier=0;
   if(before.immortal>0&&next.immortal>0&&next.immortal<=before.immortal){
     next.immortal--;
