@@ -1,4 +1,5 @@
 import {calculateShield} from './combatDamage.js';
+import {reducePanelTimedBuffs} from './prebattleStats.js';
 
 // Explicit experimental ordering: immunity → nullification → blessing → shield → HP
 // → immortality/guts → revival. Complex simultaneous trigger order remains unverified.
@@ -39,7 +40,7 @@ export function receiveDamage(unit,amount,{pierce=false}={}){
   return result;
 }
 export function tickPersonalTurn(unit,before){
-  const next={...unit},events=[];
+  const next=before.panelTimedBuffs?.length?reducePanelTimedBuffs(unit):{...unit},events=[];
   // Only durations that existed before this basic-attack turn are ticked.
   for(const key of ['sleep','control','silence','blind','healBlock','defTurns','immunity','controlImmune','annihilation','barrierTurns','damageBuffTurns','superiority','superiorityMissTurns','blockDownTurns']){
     if(before[key]>0&&next[key]>0&&next[key]<=before[key])next[key]--;

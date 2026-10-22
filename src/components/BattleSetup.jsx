@@ -14,12 +14,17 @@ function HeroPicker({selected,excluded,onPick,onClose}){
     <div className="battle-picker-grid">{heroes.map(h=><button type="button" key={h.name} className="battle-pick-card" disabled={excluded.includes(h.name)&&h.name!==selected} aria-pressed={selected===h.name} onClick={()=>onPick(h.name)}><HeroPortrait name={h.name} className="battle-pick-portrait"/><strong>{h.name}</strong><small>{h.awakened?'각성 · ':''}{['','공격형','마법형','방어형','지원형','만능형'][h.role]||'분류 미확인'}</small></button>)}{!heroes.length&&<p className="battle-pick-empty">검색 결과가 없습니다.</p>}</div>
   </dialog>;
 }
-export default function BattleSetup({draft,setDraft,plans,setPlans,report,seed,setSeed}){
+export default function BattleSetup({draft,setDraft,plans,setPlans,report,seed,setSeed,inputBasis='battle'}){
   const [selected,setSelected]=useState(0),[picker,setPicker]=useState(null),[editorTab,setEditorTab]=useState('stats');
   const [paste,setPaste]=useState(''),[pasteOpen,setPasteOpen]=useState(false),[pasteError,setPasteError]=useState('');
   const h=draft[selected],profile=heroProfile(h.name);
-  function edit(key,value){setDraft(old=>old.map((unit,i)=>i===selected?{...unit,[key]:value,exampleStats:false,origin:'직접 입력한 시작 스탯'}:unit));}
-  function pasteStats(){try{const values=parseStatPaste(paste,h.name);setDraft(old=>old.map((u,i)=>i===selected?{...u,...values,exampleStats:false,origin:'표에서 붙여넣은 시작 스탯'}:u));setPaste('');setPasteOpen(false);setPasteError('');}catch(e){setPasteError(e.message);}}
+  function applyValues(unit,values){
+    const panelEntered=[...new Set([...(unit.panelEntered||[]),...Object.keys(values)])];
+    const exampleStats=inputBasis==='panel'&&unit.exampleStats===true&&['attack','defense','maxHp','speed'].some(k=>!panelEntered.includes(k));
+    return {...unit,...values,panelEntered,exampleStats,origin:exampleStats?'테스트 기본값 포함 · 공격력·방어력·생명력·속공 입력 필요':inputBasis==='panel'?'직접 입력한 영웅 정보창 수치':'직접 입력한 시작 스탯'};
+  }
+  function edit(key,value){setDraft(old=>old.map((unit,i)=>i===selected?applyValues(unit,{[key]:value}):unit));}
+  function pasteStats(){try{const values=parseStatPaste(paste,h.name);setDraft(old=>old.map((u,i)=>i===selected?applyValues(u,values):u));setPaste('');setPasteOpen(false);setPasteError('');}catch(e){setPasteError(e.message);}}
   function statField([key,label]){return <label key={key} className="sim-stat-label">{label}<input inputMode="decimal" type="number" min={['resist','crit','weakPoint','block'].includes(key)?-1000000:key==='maxHp'?1:0} max="1000000" value={h[key]} onChange={e=>edit(key,e.target.value===''?'':Number(e.target.value))}/></label>;}
   function pick(name){
     setDraft(old=>changeHero(old,picker,name,report));
@@ -29,7 +34,7 @@ export default function BattleSetup({draft,setDraft,plans,setPlans,report,seed,s
   return <div className="sim-setup">
     <div className="sim-lineups">{['attacker','defender'].map(side=><section key={side} className={`sim-lineup sim-lineup-${side}`}><div className="sim-section-heading"><h3>{side==='attacker'?'공격팀':'방어팀'}</h3><span>영웅을 선택해 스탯 편집</span></div><div className="sim-slots">{draft.filter(u=>u.side===side).map(u=><div key={u.id} className={`sim-slot ${selected===u.id?'sim-slot-selected':''}`}><button type="button" aria-pressed={selected===u.id} onClick={()=>{setSelected(u.id);setPaste('');setPasteError('');}} className="sim-slot-main"><HeroPortrait key={u.name} name={u.name} className="sim-slot-portrait"/><strong>{u.name}</strong><span>{heroProfile(u.name)?.awakened?'각성 · ':''}{u.id%3+1}번</span><small>속공 {u.speed}</small></button><button type="button" className="sim-slot-change" aria-label={`${side==='attacker'?'공격':'방어'} ${u.id%3+1}번 ${u.name} 교체`} onClick={()=>setPicker(u.id)}>영웅 변경</button></div>)}</div></section>)}</div>
     <section className="sim-editor"><header className="sim-editor-heading"><div className="flex items-center gap-3"><HeroPortrait key={h.name} name={h.name} className="h-12 w-12 rounded-xl object-cover"/><div><p className="sim-eyebrow">{h.side==='attacker'?'공격':'방어'}팀 · {selected%3+1}번</p><h3>{h.name} <small>{profile?.awakened?'각성':''}</small></h3><p>{h.origin}</p></div></div><div className="sim-segment" aria-label="영웅 편집 종류"><button type="button" aria-pressed={editorTab==='stats'} onClick={()=>setEditorTab('stats')}>능력치</button><button type="button" aria-pressed={editorTab==='skills'} onClick={()=>setEditorTab('skills')}>스킬·패시브 자료</button></div></header>
-      {editorTab==='stats'?<div className="sim-editor-body"><div className="sim-editor-hint"><span>장비·펫·진형·상시 효과가 반영된 <b>전투 시작 수치</b>를 입력하세요.</span><button type="button" className="sim-button" aria-expanded={pasteOpen} onClick={()=>setPasteOpen(v=>!v)}>스탯 표 붙여넣기</button></div>
+      {editorTab==='stats'?<div className="sim-editor-body"><div className="sim-editor-hint"><span>{inputBasis==='panel'?<>게임의 <b>영웅 정보창 수치</b>를 입력하세요. 펫·잠재·진형·조합 패시브는 자동 계산합니다.</>:<>장비·펫·진형·상시 효과가 반영된 <b>전투 시작 수치</b>를 입력하세요.</>}</span><button type="button" className="sim-button" aria-expanded={pasteOpen} onClick={()=>setPasteOpen(v=>!v)}>스탯 표 붙여넣기</button></div>
         {pasteOpen&&<div className="sim-paste"><label className="text-xs font-semibold">{h.name} 스탯 표<textarea rows={5} maxLength={16000} value={paste} onChange={e=>setPaste(e.target.value)} placeholder={'물리 공격력\t8,108\n방어력\t2,042\n생명력\t11,388\n치명타 확률\t13%'}/></label><p>여러 영웅의 표는 첫 줄에 영웅 이름을 포함하세요. 없는 항목은 기존 값을 유지합니다.</p><button type="button" className="sim-button sim-button-primary" onClick={pasteStats}>선택한 영웅에 적용</button>{pasteError&&<p role="alert" className="sim-error">{pasteError}</p>}</div>}
         <div className="sim-stat-grid sim-stat-primary">{STAT_FIELDS.slice(0,4).map(statField)}</div><div className="sim-stat-grid">{STAT_FIELDS.slice(4,15).map(statField)}</div>
         <details className="sim-advanced"><summary>추가 피해 보정 · 고급 설정</summary><p>기본 스탯에 이미 포함된 증가량을 다시 더하지 마세요.</p><div className="sim-stat-grid">{STAT_FIELDS.slice(15).map(statField)}</div></details>
