@@ -29,7 +29,7 @@ export default function PcCollectorConnection({ currentUser, mode='pc' }) {
           if(!active||connection.current!==c||c.popup.closed)break;
           const revision=JSON.stringify([row?.payload?.attacker?.skills,row?.payload?.defender?.skills,row?.payload?.firstSkillSide,row?.payload?.heroSpeeds,row?.payload?.heroHealth,row?.payload?.heroStats,row?.kind==='defense_snapshot'?row?.payload?.defenses?.map(s=>s.skills):null]);
           if(c.done.get(row?.sourceKey)===revision)continue;
-          const args=collectorRecord(row,guilds[0]);
+          const args=collectorRecord(row,guilds[0],{includeReplay:isRed});
           const {data,error}=await supabase.rpc('submit_guild_war_observation',args);
           if(error)throw error;
           if(!data||!['recorded','duplicate','held'].includes(data.status))throw new Error('서버 저장 응답을 확인하지 못했습니다.');

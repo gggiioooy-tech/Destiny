@@ -27,8 +27,22 @@ export function hitProbabilities({crit,block=0,blockBuff=0,blockDebuff=0,shred=0
 export function defenseDenominator(defense,{increase=0,decrease=0,ignore=0}={}){
   return 1+Math.max(0,defense*(1+increase-decrease))*(1-clamp(ignore,0,1))*DEFENSE_COEFFICIENT;
 }
-export function calculateHit({base,defense,defenseDecrease=0,ignore=0,critDamage=150,elasticity=0,critical=false,blocked=false,blockReduction=50}){
-  const crit=criticalMultiplier(critDamage,elasticity,critical);
+export function calculateHit({base,defense,defenseDecrease=0,ignore=0,critDamage=150,elasticity=0,critical=false,blocked=false,blockReduction=50,weak=false,weakBonus=0,damageIncrease=0,vulnerability=0,damageReduction=0,amplification=0,missed=false}){
+  const crit=criticalMultiplier(critDamage,elasticity,critical&&!missed);
   const block=blocked?1-clamp(blockReduction,0,100)/100:1;
-  return Math.max(0,Math.round(base/defenseDenominator(defense,{decrease:defenseDecrease,ignore})*crit*block));
+  // The user-provided PvE calculator subtracts reduction in the vulnerability bucket.
+  const factors=(weak&&!missed?Math.max(0,1.3+weakBonus/100):1)*Math.max(0,1+damageIncrease/100)*Math.max(0,1+(vulnerability-clamp(damageReduction,0,90))/100)*Math.max(0,1+amplification/100)*(missed?.8:1);
+  return Math.max(0,Math.round(base/defenseDenominator(defense,{decrease:defenseDecrease,ignore})*crit*block*factors));
+}
+export function calculateRecovery({base,regeneration=0,increase=0,decrease=0,blocked=false,model='additive'}){
+  if(blocked)return 0;
+  // Combination is selectable because positive-regeneration replay evidence is missing.
+  const factor=model==='separate'?(1+regeneration/100)*Math.max(0,1+(increase-decrease)/100):Math.max(0,1+(regeneration+increase-decrease)/100);
+  return Math.max(0,Math.round(base*factor));
+}
+export function calculateShield({base,regeneration=0}){
+  return Math.max(0,Math.round(base*(1+Math.max(0,regeneration)/100)));
+}
+export function convertedHealth({hp,maxHp,percent,immortal=false}){
+  return Math.min(hp,Math.max(immortal&&hp>0?1:0,Math.round(maxHp*clamp(percent,0,100)/100)));
 }

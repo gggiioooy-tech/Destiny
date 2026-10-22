@@ -5,7 +5,8 @@ export default function HeroBattleStats({side,stats,speeds,health}){
  return <details className="red-pill-details min-w-0">
   <summary className="red-pill-toggle"><span className="red-pill-closed">빨간약</span><span className="red-pill-open">빨간약닫기</span></summary>
   <div className="mt-3 space-y-2">
-   <p className="text-xs text-zinc-500">전투 시작 기준 · 미확인 수치 0</p>
+   <p className="text-xs text-zinc-500">{stats?.length||speeds?.length||health?.length?'기존 저장된 빨간약 분석 정보':'저장된 빨간약 분석 정보 없음'} · 전투 시작 기준 · 미확인 수치 0</p>
+   <p className="text-xs text-zinc-500">일반 수집기는 상세 스탯을 새로 수집하지 않습니다. 이전 분석 정보는 유지됩니다.</p>
    <section className="red-pill-hero red-pill-comparison" aria-label="영웅별 능력치 비교">
     <table className="red-pill-table">
      <caption className="sr-only">영웅 3명의 능력치를 나란히 비교</caption>

@@ -1,7 +1,12 @@
 import {statKeys} from './heroBattleStats.js';
 import { resolveGameSide } from './gameNames.js';
 const text=(v,n=100)=>typeof v==='string'&&v.length<=n;
-export function collectorRecord(row,guild){
+export function collectorRecord(row,guild,{includeReplay=true}={}){
+  if(!includeReplay&&row?.kind==='battle'){
+    row=structuredClone(row);
+    for(const key of ['heroSpeeds','heroHealth','heroStats','firstSkillSide'])delete row.payload?.[key];
+    for(const side of ['attacker','defender'])if(row.payload?.[side])row.payload[side].skills=[];
+  }
   const p=row?.payload;
   if(row?.kind==='defense_snapshot'){
     if(!/^pc-v1:[a-f0-9]{64}$/.test(row.sourceKey)||!text(row.occurredAt,40)||!Number.isFinite(Date.parse(row.occurredAt))||p?.sourceGuild!==guild||!/^\d{4}-\d{2}-\d{2}$/.test(p.warDate)||!Array.isArray(p.defenses)||p.defenses.length>300||!Number.isSafeInteger(p.total)||p.total<0||p.total>300)throw new Error('상대 방어팀 정보를 확인해 주세요.');
