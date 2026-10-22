@@ -7,7 +7,7 @@ function heal(unit,base){
   const amount=Math.min(unit.maxHp-unit.hp,calculateRecovery({base,regeneration:unit.regeneration||0,increase:unit.healingIncrease||0,decrease:unit.healingReduction||0}));
   unit.hp+=amount;return amount;
 }
-function shield(unit,base,turns){if(unit.buffBlock||unit.hp<=0)return;unit.barrier=Math.max(unit.barrier||0,calculateShield({base,regeneration:unit.regeneration||0}));unit.barrierTurns=Math.max(unit.barrierTurns||0,turns);}
+function shield(unit,base,turns){if(unit.buffBlock||unit.hp<=0)return;unit.barrier=Math.max(unit.barrier||0,calculateShield({base,regeneration:unit.regeneration||0})*(1-(unit.shieldReduction||0)/100));unit.barrierTurns=Math.max(unit.barrierTurns||0,turns);}
 export function afterControl(unit,events,units=[]){
   if(!unit.hp)return;
   const sources=[unit,...units.filter(u=>u.id!==unit.id&&u.side===unit.side&&u.hp>0&&u.name==='란드그리드')];
@@ -33,14 +33,21 @@ export function afterSkillPassive(unit,events){
   const rule=text.match(/자신의 스킬 1회 발동 시 시전자 (?:물리 |마법 )?(공격력|최대 생명력)의\s*([\d.]+)%/);
   if(rule){const amount=heal(unit,unit[rule[1]==='최대 생명력'?'maxHp':'attack']*Number(rule[2])/100);if(amount)events.push(unit.name+' · 스킬 사용 회복 '+amount);}
 }
-export function afterHitPassive(unit,units,events){
+export function afterHitPassive(unit,units,events,{attackToken}={}){
   if(unit.hp<=0)return;
   unit.passiveHits=(unit.passiveHits||0)+1;
+  const giyu=units.find(u=>u.side===unit.side&&u.hp>0&&u.name==='기유');
+  if(giyu&&giyu.id===unit.id&&unit.passiveHits%4===0)for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0)){cleanseOne(ally);ally.awakenGauge=Math.min(ally.awakenMax||0,(ally.awakenGauge||0)+10);}
+  if(unit.passiveHits%3===0&&unit.battleRow==='front'&&units.some(u=>u.side===unit.side&&u.hp>0&&u.name==='루디')){unit.reductionHits=2;unit.hitReduction=23;}
+  if(unit.name==='헬레니아'&&unit.passiveHits%3===0)heal(unit,unit.defense*.4);
+  const rad=units.find(u=>u.side===unit.side&&u.hp>0&&u.name==='라드그리드');
+  if(rad&&unit.id!==rad.id&&unit.battleRow==='back'&&heroProfile(unit.name)?.role===5&&unit.passiveHits%3===0)shield(unit,rad.defense*.45,2);
   if(unit.name==='라드그리드'&&unit.passiveHits%3===0){heal(unit,unit.defense*.4);shield(unit,unit.defense*.55,2);events.push('라드그리드 · 3회 피격 회복·보호막');}
   if(unit.name==='스쿨드'){
-    if(roleCount(units,unit.side,2)>=3){
+    if(roleCount(units,unit.side,2)>=3&&(attackToken===undefined||unit.fateAttackToken!==attackToken)){
+      unit.fateAttackToken=attackToken;
       unit.fateThreadDurations=[...(unit.fateThreadDurations||[]),3];unit.fateThreads=unit.fateThreadDurations.length;
-      if(unit.fateThreads>=3){unit.fateThreadDurations=[];unit.fateThreads=0;unit.nullify=Math.max(unit.nullify,4);for(const key of ['control','sleep','silence'])unit[key]=0;events.push('스쿨드 · 운명의 실 3개 소모');}
+      if(unit.fateThreads>=3){unit.fateThreadDurations=[];unit.fateThreads=0;unit.nullify=Math.max(unit.nullify,4);for(let i=0;i<3;i++)cleanseOne(unit);events.push('스쿨드 · 운명의 실 3개 소모');}
     }
 
   }
@@ -54,8 +61,21 @@ export function afterHitPassive(unit,units,events){
 }
 
 export function afterHpChange(unit,units,events){if(unit.hp<=0)return;
+  const pal=units.find(u=>u.side===unit.side&&u.hp>0&&u.name==='팔라누스');
+  if(pal&&pal.id===unit.id&&unit.hp<=unit.maxHp*.3&&!unit.palCleanseUsed){unit.palCleanseUsed=true;for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0))while(cleanseOne(ally));events.push('팔라누스 · 체력 조건 아군 디버프 해제');}
+  if(unit.name==='손오공'&&unit.hp<=unit.maxHp*.5&&!unit.wukongRescueUsed){unit.wukongRescueUsed=true;for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0))heal(ally,unit.attack*.95);events.push('손오공 · 절반 HP 아군 전체 회복');}
   if(unit.name==='스쿨드'){
     if(unit.hp<=unit.maxHp*.5&&(unit.skuldHeals||0)<2){unit.skuldHeals=(unit.skuldHeals||0)+1;heal(unit,unit.attack*1.65);events.push('스쿨드 · 절반 HP 회복');}
   }
   if(unit.name==='하연'&&unit.hp<=unit.maxHp*.5&&!unit.hayeonRescueUsed){unit.hayeonRescueUsed=true;for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0)){heal(ally,unit.maxHp*.22);shield(ally,unit.maxHp*.25,2);}events.push('하연 · 절반 HP 아군 전체 회복·보호막');}
+}
+
+// Until all effects carry creation timestamps, this priority is an explicit
+// approximation of the game's application-order cleanse, not a verified order.
+export function cleanseOne(unit){
+  for(const keys of [['control','controlName'],['sleep'],['silence'],['blind'],['healBlock'],['buffBlock'],['defTurns','defDown'],['annihilation'],['instantDeathTurns','instantDeathStacks'],['blockDownTurns','blockDebuff'],['superiorityMissTurns','superiorityMiss']])if(unit[keys[0]]){for(const key of keys)unit[key]=0;return true;}
+  for(const key of ['reflux','crystals'])if(unit[key]?.length){unit[key].shift();return true;}
+  const timed=unit.panelTimedBuffs?.findIndex(b=>b.debuff);if(timed>=0){const [buff]=unit.panelTimedBuffs.splice(timed,1);unit[buff.stat]-=buff.delta;return true;}
+  const dot=unit.dots?.findIndex(d=>!d.unremovable);if(dot>=0){unit.dots.splice(dot,1);return true;}
+  return false;
 }

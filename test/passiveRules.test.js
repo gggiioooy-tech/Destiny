@@ -10,6 +10,10 @@ import {tickPersonalTurn} from '../src/lib/battleSurvival.js';
 import {calculatePrebattle,defaultPrebattleSettings} from '../src/lib/prebattleStats.js';
 function battle(names){let h=prepareHeroes();names.forEach((n,i)=>h=changeHero(h,i,n));return createBattle(h);}
 
+test('fully upgraded Sylvester starts with 25 percent blessing',()=>{
+  const b=battle(['실베스타']);assert.equal(b.units[0].blessing,25);
+});
+
 test('role support counts two matching heroes as three, not one as two',()=>{
   const b=battle(['선란','여포','하연']);assert.equal(roleCount(b.units,'attacker',1),3);
   const c=battle(['선란','윤건','하연']);assert.equal(roleCount(c.units,'attacker',1),1);

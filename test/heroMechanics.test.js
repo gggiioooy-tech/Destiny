@@ -13,8 +13,8 @@ test('Dellons transformation changes all attack skills and caps critical damage 
 test('Dellons awakening actually changes state during battle',()=>{
  const h=changeHero(prepareHeroes(),0,'델론즈');let b=createBattle(h,{plans:{attacker:[],defender:[]}});b.skillSide='attacker';b.units[0].awakenGauge=b.units[0].awakenMax;b=advanceBattle(b);assert.equal(b.action.code,7);assert.equal(b.units[0].transformed,true);
 });
-test('Sylvester blessing uses 40 percent and skill recovery uses his current attack',()=>{
- const b=createBattle(changeHero(prepareHeroes(),0,'실베스타'));const u=b.units[0];assert.equal(u.blessing,40);assert.equal(u.gutsShieldPercent,135);u.hp=1;afterSkillPassive(u,[]);assert.ok(u.hp>1);
+test('Sylvester blessing uses 25 percent and skill recovery uses his current attack',()=>{
+ const b=createBattle(changeHero(prepareHeroes(),0,'실베스타'));const u=b.units[0];assert.equal(u.blessing,25);assert.equal(u.gutsShieldPercent,135);u.hp=1;afterSkillPassive(u,[]);assert.ok(u.hp>1);
  u.control=2;const old=u.attack;afterControl(u,[]);assert.equal(u.control,0);assert.equal(u.controlImmune,1);assert.equal(u.attack,old*1.1);
 });
 test('Hayeon own HP threshold rescues the party once and ring selections survive saved setups',()=>{

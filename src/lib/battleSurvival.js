@@ -14,6 +14,7 @@ export function receiveDamage(unit,amount,{pierce=false,execute=false,deferred=f
     result.kind='indomitable';result.damage=target.hp===0?1:0;events.push(target.hp?'불굴 · 남은 피격 '+target.indomitableHits+'회':'불굴 만료 · 사망');return result;
   }
   let pending=Math.max(0,Math.round(amount));
+  if(!execute&&!deferred&&target.reductionHits>0){pending=Math.round(pending*(1-(target.hitReduction||0)/100));target.reductionHits--;}
   if(!execute&&!deferred&&target.blessing>0)pending=Math.min(pending,Math.floor(target.maxHp*target.blessing/100));
   result.absorbed=execute||deferred?0:Math.min(target.barrier||0,pending);target.barrier=(target.barrier||0)-result.absorbed;pending-=result.absorbed;
   const before=target.hp;target.hp=execute?0:Math.max(0,before-pending);
@@ -23,7 +24,7 @@ export function receiveDamage(unit,amount,{pierce=false,execute=false,deferred=f
     target.hp=1;target.gutsUsed=true;events.push('권능');
     if(target.name==='델론즈'){target.nullify=Math.max(target.nullify||0,4);target.awakenGauge=Math.min(target.awakenMax||85,(target.awakenGauge||0)+25);}
     if(target.gutsShieldPercent)target.barrierTurns=Math.max(target.barrierTurns||0,3);
-    target.barrier=Math.max(target.barrier,ringGuts?Math.round(target.attack*1.5):calculateShield({base:target.attack*(target.gutsShieldPercent||0)/100,regeneration:target.regeneration||0}));
+    if(!target.buffBlock)target.barrier=Math.max(target.barrier,(ringGuts?Math.round(target.attack*1.5):calculateShield({base:target.attack*(target.gutsShieldPercent||0)/100,regeneration:target.regeneration||0}))*(1-(target.shieldReduction||0)/100));
   }
   if(execute){target.immortal=0;target.indomitableHits=0;target.barrier=0;events.push('처형');}
   if(target.hp===0&&!target.annihilation){
