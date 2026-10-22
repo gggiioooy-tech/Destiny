@@ -54,9 +54,10 @@ export default function ExperimentalBattle({currentUser,report}){
     {error&&<p role="alert" className="sim-error-banner">{error}</p>}
     <section id="sim-panel-setup" role="tabpanel" aria-labelledby="sim-tab-setup" hidden={view!=='setup'}>
       <SimulationPresets currentUser={currentUser} snapshot={{draft,plans,seed,inputBasis,teamSettings}} onLoad={load} disabled={running}/>
-      <PrebattleSetup basis={inputBasis} onBasis={changeBasis} settings={teamSettings} setSettings={setTeamSettings} draft={draft} conversion={conversion}/>
       <div className="sim-setup-toolbar"><p>{readiness.exampleCount?`예시 스탯 ${readiness.exampleCount}명 · 실제 비교에는 수치를 입력해 주세요.`:'입력한 시작 스탯으로 전투를 계산합니다.'}</p><div><button type="button" className="sim-button" onClick={swap}>공격·방어 교환</button><button type="button" className="sim-button" onClick={reset}>{report?'저장 전투로 초기화':'기본 편성으로 초기화'}</button></div></div>
-      <BattleSetup draft={draft} setDraft={setDraft} plans={plans} setPlans={setPlans} report={inputBasis==='battle'?report:null} seed={seed} setSeed={setSeed} inputBasis={inputBasis}/>
+      <BattleSetup draft={draft} setDraft={setDraft} plans={plans} setPlans={setPlans} report={inputBasis==='battle'?report:null} seed={seed} setSeed={setSeed} inputBasis={inputBasis} teamSettings={teamSettings} setTeamSettings={setTeamSettings}>
+<PrebattleSetup basis={inputBasis} onBasis={changeBasis} settings={teamSettings} setSettings={setTeamSettings} draft={draft} conversion={conversion}/>
+</BattleSetup>
       <BattlePrediction draft={conversion.heroes} plans={plans} seed={seed} disabled={running||readiness.errors.length>0} exampleCount={readiness.exampleCount}/>
     </section>
     <section id="sim-panel-battle" role="tabpanel" aria-labelledby="sim-tab-battle" hidden={view!=='battle'}><BattleArena draft={conversion.heroes} battle={battle} running={running}/>{session&&<div className="sim-scrubber"><button type="button" className="sim-button" disabled={running||session.cursor===0} onClick={()=>seek(session.cursor-1)}>← 이전</button><label>장면 {session.cursor} / {session.frames.length-1}<input aria-label="전투 장면 이동" type="range" min="0" max={session.frames.length-1} value={session.cursor} onChange={e=>seek(e.target.value)}/></label><button type="button" className="sim-button" disabled={running||battle?.done} onClick={()=>setSession(old=>advanceSession(old,advanceBattle))}>다음 →</button></div>}</section>

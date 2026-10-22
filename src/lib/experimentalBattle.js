@@ -65,6 +65,7 @@ function passiveState(name){
 }
 export function createBattle(heroes,{seed=1,plans=defaultSkillPlans(heroes)}={}){
   if(heroes.length!==6||heroes.filter(h=>h.side==='attacker').length!==3||heroes.filter(h=>h.side==='defender').length!==3||heroes.some(h=>!SIM_HEROES.includes(h.name)))throw Error('지원 영웅을 양 팀에 3명씩 배치해 주세요.');
+  for(const side of ['attacker','defender']){const seats=heroes.filter(h=>h.side===side).map(h=>h.battleSeat??h.id%3+1);if(new Set(seats).size!==3||seats.some(n=>!Number.isInteger(n)||n<1||n>5))throw Error('자리번호는 팀별로 중복 없이 1~5번이어야 합니다.');}
   for(const h of heroes)for(const k of ['attack','defense','maxHp','speed','crit','critDamage','accuracy','resist','block','shred','elasticity','blockBuff','blockDebuff','blockReduction','weakPoint','damageReduction','amplification','regeneration','damageIncrease','vulnerability','weakBonus','missChance'])if(!Number.isFinite(h[k])||Math.abs(h[k])>1000000||(h[k]<0&&!['resist','crit','weakPoint','block'].includes(k))||(k==='maxHp'&&h[k]<1)||(k==='blockReduction'&&h[k]>100))throw Error('스탯은 유효한 숫자로 입력해 주세요. 막기 피해감소는 0~100%입니다.');
   for(const side of ['attacker','defender'])if(!Array.isArray(plans[side])||plans[side].length!==3||plans[side].some(p=>!Number.isInteger(p.id)||heroes[p.id]?.side!==side||![2,3].includes(p.code)))throw Error('팀마다 사용할 스킬 3개를 선택해 주세요.');
   const state={growth:HERO_GROWTH,units:heroes.map((h,i)=>({...h,id:i,hp:h.maxHp,barrier:h.name==='윤건'?calculateShield({base:h.attack*1.85,regeneration:h.regeneration}):0,barrierTurns:h.name==='윤건'?3:0,damageBuffTurns:h.name==='연희'?3:0,blessing:h.name==='윤건'?25:0,reviveImmortalTurns:h.name==='쥬리'?3:0,controlImmune:h.name==='쥬리'?3:0,nullify:h.name==='쥬리'?3:0,sleep:0,defDown:0,defTurns:0,immortal:0,immunity:0,annihilation:0,control:0,silence:0,healBlock:0,damageDealt:0,healingDone:0,awakenGauge:0,awakenMax:skillFor(h.name,7)?.raw.gauge||0,awakenUsed:false,...passiveState(h.name),revived:false,triggered:false,actions:0,skillActions:0})),seed:(Number(seed)>>>0)||1,step:0,turn:0,round:0,phase:0,plans:structuredClone(plans),queue:[],log:[],done:false,winner:null,active:null,targets:[],impacts:[],action:null,awakenLocks:{attacker:0,defender:0}};
@@ -90,7 +91,7 @@ function scheduled(s){
       if(!healing&&!revival)return true;
       return healing&&s.units.some(u=>u.side===side&&u.hp>0&&u.hp/u.maxHp<(isReserved?.999:.7))||revival&&s.units.some(u=>u.side===side&&u.hp===0&&!u.annihilation);
     };
-    const lock=s.awakenLocks[side],awakened=!reserved&&!lock?ready.filter(u=>!u.awakenUsed&&u.awakenMax>0&&u.awakenGauge>=u.awakenMax&&usable(u,7)).sort((a,b)=>b.speed-a.speed||a.id-b.id)[0]:null;
+    const lock=s.awakenLocks[side],awakened=!reserved&&!lock?ready.filter(u=>!u.awakenUsed&&u.awakenMax>0&&u.awakenGauge>=u.awakenMax&&usable(u,7)).sort((a,b)=>b.speed-a.speed||(a.battleSeat??a.id%3+1)-(b.battleSeat??b.id%3+1)||a.id-b.id)[0]:null;
     const candidate=reserved?s.units[reserved.id]:awakened||ready.sort((a,b)=>a.skillActions-b.skillActions||a.id-b.id).find(u=>heroSkills(u.name).some(v=>[2,3].includes(v.code)&&usable(u,v.code)));
     const available=candidate?heroSkills(candidate.name).filter(v=>[2,3].includes(v.code)&&usable(candidate,v.code)):[];
     const code=reserved?.code||(awakened?7:available[candidate?.skillActions%available.length]?.code||2);
@@ -102,7 +103,7 @@ function scheduled(s){
   }
   if(!s.queue.some(id=>s.units[id].hp>0)){
     s.round++;const ties=new Map(s.units.map(u=>[u.id,random(s)]));
-    s.queue=s.units.filter(u=>u.hp>0).sort((a,b)=>b.speed-a.speed||(a.id%3)-(b.id%3)||ties.get(a.id)-ties.get(b.id)).map(u=>u.id);
+    s.queue=s.units.filter(u=>u.hp>0).sort((a,b)=>b.speed-a.speed||(a.battleSeat??a.id%3+1)-(b.battleSeat??b.id%3+1)||ties.get(a.id)-ties.get(b.id)).map(u=>u.id);
   }
   let actor;while(s.queue.length&&!actor){const u=s.units[s.queue.shift()];if(u.hp>0)actor=u;}
   s.phase=(s.phase+1)%3;s.turn++;return {actor,code:1,kind:'basic'};

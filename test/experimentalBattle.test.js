@@ -48,3 +48,10 @@ test('previously ignored collected modifiers are imported with percent scaling',
   const h=prepareHeroes({heroes:[{name:'연희',side:'attacker',stats:{12:980,18:320,21:96,24:125}}]})[0];
   assert.equal(h.weakPoint,98);assert.equal(h.damageReduction,32);assert.equal(h.amplification,9.6);assert.equal(h.regeneration,12.5);
 });
+
+test('equal speed basics follow seat order and higher speed still takes precedence',()=>{
+ const h=prepareHeroes();for(const u of h){u.attack=1;u.maxHp=100000;u.speed=50;u.battleSeat=[5,4,1][u.id%3];}
+ const basic=advanceBattle(advanceBattle(createBattle(h,{seed:42})));assert.ok([2,5].includes(basic.active));
+ h[0].speed=51;assert.equal(advanceBattle(advanceBattle(createBattle(h,{seed:42}))).active,0);
+ h[1].battleSeat=5;assert.throws(()=>createBattle(h),/자리번호/);
+});

@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {prepareHeroes,changeHero,createBattle,advanceBattle} from '../src/lib/experimentalBattle.js';
 import {SIM_ROSTER} from '../src/lib/simulationSkills.js';
-import {BASE_STATS,PETS,FORMATIONS,calculatePrebattle,defaultPrebattleSettings,normalizePrebattleSettings,reducePanelTimedBuffs,incomingModifiers} from '../src/lib/prebattleStats.js';
+import {BASE_STATS,PETS,FORMATIONS,formationSeats,placeHero,calculatePrebattle,defaultPrebattleSettings,normalizePrebattleSettings,reducePanelTimedBuffs,incomingModifiers} from '../src/lib/prebattleStats.js';
 import {setupDocument,readSetupFile} from '../src/lib/simulationWorkspace.js';
 function fixture(names=['선란','여포','하연','하연','루디','윤건']){
   let h=prepareHeroes();names.forEach((name,i)=>h=changeHero(h,i,name));
@@ -92,4 +92,13 @@ test('Karam full skill damage reduction is 10 rather than its separate block bon
 test('Nezuko affiliation aura does not buff unrelated heroes',()=>{
  const s=settings();s.attacker.pet='네즈코';const r=calculatePrebattle(fixture(['연희','쥬리','윤건','탄지로','시노부','젠이츠']),s);
  assert.ok(!r.breakdown[0].rows.some(row=>row.bonuses?.some(b=>b.source==='네즈코')));
+});
+
+test('placing heroes swaps occupied seats, updates rows and persists seat numbers',()=>{
+ const s=settings();assert.deepEqual(formationSeats(s.attacker),[3,4,5]);s.attacker=placeHero(s.attacker,0,1);assert.deepEqual(s.attacker.positions,['front','back','back']);
+ s.attacker=placeHero(s.attacker,1,1);assert.deepEqual(s.attacker.seats,[4,1,5]);assert.deepEqual(s.attacker.positions,['back','front','back']);
+ const h=fixture(),r=calculatePrebattle(h,s);assert.deepEqual(r.heroes.slice(0,3).map(h=>h.battleSeat),[4,1,5]);
+ const plans={attacker:Array.from({length:3},()=>({id:0,code:2})),defender:Array.from({length:3},()=>({id:3,code:2}))};
+ const loaded=readSetupFile(JSON.stringify(setupDocument({draft:h,plans,inputBasis:'panel',teamSettings:s})));assert.deepEqual(loaded.teamSettings.attacker.seats,[4,1,5]);
+ s.attacker.seats=[1,1,5];assert.throws(()=>normalizePrebattleSettings(s));
 });

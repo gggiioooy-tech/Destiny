@@ -14,6 +14,16 @@ export const FORMATIONS=[
 const primary=['attack','defense','maxHp'];
 export const defaultTeamSettings=()=>({pet:'없음',petEnhancement:5,petSkillLevel:3,formation:'basic',formationAttack:14,formationDefense:21,potentials:Array.from({length:4},()=>({stat:'attack',value:0})),positions:['back','back','back']});
 export const defaultPrebattleSettings=()=>({attacker:defaultTeamSettings(),defender:defaultTeamSettings()});
+export function formationSeats(team){
+  if(team.seats)return [...team.seats];
+  const f=FORMATIONS.find(f=>f.id===team.formation)||FORMATIONS[0];let front=0,back=f.front;
+  return team.positions.map(p=>p==='front'?++front:++back);
+}
+export function placeHero(team,index,seat){
+  const f=FORMATIONS.find(f=>f.id===team.formation)||FORMATIONS[0],seats=formationSeats(team),other=seats.indexOf(seat);
+  if(other!==-1)seats[other]=seats[index];seats[index]=seat;
+  return {...team,seats,positions:seats.map(n=>n<=f.front?'front':'back')};
+}
 export function normalizePrebattleSettings(value){
   const output={};
   for(const side of ['attacker','defender']){
@@ -26,8 +36,10 @@ export function normalizePrebattleSettings(value){
     if(pet&&primary.some(k=>!pet.growth[k]))throw Error(pet.name+'의 성장 능력치 자료가 없어 현재 자동 계산할 수 없습니다.');
     if(!Array.isArray(v.potentials)||v.potentials.length!==4||v.potentials.some(p=>!primary.includes(p?.stat)||!Number.isFinite(p.value)||p.value<0||p.value>100))throw Error('펫 잠재 4줄을 확인해 주세요.');
     if(!Array.isArray(v.positions)||v.positions.length!==3||v.positions.some(p=>!['front','back'].includes(p)))throw Error('영웅의 전열·후열을 확인해 주세요.');
-    if(v.positions.filter(p=>p==='back').length>formation.back||v.positions.filter(p=>p==='front').length>formation.front)throw Error(formation.name+'의 전열·후열 정원을 초과했습니다. 영웅 위치를 확인해 주세요.');
-    output[side]={...d,pet:petName,petEnhancement:5,petSkillLevel:3,formation:formation.id,formationAttack:formation.attack,formationDefense:formation.defense,potentials:v.potentials.map(p=>({stat:p.stat,value:p.value})),positions:[...v.positions]};
+    if(v.seats&&(!Array.isArray(v.seats)||v.seats.length!==3||new Set(v.seats).size!==3||v.seats.some(n=>!Number.isInteger(n)||n<1||n>5)))throw Error('자리번호는 중복 없이 1~5번을 선택해 주세요.');
+    const positions=v.seats?v.seats.map(n=>n<=formation.front?'front':'back'):v.positions;
+    if(positions.filter(p=>p==='back').length>formation.back||positions.filter(p=>p==='front').length>formation.front)throw Error(formation.name+'의 전열·후열 정원을 초과했습니다. 영웅 위치를 확인해 주세요.');
+    output[side]={...d,pet:petName,petEnhancement:5,petSkillLevel:3,formation:formation.id,formationAttack:formation.attack,formationDefense:formation.defense,potentials:v.potentials.map(p=>({stat:p.stat,value:p.value})),positions:[...positions],...(v.seats?{seats:[...v.seats]}:{})};
   }
   return output;
 }
@@ -92,7 +104,7 @@ function specialAuras(hero){
   return [];
 }
 export function calculatePrebattle(draft,settings,{basis='panel'}={}){
-  if(basis==='battle')return {heroes:structuredClone(draft),breakdown:[],warnings:[]};
+  if(basis==='battle')return {heroes:structuredClone(draft).map(h=>settings?.[h.side]?.seats?{...h,battleSeat:settings[h.side].seats[h.id%3]}:h),breakdown:[],warnings:[]};
   if(basis!=='panel')throw Error('입력 기준을 확인해 주세요.');
   const teams=normalizePrebattleSettings(settings),warnings=[],auras=[];
   for(const hero of draft)for(const stat of [...primary,'speed','crit','critDamage','weakPoint','block','accuracy','resist','damageIncrease','damageReduction','amplification','vulnerability'])if(!Number.isFinite(hero[stat])||Math.abs(hero[stat])>1000000||(hero[stat]<0&&!['crit','weakPoint','block','resist'].includes(stat))||(stat==='maxHp'&&hero[stat]<1))throw Error('영웅 정보창 수치를 유효한 숫자로 입력해 주세요.');
@@ -119,7 +131,7 @@ export function calculatePrebattle(draft,settings,{basis='panel'}={}){
   const heroes=draft.map(h=>{
     const team=teams[h.side],base=BASE_STATS[h.name],role=base?.role||heroProfile(h.name)?.role,type=heroDamageType(h.name),position=team.positions[h.id%3],ref=petReference(team),pet=ref?.pet;
     const applicable=auras.filter(e=>((e.group==='self'&&e.ownerId===h.id)||(e.group==='team'&&e.ownerSide===h.side)||(e.group==='enemy'&&e.ownerSide!==h.side))&&(!e.role||e.role.includes(role))&&(!e.row||e.row===position)&&(!e.affiliation||['탄지로','젠이츠','시노부','기유','네즈코'].includes(h.name))&&['all',type].includes(e.family));
-    const output={...h,panelComputed:true,origin:h.origin?.includes('테스트 기본값')?h.origin:'영웅 정보창 → 자동 계산',panelTimedBuffs:[]},rows=[];
+    const output={...h,battleSeat:formationSeats(team)[h.id%3],panelComputed:true,origin:h.origin?.includes('테스트 기본값')?h.origin:'영웅 정보창 → 자동 계산',panelTimedBuffs:[]},rows=[];
     for(const stat of [...primary,'crit','critDamage','weakPoint','block','accuracy','resist','damageIncrease','damageReduction','amplification','vulnerability',...namedStats.map(([,stat])=>stat).filter(stat=>stat!=='damageReduction')]){
       const effects=applicable.filter(e=>e.stat===stat),groups=new Map();
       for(const e of effects){
