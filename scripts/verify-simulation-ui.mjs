@@ -22,6 +22,11 @@ try{
   assert.equal((owner.match(/role="tab"/g)||[]).length,3);
   assert.ok(owner.includes('100회 비교'));assert.ok(owner.includes('계산 중지'));assert.ok(owner.includes('90% 정확도를 달성하지 못했습니다'));
   assert.ok(owner.includes('영웅 정보창 · 전투 전'));assert.ok(owner.includes('펫 잠재 4줄'));assert.ok(owner.includes('자동 계산된 전투 시작 수치'));
+  assert.ok(owner.includes('펫 · +5강 · 풀스킬 강화'));assert.ok(!owner.includes('펫 강화 +'));assert.ok(!owner.includes('펫 스킬 강화'));
+  for(const label of ['기본진형','밸런스진형','공격진형','보호진형'])assert.ok(owner.includes(label));
+  const {default:Page}=await vite.ssrLoadModule('/src/components/ReplaySimulationPage.jsx');
+  const page=renderToStaticMarkup(React.createElement(Page,{currentUser:{role:'admin',isOwner:true}}));
+  for(const label of ['사이트에 저장된 전투','분석 JSON 열기','실전 기록 불러옴'])assert.ok(!page.includes(label));
   const setup=renderToStaticMarkup(React.createElement(Setup,{draft,plans:defaultSkillPlans(),seed:1,setDraft(){},setPlans(){},setSeed(){}}));
   assert.equal((setup.match(/type="number"/g)||[]).length,STAT_FIELDS.length+1);
   for(const text of ['내 조합 저장','스탯 표 붙여넣기','빠른 계산','공격·방어 교환'])assert.ok(owner.includes(text));

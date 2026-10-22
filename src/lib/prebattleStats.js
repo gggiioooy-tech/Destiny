@@ -1,22 +1,33 @@
 import catalog from './prebattleCatalog.json' with {type:'json'};
 import {heroProfile,heroSkills} from './simulationSkills.js';
 
-export const PETS=catalog.pets;
+const PET_REFERENCES=[['루','루'],['이린','이린'],['리첼','리첼'],['크리','크리'],['파이크','파이크'],['델로','델로'],['윈디','윈디'],['제브','제브'],['유','유'],['요랑','요랑'],['연지','연지'],['카람','카람'],['제오','제오'],['멜페로','멜패로'],['네즈코','카마도 네즈코']];
+const petAliases={'멜패로':'멜페로','카마도 네즈코':'네즈코'};
+export const PETS=PET_REFERENCES.map(([name,reference])=>({...catalog.pets.find(p=>p.name===reference),name}));
 export const BASE_STATS=catalog.bases;
+export const FORMATIONS=[
+  {id:'basic',name:'기본진형',back:3,front:2,attack:14,defense:21},
+  {id:'balance',name:'밸런스진형',back:2,front:3,attack:21,defense:14},
+  {id:'attack',name:'공격진형',back:4,front:1,attack:10.5,defense:42},
+  {id:'protection',name:'보호진형',back:1,front:4,attack:42,defense:10.5},
+];
 const primary=['attack','defense','maxHp'];
-export const defaultTeamSettings=()=>({pet:'없음',petEnhancement:5,petSkillLevel:3,formationAttack:42,formationDefense:0,potentials:Array.from({length:4},()=>({stat:'attack',value:0})),positions:['back','back','back']});
+export const defaultTeamSettings=()=>({pet:'없음',petEnhancement:5,petSkillLevel:3,formation:'basic',formationAttack:14,formationDefense:21,potentials:Array.from({length:4},()=>({stat:'attack',value:0})),positions:['back','back','back']});
 export const defaultPrebattleSettings=()=>({attacker:defaultTeamSettings(),defender:defaultTeamSettings()});
 export function normalizePrebattleSettings(value){
   const output={};
   for(const side of ['attacker','defender']){
     const v=value?.[side]||defaultTeamSettings(),d=defaultTeamSettings();
-    if(!['없음',...PETS.map(p=>p.name)].includes(v.pet))throw Error('지원하는 펫을 선택해 주세요.');
-    const pet=PETS.find(p=>p.name===v.pet);
+    const petName=petAliases[v.pet]||v.pet;
+    if(!['없음',...PETS.map(p=>p.name)].includes(petName))throw Error('지원하는 펫 15종 중에서 선택해 주세요.');
+    const pet=PETS.find(p=>p.name===petName);
+    const formation=FORMATIONS.find(f=>f.id===v.formation)||FORMATIONS.find(f=>f.attack===v.formationAttack&&f.defense===v.formationDefense)||FORMATIONS[0];
+    if(v.formation&&!FORMATIONS.some(f=>f.id===v.formation))throw Error('진형을 선택해 주세요.');
     if(pet&&primary.some(k=>!pet.growth[k]))throw Error(pet.name+'의 성장 능력치 자료가 없어 현재 자동 계산할 수 없습니다.');
-    for(const [key,max]of [['petEnhancement',5],['petSkillLevel',3],['formationAttack',200],['formationDefense',200]])if(!Number.isFinite(v[key])||v[key]<0||v[key]>max||(['petEnhancement','petSkillLevel'].includes(key)&&!Number.isInteger(v[key])))throw Error('펫 강화·스킬 단계와 진형 수치를 확인해 주세요.');
     if(!Array.isArray(v.potentials)||v.potentials.length!==4||v.potentials.some(p=>!primary.includes(p?.stat)||!Number.isFinite(p.value)||p.value<0||p.value>100))throw Error('펫 잠재 4줄을 확인해 주세요.');
     if(!Array.isArray(v.positions)||v.positions.length!==3||v.positions.some(p=>!['front','back'].includes(p)))throw Error('영웅의 전열·후열을 확인해 주세요.');
-    output[side]={...d,pet:v.pet,petEnhancement:v.petEnhancement,petSkillLevel:v.petSkillLevel,formationAttack:v.formationAttack,formationDefense:v.formationDefense,potentials:v.potentials.map(p=>({stat:p.stat,value:p.value})),positions:[...v.positions]};
+    if(v.positions.filter(p=>p==='back').length>formation.back||v.positions.filter(p=>p==='front').length>formation.front)throw Error(formation.name+'의 전열·후열 정원을 초과했습니다. 영웅 위치를 확인해 주세요.');
+    output[side]={...d,pet:petName,petEnhancement:5,petSkillLevel:3,formation:formation.id,formationAttack:formation.attack,formationDefense:formation.defense,potentials:v.potentials.map(p=>({stat:p.stat,value:p.value})),positions:[...v.positions]};
   }
   return output;
 }
@@ -35,13 +46,14 @@ const names=[['물리 공격력','attack','physical'],['마법 공격력','attac
 const namedStats=[['물리 취약','physicalVulnerability'],['마법 취약','magicVulnerability'],['물리 감쇄','physicalReduction'],['마법 감쇄','magicReduction'],['감쇄','damageReduction'],['감전 효과 적용 확률 증가','shockChanceBonus'],['효과 적용 확률 증가','effectChanceBonus'],['받는 회복량 감소','healingReduction'],['받는 회복량 증가','healingIncrease']];
 function parseAuras(raw,source,isPet=false){
   const lines=[raw.text,raw.enhanced,raw.upgrades].filter(Boolean).join('\n').split('\n').map(l=>l.trim());
-  let group=isPet?'team':'self',role=null,row=null;const effects=[],warnings=[];
+  let group=isPet?'team':'self',role=null,row=null,affiliation=null;const effects=[],warnings=[];
   for(const line of lines){
     const heading=line.replace(/^[\[|\s]+/,'');
-    if(/^\d초월 효과/.test(heading)){group='self';role=null;row=null;continue;}
+    if(/^\d초월 효과/.test(heading)){group='self';role=null;row=null;affiliation=null;continue;}
     if(/^(?:모든 |단일 )?(?:아군|적군)|^자신/.test(heading)&&!line.startsWith('-')){
       group=/적군/.test(heading)?'enemy':/^자신/.test(heading)?'self':'team';
       role=[['공격형',1],['마법형',2],['방어형',3],['지원형',4],['만능형',5]].filter(([s])=>heading.includes(s)).map(([,id])=>id);
+      affiliation=heading.includes('귀멸의 칼날')?'demon-slayer':null;
       row=heading.includes('후열')?'back':heading.includes('전열')?'front':null;continue;
     }
     if(!line.startsWith('-')||/(?:효과|피해량|확률) 상승\s*[:：]|레벨:/.test(line))continue;
@@ -51,8 +63,8 @@ function parseAuras(raw,source,isPet=false){
       if(/발동 시|사망|경우|이하|이상|중첩/.test(line)){warnings.push(source+' · '+line);continue;}
       const definition=Object.entries(raw.definitions||{}).find(([k])=>k===named[0])?.[1]?.join(' ')||'';
       const upgrade=lines.filter(l=>/(효과 상승|로 변경)/.test(l)&&l.includes(named[0])).at(-1)||'';
-      const value=Number((upgrade||definition||line).match(/([\d.]+)%/)?.[1]);
-      if(Number.isFinite(value))effects.push({source,group,role:role?.length?role:null,row,stat:named[1],family:'all',value,turns:Number(line.match(/(\d+)턴 지속/)?.[1]||0),bucket:isPet?'pet':'hero'});
+      const value=Number(upgrade.match(new RegExp(named[0]+'\\s*([\\d.]+)%'))?.[1]||(definition||line).match(/([\d.]+)%/)?.[1]);
+      if(Number.isFinite(value))effects.push({source,group,role:role?.length?role:null,row,affiliation,stat:named[1],family:'all',value,turns:Number(line.match(/(\d+)턴 지속/)?.[1]||0),bucket:isPet?'pet':'hero'});
       else warnings.push(source+' · '+named[0]+' 수치 미확인');
       continue;
     }
@@ -65,7 +77,7 @@ function parseAuras(raw,source,isPet=false){
     const upgradedValue=upgrades.match(new RegExp(label+' '+(sign>0?'증가':'감소')+'\\s*([\\d.]+)%'))?.[1];
     const value=Number(upgradedValue||(line.match(/[\d.]+%/)?.[0]||definition).match(/([\d.]+)%/)?.[1]);
     if(!Number.isFinite(value)){warnings.push(source+' · '+label+' 수치 미확인');continue;}
-    effects.push({source,group,role:role?.length?role:null,row,stat:stat==='damageReduction'&&sign>0?'vulnerability':stat,family,value:(stat==='damageReduction'?1:sign)*value,turns:Number(line.match(/(\d+)턴 지속/)?.[1]||0),bucket:isPet?'pet':'hero'});
+    effects.push({source,group,role:role?.length?role:null,row,affiliation,stat:stat==='damageReduction'&&sign>0?'vulnerability':stat,family,value:(stat==='damageReduction'?1:sign)*value,turns:Number(line.match(/(\d+)턴 지속/)?.[1]||0),bucket:isPet?'pet':'hero'});
   }
   return {effects,warnings};
 }
@@ -106,7 +118,7 @@ export function calculatePrebattle(draft,settings,{basis='panel'}={}){
   const breakdown=[];
   const heroes=draft.map(h=>{
     const team=teams[h.side],base=BASE_STATS[h.name],role=base?.role||heroProfile(h.name)?.role,type=heroDamageType(h.name),position=team.positions[h.id%3],ref=petReference(team),pet=ref?.pet;
-    const applicable=auras.filter(e=>((e.group==='self'&&e.ownerId===h.id)||(e.group==='team'&&e.ownerSide===h.side)||(e.group==='enemy'&&e.ownerSide!==h.side))&&(!e.role||e.role.includes(role))&&(!e.row||e.row===position)&&['all',type].includes(e.family));
+    const applicable=auras.filter(e=>((e.group==='self'&&e.ownerId===h.id)||(e.group==='team'&&e.ownerSide===h.side)||(e.group==='enemy'&&e.ownerSide!==h.side))&&(!e.role||e.role.includes(role))&&(!e.row||e.row===position)&&(!e.affiliation||['탄지로','젠이츠','시노부','기유','네즈코'].includes(h.name))&&['all',type].includes(e.family));
     const output={...h,panelComputed:true,origin:h.origin?.includes('테스트 기본값')?h.origin:'영웅 정보창 → 자동 계산',panelTimedBuffs:[]},rows=[];
     for(const stat of [...primary,'crit','critDamage','weakPoint','block','accuracy','resist','damageIncrease','damageReduction','amplification','vulnerability',...namedStats.map(([,stat])=>stat).filter(stat=>stat!=='damageReduction')]){
       const effects=applicable.filter(e=>e.stat===stat),groups=new Map();
