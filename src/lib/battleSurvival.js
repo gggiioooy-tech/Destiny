@@ -1,22 +1,21 @@
 import {calculateShield} from './combatDamage.js';
-import {reducePanelTimedBuffs} from './prebattleStats.js';
 
 // Explicit experimental ordering: immunity → nullification → blessing → shield → HP
 // → immortality/guts → revival. Complex simultaneous trigger order remains unverified.
-export function receiveDamage(unit,amount,{pierce=false,execute=false}={}){
+export function receiveDamage(unit,amount,{pierce=false,execute=false,deferred=false}={}){
   const target={...unit},events=[];
   const result={target,events,damage:0,absorbed:0,kind:'damage'};
   if(target.hp<=0)return result;
-  if(!execute&&target.immunity>0&&!pierce){result.kind='immune';events.push('피해 면역');return result;}
+  if(!execute&&!deferred&&target.immunity>0&&!pierce){result.kind='immune';events.push('피해 면역');return result;}
   // Penetration bypasses immunity, not hit-count nullification.
-  if(!execute&&target.nullify>0){target.nullify--;result.kind='nullify';events.push('피해 무효화');return result;}
+  if(!execute&&!deferred&&target.nullify>0){target.nullify--;result.kind='nullify';events.push('피해 무효화');return result;}
   if(!execute&&target.indomitableHits>0){
     target.indomitableHits--;target.hp=target.indomitableHits>0?1:0;
     result.kind='indomitable';result.damage=target.hp===0?1:0;events.push(target.hp?'불굴 · 남은 피격 '+target.indomitableHits+'회':'불굴 만료 · 사망');return result;
   }
   let pending=Math.max(0,Math.round(amount));
-  if(!execute&&target.blessing>0)pending=Math.min(pending,Math.floor(target.maxHp*target.blessing/100));
-  result.absorbed=execute?0:Math.min(target.barrier||0,pending);target.barrier=(target.barrier||0)-result.absorbed;pending-=result.absorbed;
+  if(!execute&&!deferred&&target.blessing>0)pending=Math.min(pending,Math.floor(target.maxHp*target.blessing/100));
+  result.absorbed=execute||deferred?0:Math.min(target.barrier||0,pending);target.barrier=(target.barrier||0)-result.absorbed;pending-=result.absorbed;
   const before=target.hp;target.hp=execute?0:Math.max(0,before-pending);
   if(!execute&&target.immortal>0)target.hp=Math.max(1,target.hp);
   const ringGuts=['daegwon','gwonbul'].includes(target.ring);
@@ -50,10 +49,17 @@ export function receiveDamage(unit,amount,{pierce=false,execute=false}={}){
   return result;
 }
 export function tickPersonalTurn(unit,before){
-  const next=before.panelTimedBuffs?.length?reducePanelTimedBuffs(unit):{...unit},events=[];
+  const next={...unit},events=[];
+  // A buff acquired during this action must not lose a turn just because an
+  // unrelated timed buff already existed at action start.
+  if(unit.panelTimedBuffs){
+    const previous=before.panelTimedBuffs||[];next.panelTimedBuffs=[];
+    for(const buff of unit.panelTimedBuffs){const old=previous.find(b=>b.source===buff.source&&b.stat===buff.stat&&b.delta===buff.delta);const remaining=old&&buff.remaining<=old.remaining?buff.remaining-1:buff.remaining;if(remaining>0)next.panelTimedBuffs.push({...buff,remaining});else next[buff.stat]-=buff.delta;}
+  }
+  if(before.statusImmunities){next.statusImmunities={...next.statusImmunities};for(const [key,turns]of Object.entries(before.statusImmunities))if(next.statusImmunities[key]<=turns)next.statusImmunities[key]=Math.max(0,next.statusImmunities[key]-1);}
   if(before.fateThreadDurations?.length){next.fateThreadDurations=(next.fateThreadDurations||[]).map((v,i)=>i<before.fateThreadDurations.length?v-1:v).filter(v=>v>0);next.fateThreads=next.fateThreadDurations.length;}
   // Only durations that existed before this basic-attack turn are ticked.
-  for(const key of ['sleep','control','silence','blind','healBlock','defTurns','immunity','controlImmune','annihilation','barrierTurns','damageBuffTurns','superiority','superiorityMissTurns','blockDownTurns']){
+  for(const key of ['sleep','control','silence','blind','healBlock','defTurns','immunity','controlImmune','annihilation','barrierTurns','damageBuffTurns','superiority','superiorityMissTurns','blockDownTurns','stealth','judgment','buffBlock','cooldownImmune','linkTurns','cloneTurns']){
     if(before[key]>0&&next[key]>0&&next[key]<=before[key])next[key]--;
   }
   if(!next.defTurns)next.defDown=0;

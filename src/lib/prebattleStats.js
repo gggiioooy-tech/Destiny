@@ -1,3 +1,4 @@
+import {roleCount} from './passiveRules.js';
 import catalog from './prebattleCatalog.json' with {type:'json'};
 import {heroProfile,heroSkills} from './simulationSkills.js';
 
@@ -59,7 +60,7 @@ function petReference(team){
   return {pet,raw:{text,definitions,upgrades},overrides};
 }
 const names=[['물리 공격력','attack','physical'],['마법 공격력','attack','magic'],['모든 공격력','attack','all'],['방어력','defense','all'],['최대 생명력','maxHp','all'],['생명력','maxHp','all'],['치명타 확률','crit','all'],['치명타 피해','critDamage','all'],['약점 공격 확률','weakPoint','all'],['막기 확률','block','all'],['효과 적중','accuracy','all'],['효과 저항','resist','all'],['피해량','damageIncrease','all'],['마법 피해량','damageIncrease','magic'],['물리 피해량','damageIncrease','physical'],['받는 피해량','damageReduction','all'],['받는 피해','damageReduction','all'],['피해 증폭','amplification','all']];
-const namedStats=[['물리 취약','physicalVulnerability'],['마법 취약','magicVulnerability'],['물리 감쇄','physicalReduction'],['마법 감쇄','magicReduction'],['감쇄','damageReduction'],['감전 효과 적용 확률 증가','shockChanceBonus'],['효과 적용 확률 증가','effectChanceBonus'],['받는 회복량 감소','healingReduction'],['받는 회복량 증가','healingIncrease']];
+const namedStats=[['물리 취약','physicalVulnerability'],['마법 취약','magicVulnerability'],['물리 감쇄','physicalReduction'],['마법 감쇄','magicReduction'],['감쇄','damageReduction'],['감전 효과 적용 확률 증가','shockChanceBonus'],['효과 적용 확률 증가','effectChanceBonus'],['효과 적용 확률 감소','effectChanceBonus'],['받는 회복량 감소','healingReduction'],['받는 회복량 증가','healingIncrease']];
 function parseAuras(raw,source,isPet=false){
   const lines=[raw.text,raw.enhanced,raw.upgrades].filter(Boolean).join('\n').split('\n').map(l=>l.trim());
   let group=isPet?'team':'self',role=null,row=null,affiliation=null;const effects=[],warnings=[];
@@ -80,7 +81,7 @@ function parseAuras(raw,source,isPet=false){
       const definition=Object.entries(raw.definitions||{}).find(([k])=>k===named[0])?.[1]?.join(' ')||'';
       const upgrade=lines.filter(l=>/(효과 상승|로 변경)/.test(l)&&l.includes(named[0])).at(-1)||'';
       const value=Number(upgrade.match(new RegExp(named[0]+'\\s*([\\d.]+)%'))?.[1]||(definition||line).match(/([\d.]+)%/)?.[1]);
-      if(Number.isFinite(value))effects.push({source,group,role:role?.length?role:null,row,affiliation,stat:named[1],family:'all',value,turns:Number(line.match(/(\d+)턴 지속/)?.[1]||0),bucket:isPet?'pet':'hero'});
+      if(Number.isFinite(value))effects.push({source,group,role:role?.length?role:null,row,affiliation,stat:named[1],family:'all',value:named[0]==='효과 적용 확률 감소'?-value:value,turns:Number(line.match(/(\d+)턴 지속/)?.[1]||0),bucket:isPet?'pet':'hero'});
       else warnings.push(source+' · '+named[0]+' 수치 미확인');
       continue;
     }
@@ -97,9 +98,10 @@ function parseAuras(raw,source,isPet=false){
   }
   return {effects,warnings};
 }
-function specialAuras(hero){
+function specialAuras(hero,draft){
   const own=(stat,value,extra={})=>({source:hero.name,group:'self',stat,value,family:'all',bucket:'stack',...extra});
   if(hero.name==='선란')return [own('attack',21),own('critDamage',30),own('weakPoint',100)];
+  if(hero.name==='프레이야')return [own('attack',20),...(roleCount(draft,hero.side,2)>=3?[own('accuracy',37,{group:'team',bucket:'hero'})]:[])];
   if(hero.name==='시노부')return [own('attack',15),own('crit',100)];
   if(hero.name==='탄지로')return [own('weakPoint',100)];
   if(hero.name==='여포')return [own('attack',31,{group:'team',family:'physical',bucket:'hero'}),own('attack',-7,{group:'team',family:'magic',bucket:'hero'})];
@@ -115,7 +117,7 @@ export function calculatePrebattle(draft,settings,{basis='panel'}={}){
   for(const hero of draft){
     const raw=heroSkills(hero.name).find(s=>s.code===4)?.raw||{};
     const parsed=parseAuras(raw,hero.name);warnings.push(...parsed.warnings);
-    for(const effect of [...parsed.effects,...specialAuras(hero)]){
+    for(const effect of [...parsed.effects,...specialAuras(hero,draft)]){
       // Special initial stacks replace the ambiguous 2/6-transcendence labels.
       if(['선란','시노부','탄지로'].includes(hero.name)&&effect.bucket!=='stack'&&effect.group==='self'&&['attack','crit','critDamage','weakPoint'].includes(effect.stat))continue;
       auras.push({...effect,ownerId:hero.id,ownerSide:hero.side});
@@ -135,7 +137,7 @@ export function calculatePrebattle(draft,settings,{basis='panel'}={}){
   const heroes=draft.map(h=>{
     const team=teams[h.side],base=BASE_STATS[h.name],role=base?.role||heroProfile(h.name)?.role,type=heroDamageType(h.name),position=team.positions[h.id%3],ref=petReference(team),pet=ref?.pet;
     const applicable=auras.filter(e=>((e.group==='self'&&e.ownerId===h.id)||(e.group==='team'&&e.ownerSide===h.side)||(e.group==='enemy'&&e.ownerSide!==h.side))&&(!e.role||e.role.includes(role))&&(!e.row||e.row===position)&&(!e.affiliation||['탄지로','젠이츠','시노부','기유','네즈코'].includes(h.name))&&['all',type].includes(e.family));
-    const output={...h,battleSeat:formationSeats(team)[h.id%3],panelComputed:true,origin:h.origin?.includes('테스트 기본값')?h.origin:'영웅 정보창 → 자동 계산',panelTimedBuffs:[]},rows=[];
+    const output={...h,battleSeat:formationSeats(team)[h.id%3],battleRow:position,panelComputed:true,origin:h.origin?.includes('테스트 기본값')?h.origin:'영웅 정보창 → 자동 계산',panelTimedBuffs:[],panelStackBase:{}},rows=[];
     for(const stat of [...primary,'crit','critDamage','weakPoint','block','accuracy','resist','damageIncrease','damageReduction','amplification','vulnerability',...namedStats.map(([,stat])=>stat).filter(stat=>stat!=='damageReduction')]){
       const effects=applicable.filter(e=>e.stat===stat),groups=new Map();
       for(const e of effects){
@@ -148,6 +150,7 @@ export function calculatePrebattle(draft,settings,{basis='panel'}={}){
       const formation=stat==='attack'&&position==='back'?team.formationAttack:stat==='defense'&&position==='front'?team.formationDefense:0;
       if(primary.includes(stat)&&!base&&(potential||formation))warnings.push(h.name+' · 도감 기본 능력치 미확인');
       const addition=growth+(base?.[stat]||0)*(potential+formation)/100,subtotal=(h[stat]||0)+addition;
+      output.panelStackBase[stat]=subtotal;
       const bonus=selected.reduce((n,e)=>n+e.value,0);
       output[stat]=primary.includes(stat)?Math.max(stat==='maxHp'?1:0,Math.round(subtotal*(1+bonus/100))):(h[stat]||0)+bonus;
       if(['crit','weakPoint','block'].includes(stat))output[stat]=Math.min(100,h[stat]+selected.filter(e=>e.value>0).reduce((n,e)=>n+e.value,0))+selected.filter(e=>e.value<0).reduce((n,e)=>n+e.value,0);
@@ -159,7 +162,14 @@ export function calculatePrebattle(draft,settings,{basis='panel'}={}){
     const rules=Object.entries(raw?.definitions||{});
     for(const [label,definition]of rules){
       const stat=label.includes('공격력 비례 효과 적중')?'accuracy':label.includes('방어력 비례 막기')?'block':label.includes('생명력 비례 막기')?'block':null;
-      if(!stat)continue;
+      if(!stat){
+        const flat=label.match(/^(공격력|속공|최대 생명력) 비례 (방어력|공격력) 증가$/),rule=definition.join(' ');
+        const ratio=rule.match(/수치\s*([\d,]+)마다.*?(?:방어력|공격력)이?\s*([\d,]+)만큼/);
+        if(flat&&ratio){const source=flat[1]==='속공'?'speed':flat[1]==='최대 생명력'?'maxHp':'attack',target=flat[2]==='방어력'?'defense':'attack';
+          const upgrade=[raw.text,raw.enhanced,raw.upgrades].filter(Boolean).join(' ').match(new RegExp(label.replace(/ 증가$/,'')+'(?: 증가)? 최대 증가 수치\\s*([\\d,]+)'));
+          const cap=upgrade?.[1]||rule.match(/최대 증가 수치\s*[:：]\s*([\d,]+)/)?.[1];const value=Math.min(cap?Number(cap.replaceAll(',','')):Infinity,Math.floor(output[source]/Number(ratio[1].replaceAll(',','')))*Number(ratio[2].replaceAll(',','')));output[target]+=value;rows.push({stat:target,panel:h[target],bonuses:[{source:h.name+' 비례 패시브',value}],final:output[target]});
+        }continue;
+      }
       const rule=definition.join(' '),scale=label.startsWith('공격력')?'attack':label.startsWith('방어력')?'defense':'maxHp';
       const ratio=rule.match(/수치\s*([\d,]+)마다.*?([\d.]+)%/),cap=rule.match(/최대 증가 수치\s*[:：]\s*([\d.]+)%/);
       if(ratio){const value=Math.min(cap?Number(cap[1]):Infinity,Math.floor(output[scale]/Number(ratio[1].replaceAll(',','')))*Number(ratio[2]));output[stat]+=value;rows.push({stat,panel:h[stat],bonuses:[{source:h.name+' 비례 패시브',value}],final:output[stat]});}

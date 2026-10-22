@@ -13,7 +13,7 @@ async function update(){
  if(running)return;running=true;
  try{
   const next=JSON.parse(fs.readFileSync(configPath,'utf8').replace(/^\uFEFF/,''));
-  if(next.capturePath!==config.capturePath||JSON.stringify(next.periods)!==JSON.stringify(config.periods)){previous=-1;lastSignature='';}config=next;
+  if(next.capturePath!==config.capturePath||JSON.stringify(next.periods)!==JSON.stringify(config.periods)){previous=-1;lastSignature='';fs.writeFileSync(errorFile,'');}config=next;
   const stat=fs.statSync(config.capturePath);if(stat.size===previous)return;
   if(stat.size>16*1024*1024)throw new Error('capture limit');previous=stat.size;
   const b=fs.readFileSync(config.capturePath);if(b.length<24||b.readUInt32LE(0)!==0xa1b2c3d4||b.readUInt32LE(20)!==1)throw new Error('pcap format');
@@ -48,6 +48,6 @@ async function update(){
   fs.writeFileSync(statusFile+'.tmp',JSON.stringify(data));fs.renameSync(statusFile+'.tmp',statusFile);
   fs.writeFileSync(errorFile,'');lastSignature=signature;
   console.log(`수신: 공격 ${data.attack}건, 방어 ${data.defense}건 (보류 ${data.held}건)`);
- }catch(e){previous=-1;fs.writeFileSync(errorFile,'게임 데이터 해석 대기 · 게임 재접속 후 수집 시작을 다시 눌러 주세요.');console.error('수집 데이터 확인 대기:',e.message);}finally{running=false;}
+ }catch(e){previous=-1;const issue=/TCP gap|frame length/.test(e.message)?'현재 연결의 데이터 시작 부분을 기다리고 있어요. 수집 중인 상태에서 게임에 한 번 재접속해 주세요.':/ENOENT/.test(e.message)?'새 수집 파일을 준비 중입니다. 수집 시작을 눌러 주세요.':/decode failed/.test(e.message)?'받은 게임 데이터를 해석하지 못했어요. 수집기 설정과 게임 버전을 확인해야 합니다.':'수집 데이터 확인 대기 · '+(/pcap|TCP|capture limit/.test(e.message)?e.message:'해석 오류');fs.writeFileSync(errorFile,issue);console.error('수집 데이터 확인 대기:',e.message);}finally{running=false;}
 }
 await update();setInterval(update,2000);

@@ -21,7 +21,10 @@ try{
  const payload={attacker:{skills:[{hero:'fixture'}]},defender:{skills:[]},heroSpeeds:{},heroHealth:{},heroStats:{},firstSkillSide:'attacker'};
  const status={attack:1,defense:0,held:0,records:[{kind:'battle',payload}]};
  for(const name of ['status.json','status-red.json'])fs.writeFileSync(path.join(root,name),JSON.stringify(status));
- fs.writeFileSync(path.join(root,'config.json'),'{}');
+ const fakePython=path.join(root,'fixture-python');fs.writeFileSync(fakePython,'fixture');
+ fs.writeFileSync(path.join(root,'capture-fixture.mjs'),"import fs from 'node:fs';fs.writeFileSync("+JSON.stringify(path.join(root,'capture-started'))+",String(process.pid));console.log('CAPTURE_READY');setInterval(()=>{},1000);");
+ fs.appendFileSync(path.join(root,'mock.mjs'),"\nimport cp from 'node:child_process';import {syncBuiltinESMExports} from 'node:module';const originalSpawn=cp.spawn;cp.spawn=(file,args,options)=>file==="+JSON.stringify(fakePython)+"?originalSpawn(process.execPath,["+JSON.stringify(path.join(root,'capture-fixture.mjs'))+"],options):originalSpawn(file,args,options);syncBuiltinESMExports();");
+ fs.writeFileSync(path.join(root,'config.json'),JSON.stringify({python:fakePython}));
  child=spawn(process.execPath,['--import',pathToFileURL(path.join(root,'mock.mjs')).href,path.join(root,'server.mjs')],{env:{...process.env,COLLECTOR_STATE_DIR:root,COLLECTOR_PORT:String(port)},stdio:'ignore',windowsHide:true});
  let initial;
  for(let n=0;n<30;n++){try{initial=await fetch(base+'/connect');break;}catch{await delay(100);}}
@@ -40,7 +43,8 @@ try{
  for(let n=0;n<20&&!fs.existsSync(path.join(root,'red-started'));n++)await delay(50);
  assert.ok(fs.existsSync(path.join(root,'red-started')));
  const red=await (await fetch(base+'/red/status',{headers:owner})).json();assert.equal(red.captureActive,true);assert.equal(red.records[0].payload.firstSkillSide,'attacker');
- const pids=JSON.parse(fs.readFileSync(path.join(root,'red-started')));
+ assert.ok(fs.existsSync(path.join(root,'capture-started')),'red starts passive capture automatically');
+ const pids=[...JSON.parse(fs.readFileSync(path.join(root,'red-started'))),Number(fs.readFileSync(path.join(root,'capture-started'),'utf8'))];
  assert.equal((await fetch(base+'/red/stop',{method:'POST',headers:{Cookie:cookie,'X-Collector-Action':'stop'}})).status,200);
  await delay(100);for(const pid of pids)assert.throws(()=>process.kill(pid,0));
  assert.equal((await (await fetch(base+'/red/status',{headers:owner})).json()).captureActive,false);

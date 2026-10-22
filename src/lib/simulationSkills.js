@@ -67,6 +67,13 @@ export function compileSkill(raw){
     const cc=line.match(/(?:^[- ]*|각 공격마다\s*)(감전|기절|마비|수면|깊은 수면|빙결|침묵|공포|실명)\s*\[/);
     if(cc){const upgraded=lines.find(l=>l.includes('확률 상승')&&l.includes(cc[1]));add('control',{status:cc[1],chance:Number(upgraded?.match(/([\d.]+)%/)?.[1]||chance)});continue;}
     if(/절멸\s*\[/.test(line)){add('annihilation');continue;}
+    if(/즉사\s*\[/.test(line)){add('instantDeath',{status:'즉사'});continue;}
+    if(/버프 차단\s*\[/.test(line)){add('buffBlock');continue;}
+    const cooldown=line.match(/스킬 쿨타임 (증가|감소)\s*(\d+)초/);
+    if(cooldown){add(cooldown[1]==='증가'?'cooldownUp':'cooldownDown',{value:Number(cooldown[2])});continue;}
+    const extend=line.match(/턴제 버프 증가\s*(\d+)턴/);
+    if(extend){add('extendBuff',{value:Number(extend[1])});continue;}
+    if(/지속 회복\s*\[/.test(line)){const rule=definitions['지속 회복']?.join(' ')||'',value=rule.match(/최대 생명력의\s*([\d.]+)%/);if(value){add('regen',{value:Number(value[1])/100});continue;}}
     const revive=line.match(/사망한 대상.*?생명력\s*([\d.]+)%.*부활/);
     if(revive){add('revive',{value:Number(revive[1])});continue;}
     const def=line.match(/방어력 감소(?:\(중첩\))?(?:\s*([\d.]+)%)?/);

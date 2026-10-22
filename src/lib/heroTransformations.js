@@ -4,6 +4,12 @@ import {skillFor} from './simulationSkills.js';
 export const TRANSFORMATION_SOURCE='https://www.namu.moe/w/델론즈(세븐나이츠%20리버스)/각성';
 export function combatSkill(unit,code){
   const base=skillFor(unit.name,code);
+  if(unit.name==='손오공'&&unit.cloneTurns>0&&base){
+    const skill={...base,critBonus:100,unsupported:[],effects:[]};
+    if(code===1)return {...skill,name:'기본 공격 · 분신',coefficient:.75,hits:2,effects:[{type:'control',group:'enemy',status:'석화',duration:1,chance:30}]};
+    if(code===2)return {...skill,name:'환. 대봉승타격',coefficient:1.02,hits:3,hpRatio:.07,hpCap:1,ignore:.4,missingTargetMultiplier:.1};
+    if(code===3)return {...skill,name:'환. 여의난참무',coefficient:.82,hits:3,ignore:.4,missingTargetMultiplier:.05,effects:[{type:'blockDown',group:'enemy',value:33,duration:3,chance:100,before:true}]};
+  }
   if(unit.name!=='델론즈'||!base)return base;
   const skill={...base,unsupported:base.unsupported.filter(t=>!t.includes('변신 후')&&!t.includes('연속 발동'))};
   if(code===3)skill.repeatOnKill=true;

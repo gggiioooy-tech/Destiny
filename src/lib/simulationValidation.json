@@ -1,12 +1,15 @@
 {
-  "engineVersion": "2026-10-22.4",
+  "engineVersion": "2026-10-22.5",
   "checkedAt": "2026-10-22",
   "mode": "retrospective_baseline",
-  "downloadedRecords": 12,
-  "eligibleRecords": 10,
-  "excludedRecords": 2,
-  "correct": 4,
+  "downloadedRecords": 40,
+  "eligibleRecords": 39,
+  "excludedRecords": 1,
+  "correct": 24,
   "samplesPerBattle": 32,
   "independentHoldout": false,
-  "target90Validated": false
+  "target90Validated": false,
+  "decidedRecords": 38,
+  "abstainedRecords": 1,
+  "sourceArchivedRecords": 599
 }

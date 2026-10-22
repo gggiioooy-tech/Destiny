@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {prepareHeroes,changeHero,createBattle,advanceBattle} from '../src/lib/experimentalBattle.js';
 import {combatSkill,transformDellons,addDellonsStacks} from '../src/lib/heroTransformations.js';
-import {afterControl,afterSkillPassive,afterHitPassive} from '../src/lib/conditionalPassives.js';
+import {afterControl,afterSkillPassive,afterHitPassive,afterHpChange} from '../src/lib/conditionalPassives.js';
 import {setupDocument,readSetupFile} from '../src/lib/simulationWorkspace.js';
 test('Dellons transformation changes all attack skills and caps critical damage stacks',()=>{
  let h=changeHero(prepareHeroes(),0,'델론즈'),b=createBattle(h),u=b.units[0];const old=u.critDamage;
@@ -17,8 +17,8 @@ test('Sylvester blessing uses 40 percent and skill recovery uses his current att
  const b=createBattle(changeHero(prepareHeroes(),0,'실베스타'));const u=b.units[0];assert.equal(u.blessing,40);assert.equal(u.gutsShieldPercent,135);u.hp=1;afterSkillPassive(u,[]);assert.ok(u.hp>1);
  u.control=2;const old=u.attack;afterControl(u,[]);assert.equal(u.control,0);assert.equal(u.controlImmune,1);assert.equal(u.attack,old*1.1);
 });
-test('Hayeon rescue only triggers once per ally and ring selections survive saved setups',()=>{
- const h=changeHero(prepareHeroes(),0,'하연'),b=createBattle(h);const u=b.units[1];u.hp=1;afterHitPassive(u,b.units,[]);assert.equal(u.hayeonRescueUsed,true);const before=u.hp;u.hp=1;afterHitPassive(u,b.units,[]);assert.equal(u.hp,1);assert.ok(before>1);
+test('Hayeon own HP threshold rescues the party once and ring selections survive saved setups',()=>{
+ const h=changeHero(prepareHeroes(),0,'하연'),b=createBattle(h);const u=b.units[0];b.units[1].hp=1;u.hp=1;afterHpChange(u,b.units,[]);assert.equal(u.hayeonRescueUsed,true);const before=u.hp;u.hp=1;afterHpChange(u,b.units,[]);assert.equal(u.hp,1);assert.ok(before>1);
  h[1].ring='daebul';const doc=setupDocument({draft:h,plans:{attacker:[],defender:[]},seed:1});assert.equal(readSetupFile(JSON.stringify(doc)).draft[1].ring,'daebul');
 });
 
