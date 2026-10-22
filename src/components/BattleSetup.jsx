@@ -23,7 +23,7 @@ export default function BattleSetup({draft,setDraft,plans,setPlans,report,seed,s
   function statField([key,label]){return <label key={key} className="sim-stat-label">{label}<input inputMode="decimal" type="number" min={key==='resist'?-1000000:key==='maxHp'?1:0} max="1000000" value={h[key]} onChange={e=>edit(key,e.target.value===''?'':Number(e.target.value))}/></label>;}
   function pick(name){
     setDraft(old=>changeHero(old,picker,name,report));
-    setPlans(old=>Object.fromEntries(Object.entries(old).map(([side,rows])=>[side,rows.map(p=>p.id===picker&&!heroSkills(name).some(s=>s.code===p.code)?{...p,code:2}:p)])));
+    setPlans(old=>Object.fromEntries(Object.entries(old).map(([side,rows])=>[side,rows.map(p=>p.id===picker&&!heroSkills(name).some(s=>s.code===p.code)?{...p,code:heroSkills(name).find(s=>[2,3].includes(s.code))?.code||2}:p)])));
     setSelected(picker);setPicker(null);setPaste('');setPasteError('');
   }
   return <div className="sim-setup">

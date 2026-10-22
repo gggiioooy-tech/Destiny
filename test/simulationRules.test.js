@@ -11,6 +11,10 @@ test('nested transformed wiki sections never replace normal skills or duplicate 
   const skills=heroSkills('델론즈');assert.deepEqual(skills.map(s=>s.code),[1,2,3,4,7]);assert.equal(skills.find(s=>s.code===2).name,'사신 강림');assert.equal(skills.find(s=>s.code===7).raw.gauge,85);
   assert.equal(heroSkills('기유').find(s=>s.code===7).raw.gauge,0);assert.equal(heroSkills('시노부').find(s=>s.code===7).raw.gauge,0);
 });
+test('heroes without a first active skill receive valid default reservations',()=>{
+  const heroes=changeHero(prepareHeroes(),0,'발리스타');
+  const plans=defaultSkillPlans(heroes);assert.equal(plans.attacker[0].code,3);
+});
 test('awakening charges by actual personal turn and ordinary skill rather than animation speed',()=>{
   let b=fixture();b=advanceBattle(b);assert.equal(b.units[0].awakenGauge,45);assert.equal(b.turn,0);
   b=advanceBattle(b);assert.equal(b.units[0].awakenGauge,60);assert.equal(b.turn,1);

@@ -5,7 +5,7 @@ import {SIM_HEROES,prepareHeroes,changeHero,createBattle,advanceBattle,defaultSk
 
 test('all published playable roster entries can be selected, with explicit skill provenance',()=>{
   assert.ok(SIM_HEROES.length>=170);assert.equal(new Set(SIM_HEROES).size,SIM_HEROES.length);
-  for(const h of SIM_ROSTER){assert.ok(h.source.startsWith('https://'));assert.ok(heroSkills(h.name).length>=2);}
+  for(const h of SIM_ROSTER){assert.ok(h.source.startsWith('https://'));assert.ok(heroSkills(h.name).length>=2);assert.equal(new Set(h.skills.map(s=>s.code)).size,h.skills.length,h.name);}
   assert.equal(canonicalHero('카마도 탄지로'),'탄지로');
 });
 test('loading a report preserves actual team members and canonical aliases',()=>{

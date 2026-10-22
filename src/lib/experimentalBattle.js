@@ -26,7 +26,7 @@ export function defaultSkillPlans(heroes,report){
     }
     if(observed.length===3)plans[side]=observed;
   }
-  if(heroes)for(const side of ['attacker','defender'])for(const p of plans[side])if(!skillFor(heroes[p.id]?.name,p.code))p.code=2;
+  if(heroes)for(const side of ['attacker','defender'])for(const p of plans[side])if(!skillFor(heroes[p.id]?.name,p.code))p.code=heroSkills(heroes[p.id]?.name).find(s=>[2,3].includes(s.code))?.code||2;
   return plans;
 }
 export function changeHero(heroes,index,name,report){

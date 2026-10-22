@@ -39,10 +39,16 @@ def import_hero(hero):
         enhanced = clean(s.get('enhancedDescription'))
         upgrades = '\n'.join(clean(u.get('description')) for u in s.get('transcendUpgrades', []) if u.get('step', 99) <= 6)
         code = 4 if s.get('isPassive') else 7 if s.get('isAwakenSkill') else s['skillType']
-        skills.append({'code':code, 'name':clean(s.get('name')), 'text':text,
+        entry = {'code':code, 'name':clean(s.get('name')), 'text':text,
                        'enhanced':enhanced, 'upgrades':upgrades, 'targets':s.get('targetCount', 1),
                        'targetType':s.get('targetType'), 'cooldown':s.get('coolTime', 0)/1000,
-                       'icon':BASE+'/game-assets/'+s['icon'] if s.get('icon') else ''})
+                       'icon':BASE+'/game-assets/'+s['icon'] if s.get('icon') else ''}
+        previous = next((v for v in skills if v['code']==code), None)
+        if previous:
+            if any(previous.get(key)!=entry.get(key) for key in ['name','text','enhanced','upgrades']):
+                previous['variantsOmitted'] = True
+        else:
+            skills.append(entry)
     return {'name':canonical(clean(hero['name'])), 'tid':hero['tid'], 'role':hero['role'],
             'rarity':hero['rarity'], 'awakened':False, 'source':BASE+f"/character.html?tid={hero['tid']}",
             'basis':'공개 DB · 한국 서버 최신 수치와 차이 가능',
