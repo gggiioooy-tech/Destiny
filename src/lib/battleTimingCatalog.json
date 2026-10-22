@@ -1,0 +1,937 @@
+{
+  "version": 1,
+  "checkedAt": "2026-10-22",
+  "replayCount": 12,
+  "timeUnit": "milliseconds",
+  "note": "StageTime/SkillEndTime observations; not isolated animation constants or network latency. ActionType 3/4 are classified as counter/assist from observed examples; passive triggers remain separate.",
+  "spacing": {
+    "count": 461,
+    "medianMs": 200,
+    "p10Ms": 200,
+    "p90Ms": 685,
+    "minMs": 0,
+    "maxMs": 970
+  },
+  "entries": {
+    "겔리두스|basic|1": {
+      "count": 10,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
+    "겔리두스|reaction|4": {
+      "count": 7,
+      "medianMs": 1048,
+      "p10Ms": 1048,
+      "p90Ms": 1048,
+      "minMs": 1048,
+      "maxMs": 1048
+    },
+    "겔리두스|skill|2": {
+      "count": 2,
+      "medianMs": 2142,
+      "p10Ms": 2142,
+      "p90Ms": 2142,
+      "minMs": 2142,
+      "maxMs": 2142
+    },
+    "겔리두스|skill|3": {
+      "count": 2,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857
+    },
+    "기유|basic|1": {
+      "count": 14,
+      "medianMs": 952,
+      "p10Ms": 952,
+      "p90Ms": 952,
+      "minMs": 952,
+      "maxMs": 952
+    },
+    "기유|reaction|1": {
+      "count": 2,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "기유|skill|2": {
+      "count": 4,
+      "medianMs": 2426,
+      "p10Ms": 2426,
+      "p90Ms": 2426,
+      "minMs": 2426,
+      "maxMs": 2426
+    },
+    "기유|skill|3": {
+      "count": 4,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857
+    },
+    "기유|skill|7": {
+      "count": 2,
+      "medianMs": 5000,
+      "p10Ms": 5000,
+      "p90Ms": 5000,
+      "minMs": 5000,
+      "maxMs": 5000
+    },
+    "델론즈|basic|1": {
+      "count": 27,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1071
+    },
+    "델론즈|reaction|1": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "델론즈|reaction|2": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "델론즈|skill|2": {
+      "count": 7,
+      "medianMs": 2294,
+      "p10Ms": 1071,
+      "p90Ms": 2294,
+      "minMs": 1071,
+      "maxMs": 2294
+    },
+    "델론즈|skill|3": {
+      "count": 11,
+      "medianMs": 2854,
+      "p10Ms": 2854,
+      "p90Ms": 2857,
+      "minMs": 2854,
+      "maxMs": 2857
+    },
+    "델론즈|skill|7": {
+      "count": 3,
+      "medianMs": 5208,
+      "p10Ms": 5208,
+      "p90Ms": 5208,
+      "minMs": 5208,
+      "maxMs": 5208
+    },
+    "동영|basic|1": {
+      "count": 13,
+      "medianMs": 1097,
+      "p10Ms": 1097,
+      "p90Ms": 1097,
+      "minMs": 1097,
+      "maxMs": 1097
+    },
+    "동영|reaction|2": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "동영|reaction|4": {
+      "count": 19,
+      "medianMs": 767,
+      "p10Ms": 767,
+      "p90Ms": 1071,
+      "minMs": 767,
+      "maxMs": 1071
+    },
+    "동영|skill|2": {
+      "count": 3,
+      "medianMs": 2142,
+      "p10Ms": 1071,
+      "p90Ms": 2142,
+      "minMs": 1071,
+      "maxMs": 2142
+    },
+    "라드그리드|basic|1": {
+      "count": 3,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
+    "라드그리드|reaction|4": {
+      "count": 8,
+      "medianMs": 744,
+      "p10Ms": 744,
+      "p90Ms": 744,
+      "minMs": 744,
+      "maxMs": 744
+    },
+    "라드그리드|skill|2": {
+      "count": 2,
+      "medianMs": 2605,
+      "p10Ms": 2605,
+      "p90Ms": 2605,
+      "minMs": 2605,
+      "maxMs": 2605
+    },
+    "라드그리드|skill|3": {
+      "count": 2,
+      "medianMs": 3322,
+      "p10Ms": 3322,
+      "p90Ms": 3322,
+      "minMs": 3322,
+      "maxMs": 3322
+    },
+    "루디|basic|1": {
+      "count": 10,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1071
+    },
+    "루디|counter|4": {
+      "count": 3,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
+    "루디|skill|2": {
+      "count": 2,
+      "medianMs": 2145,
+      "p10Ms": 2145,
+      "p90Ms": 2145,
+      "minMs": 2145,
+      "maxMs": 2145
+    },
+    "루디|skill|3": {
+      "count": 2,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857
+    },
+    "루디|skill|7": {
+      "count": 1,
+      "medianMs": 5102,
+      "p10Ms": 5102,
+      "p90Ms": 5102,
+      "minMs": 5102,
+      "maxMs": 5102
+    },
+    "린|basic|1": {
+      "count": 4,
+      "medianMs": 1074,
+      "p10Ms": 1074,
+      "p90Ms": 1074,
+      "minMs": 1074,
+      "maxMs": 1074
+    },
+    "린|reaction|4": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "린|skill|2": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "린|skill|3": {
+      "count": 2,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857
+    },
+    "브란즈&브란셀|basic|1": {
+      "count": 11,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1071
+    },
+    "브란즈&브란셀|skill|2": {
+      "count": 4,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 2491,
+      "minMs": 1071,
+      "maxMs": 2491
+    },
+    "브란즈&브란셀|skill|3": {
+      "count": 1,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857
+    },
+    "선란|assist|1": {
+      "count": 10,
+      "medianMs": 1035,
+      "p10Ms": 1035,
+      "p90Ms": 1035,
+      "minMs": 1035,
+      "maxMs": 1035
+    },
+    "선란|basic|1": {
+      "count": 35,
+      "medianMs": 1035,
+      "p10Ms": 1035,
+      "p90Ms": 1035,
+      "minMs": 1035,
+      "maxMs": 1035
+    },
+    "선란|reaction|2": {
+      "count": 2,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "선란|reaction|4": {
+      "count": 7,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 3169,
+      "minMs": 1071,
+      "maxMs": 3169
+    },
+    "선란|skill|2": {
+      "count": 8,
+      "medianMs": 2152,
+      "p10Ms": 2152,
+      "p90Ms": 2152,
+      "minMs": 2152,
+      "maxMs": 2152
+    },
+    "선란|skill|3": {
+      "count": 9,
+      "medianMs": 3169,
+      "p10Ms": 3169,
+      "p90Ms": 3169,
+      "minMs": 3169,
+      "maxMs": 3169
+    },
+    "선란|skill|7": {
+      "count": 5,
+      "medianMs": 5238,
+      "p10Ms": 5238,
+      "p90Ms": 5238,
+      "minMs": 5238,
+      "maxMs": 5238
+    },
+    "손오공|basic|1": {
+      "count": 9,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
+    "손오공|skill|2": {
+      "count": 2,
+      "medianMs": 2385,
+      "p10Ms": 2385,
+      "p90Ms": 2385,
+      "minMs": 2385,
+      "maxMs": 2385
+    },
+    "손오공|skill|3": {
+      "count": 2,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857
+    },
+    "손오공|skill|7": {
+      "count": 1,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857
+    },
+    "스파이크|basic|1": {
+      "count": 9,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
+    "스파이크|skill|2": {
+      "count": 4,
+      "medianMs": 714,
+      "p10Ms": 714,
+      "p90Ms": 2142,
+      "minMs": 714,
+      "maxMs": 2142
+    },
+    "스파이크|skill|3": {
+      "count": 2,
+      "medianMs": 2928,
+      "p10Ms": 2928,
+      "p90Ms": 2928,
+      "minMs": 2928,
+      "maxMs": 2928
+    },
+    "시노부|basic|1": {
+      "count": 19,
+      "medianMs": 1097,
+      "p10Ms": 1097,
+      "p90Ms": 1097,
+      "minMs": 1097,
+      "maxMs": 1097
+    },
+    "시노부|reaction|2": {
+      "count": 3,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "시노부|reaction|4": {
+      "count": 5,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "시노부|skill|2": {
+      "count": 6,
+      "medianMs": 2142,
+      "p10Ms": 1071,
+      "p90Ms": 2142,
+      "minMs": 1071,
+      "maxMs": 2142
+    },
+    "시노부|skill|3": {
+      "count": 6,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857
+    },
+    "시노부|skill|7": {
+      "count": 5,
+      "medianMs": 5537,
+      "p10Ms": 5537,
+      "p90Ms": 5537,
+      "minMs": 5537,
+      "maxMs": 5537
+    },
+    "실베스타|basic|1": {
+      "count": 8,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
+    "실베스타|reaction|1": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "실베스타|skill|2": {
+      "count": 4,
+      "medianMs": 2168,
+      "p10Ms": 1071,
+      "p90Ms": 2168,
+      "minMs": 1071,
+      "maxMs": 2168
+    },
+    "실베스타|skill|3": {
+      "count": 2,
+      "medianMs": 2890,
+      "p10Ms": 2890,
+      "p90Ms": 2890,
+      "minMs": 2890,
+      "maxMs": 2890
+    },
+    "실베스타|skill|7": {
+      "count": 1,
+      "medianMs": 5535,
+      "p10Ms": 5535,
+      "p90Ms": 5535,
+      "minMs": 5535,
+      "maxMs": 5535
+    },
+    "아리스|basic|1": {
+      "count": 16,
+      "medianMs": 1150,
+      "p10Ms": 1150,
+      "p90Ms": 1150,
+      "minMs": 1150,
+      "maxMs": 1150
+    },
+    "아리스|reaction|4": {
+      "count": 2,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "아리스|reaction|7": {
+      "count": 5,
+      "medianMs": 767,
+      "p10Ms": 767,
+      "p90Ms": 767,
+      "minMs": 767,
+      "maxMs": 767
+    },
+    "아리스|skill|2": {
+      "count": 5,
+      "medianMs": 2309,
+      "p10Ms": 1071,
+      "p90Ms": 2309,
+      "minMs": 1071,
+      "maxMs": 2309
+    },
+    "아리스|skill|3": {
+      "count": 5,
+      "medianMs": 3095,
+      "p10Ms": 3095,
+      "p90Ms": 3095,
+      "minMs": 3095,
+      "maxMs": 3095
+    },
+    "아리스|skill|7": {
+      "count": 10,
+      "medianMs": 767,
+      "p10Ms": 767,
+      "p90Ms": 767,
+      "minMs": 767,
+      "maxMs": 767
+    },
+    "아일린|basic|1": {
+      "count": 17,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
+    "아일린|reaction|4": {
+      "count": 15,
+      "medianMs": 2975,
+      "p10Ms": 1071,
+      "p90Ms": 2975,
+      "minMs": 1071,
+      "maxMs": 2975
+    },
+    "아일린|skill|2": {
+      "count": 12,
+      "medianMs": 2177,
+      "p10Ms": 1071,
+      "p90Ms": 2177,
+      "minMs": 1071,
+      "maxMs": 2177
+    },
+    "아일린|skill|3": {
+      "count": 2,
+      "medianMs": 2975,
+      "p10Ms": 2975,
+      "p90Ms": 2975,
+      "minMs": 2975,
+      "maxMs": 2975
+    },
+    "아일린|skill|7": {
+      "count": 1,
+      "medianMs": 5137,
+      "p10Ms": 5137,
+      "p90Ms": 5137,
+      "minMs": 5137,
+      "maxMs": 5137
+    },
+    "여포|basic|1": {
+      "count": 8,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
+    "여포|reaction|4": {
+      "count": 8,
+      "medianMs": 767,
+      "p10Ms": 767,
+      "p90Ms": 767,
+      "minMs": 767,
+      "maxMs": 1071
+    },
+    "여포|skill|2": {
+      "count": 3,
+      "medianMs": 2142,
+      "p10Ms": 1071,
+      "p90Ms": 2142,
+      "minMs": 1071,
+      "maxMs": 2142
+    },
+    "여포|skill|3": {
+      "count": 3,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857
+    },
+    "오르카|basic|1": {
+      "count": 23,
+      "medianMs": 1171,
+      "p10Ms": 1171,
+      "p90Ms": 1171,
+      "minMs": 1071,
+      "maxMs": 1171
+    },
+    "오르카|reaction|1": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "오르카|reaction|4": {
+      "count": 2,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "오르카|skill|2": {
+      "count": 4,
+      "medianMs": 2484,
+      "p10Ms": 2484,
+      "p90Ms": 2484,
+      "minMs": 2484,
+      "maxMs": 2484
+    },
+    "오르카|skill|3": {
+      "count": 3,
+      "medianMs": 3038,
+      "p10Ms": 3038,
+      "p90Ms": 3038,
+      "minMs": 3038,
+      "maxMs": 3038
+    },
+    "오르카|skill|7": {
+      "count": 2,
+      "medianMs": 5000,
+      "p10Ms": 5000,
+      "p90Ms": 5000,
+      "minMs": 5000,
+      "maxMs": 5000
+    },
+    "윤건|basic|1": {
+      "count": 14,
+      "medianMs": 1027,
+      "p10Ms": 1027,
+      "p90Ms": 1071,
+      "minMs": 1027,
+      "maxMs": 1071
+    },
+    "윤건|reaction|1": {
+      "count": 2,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "윤건|reaction|4": {
+      "count": 8,
+      "medianMs": 1178,
+      "p10Ms": 1178,
+      "p90Ms": 1178,
+      "minMs": 1178,
+      "maxMs": 1178
+    },
+    "윤건|skill|2": {
+      "count": 5,
+      "medianMs": 2142,
+      "p10Ms": 2142,
+      "p90Ms": 3397,
+      "minMs": 2142,
+      "maxMs": 3397
+    },
+    "윤건|skill|3": {
+      "count": 6,
+      "medianMs": 3397,
+      "p10Ms": 2142,
+      "p90Ms": 3397,
+      "minMs": 2142,
+      "maxMs": 3397
+    },
+    "윤건|skill|7": {
+      "count": 1,
+      "medianMs": 5000,
+      "p10Ms": 5000,
+      "p90Ms": 5000,
+      "minMs": 5000,
+      "maxMs": 5000
+    },
+    "젠이츠|basic|1": {
+      "count": 17,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1071
+    },
+    "젠이츠|reaction|1": {
+      "count": 2,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "젠이츠|skill|2": {
+      "count": 4,
+      "medianMs": 2166,
+      "p10Ms": 2166,
+      "p90Ms": 2166,
+      "minMs": 2166,
+      "maxMs": 2166
+    },
+    "젠이츠|skill|3": {
+      "count": 3,
+      "medianMs": 2917,
+      "p10Ms": 2917,
+      "p90Ms": 2917,
+      "minMs": 2917,
+      "maxMs": 2917
+    },
+    "젠이츠|skill|7": {
+      "count": 1,
+      "medianMs": 5000,
+      "p10Ms": 5000,
+      "p90Ms": 5000,
+      "minMs": 5000,
+      "maxMs": 5000
+    },
+    "칼 헤론|basic|1": {
+      "count": 11,
+      "medianMs": 1002,
+      "p10Ms": 1002,
+      "p90Ms": 1002,
+      "minMs": 1002,
+      "maxMs": 1002
+    },
+    "칼 헤론|reaction|2": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "칼 헤론|reaction|4": {
+      "count": 2,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "칼 헤론|skill|2": {
+      "count": 2,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 2425
+    },
+    "칼 헤론|skill|3": {
+      "count": 1,
+      "medianMs": 2832,
+      "p10Ms": 2832,
+      "p90Ms": 2832,
+      "minMs": 2832,
+      "maxMs": 2832
+    },
+    "클레미스|basic|1": {
+      "count": 21,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
+    "클레미스|reaction|2": {
+      "count": 2,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "클레미스|reaction|4": {
+      "count": 3,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "클레미스|skill|2": {
+      "count": 4,
+      "medianMs": 2367,
+      "p10Ms": 2367,
+      "p90Ms": 2367,
+      "minMs": 2367,
+      "maxMs": 2367
+    },
+    "클레미스|skill|3": {
+      "count": 5,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857
+    },
+    "클레미스|skill|7": {
+      "count": 1,
+      "medianMs": 5000,
+      "p10Ms": 5000,
+      "p90Ms": 5000,
+      "minMs": 5000,
+      "maxMs": 5000
+    },
+    "탄지로|assist|1": {
+      "count": 2,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
+    "탄지로|basic|1": {
+      "count": 21,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
+    "탄지로|reaction|2": {
+      "count": 2,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "탄지로|reaction|4": {
+      "count": 4,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "탄지로|skill|2": {
+      "count": 6,
+      "medianMs": 2142,
+      "p10Ms": 1071,
+      "p90Ms": 2142,
+      "minMs": 1071,
+      "maxMs": 2142
+    },
+    "탄지로|skill|3": {
+      "count": 6,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857
+    },
+    "탄지로|skill|7": {
+      "count": 7,
+      "medianMs": 5120,
+      "p10Ms": 5120,
+      "p90Ms": 5120,
+      "minMs": 5120,
+      "maxMs": 5120
+    },
+    "하연|basic|1": {
+      "count": 25,
+      "medianMs": 1125,
+      "p10Ms": 1125,
+      "p90Ms": 1125,
+      "minMs": 1071,
+      "maxMs": 1125
+    },
+    "하연|reaction|1": {
+      "count": 2,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "하연|skill|2": {
+      "count": 9,
+      "medianMs": 2387,
+      "p10Ms": 1071,
+      "p90Ms": 2387,
+      "minMs": 1071,
+      "maxMs": 2387
+    },
+    "하연|skill|3": {
+      "count": 5,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857
+    },
+    "하연|skill|7": {
+      "count": 2,
+      "medianMs": 5000,
+      "p10Ms": 5000,
+      "p90Ms": 5000,
+      "minMs": 5000,
+      "maxMs": 5000
+    }
+  }
+}

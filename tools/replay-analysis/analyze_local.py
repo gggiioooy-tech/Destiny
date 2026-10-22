@@ -19,19 +19,31 @@ def recorded_actions(name, event):
                                SourceObjectId=source, SkillGroupId=0, StageTime=time,
                                SkillEndTime=time, actionKind=kind)
 
+    def tagged(action, kind):
+        return SimpleNamespace(SkillResults=action.SkillResults,
+                               StatusEffectResults=action.StatusEffectResults,
+                               SourceObjectId=action.SourceObjectId,
+                               SkillGroupId=action.SkillGroupId,
+                               StageTime=action.StageTime, SkillEndTime=action.SkillEndTime,
+                               ActionType=action.ActionType, SkillCooltime=action.SkillCooltime,
+                               actionKind=kind)
+
     def turn_action(row, time):
         if row.SkillResults or row.AppliedStatusEffect:
             yield synthetic(row.SkillResults, row.AppliedStatusEffect, 'turn_effect', time=time)
-        yield from row.EffectSkills
+        for action in row.EffectSkills:
+            yield tagged(action, 'additional_skill')
 
     if name == 'ACUseSkillNoti':
-        yield from event.SkillResult
+        for action in event.SkillResult:
+            yield tagged(action, 'active_skill')
         for row in rows('AdditionalAction'):
             yield from turn_action(row, 0)
     elif name == 'ACTurnRecordNoti':
         for row in rows('ExcuteStatusEffect'):
             yield synthetic(row.ExcuteStatusEffects, [], 'status_tick', time=event.StartStageTime)
-        yield from event.NormalAttack
+        for action in event.NormalAttack:
+            yield tagged(action, 'normal_attack')
         for row in rows('TurnAction'):
             yield from turn_action(row, event.StartStageTime)
 
@@ -140,6 +152,8 @@ def analyze(pool, raw, record, history):
                 for effect in row.StatusEffects]} for row in action.StatusEffectResults]
             timeline.append({'index': len(timeline)+1, 'packet': packet_order,
                              'actionKind': getattr(action, 'actionKind', 'skill_action'),
+                             'actionType': getattr(action, 'ActionType', None),
+                             'skillCooltime': getattr(action, 'SkillCooltime', None),
                              'turn': event.TotalTurn, 'source': action.SourceObjectId,
                              'skillGroupId': action.SkillGroupId, 'skillCode': code,
                              'stageTime': action.StageTime, 'skillEndTime': action.SkillEndTime,

@@ -34,3 +34,5 @@
 .sim-prediction{margin-top:20px;padding:20px;border:1px solid var(--sim-border,#cbd5e1);border-radius:16px;background:var(--sim-panel,#fff);color:var(--sim-text,#17243a)}
 .sim-prediction h3{margin:0 0 8px}.sim-prediction p{line-height:1.6}.sim-prediction small{display:block;line-height:1.6}
 .dark .sim-prediction{background:#111c2e;color:#e5edf8;border-color:#40516b}
+.battle-clock{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px;color:#e4edf7;font-size:12px;margin:12px 0}.battle-clock strong{font-size:23px;font-variant-numeric:tabular-nums}.battle-clock small{color:#b8c7d8;font-size:10px}
+.battle-reaction-strip{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding:5px 14px 12px;list-style:none}.battle-reaction-strip li{display:flex;flex-direction:column;gap:3px;padding:7px 10px;background:#23374b;border:1px solid #556a80;border-radius:8px;color:#e6eff9;font-size:10px}.battle-reaction-strip span{color:#c6d5e5;font-variant-numeric:tabular-nums}

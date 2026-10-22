@@ -1,5 +1,6 @@
 import React,{useState} from 'react';
 import {heroProfile} from '../lib/simulationSkills.js';
+import {BATTLE_LIMIT_MS,formatBattleTime} from '../lib/battleTiming.js';
 import './battleArena.css';
 
 const number=n=>Math.round(n||0).toLocaleString('ko-KR');
@@ -14,6 +15,8 @@ export default function BattleArena({draft,battle,running}){
   const winner=battle?.winner==='attacker'?'공격팀':battle?.winner==='defender'?'방어팀':null;
   return <section className="battle-theater" aria-label="실시간 전투 화면">
     <div className="battle-scoreboard"><div><span className="battle-live-label">GUILD WAR · SIMULATION</span><h2>{battle?.stopped?'사용자가 전투를 종료했습니다':battle?.done?(winner?`${winner} 승리 · 참고 결과`:'전투 종료 · 판정 보류'):running?'전투 진행 중':battle?'전투 일시정지':'전투 준비'}</h2></div><div className="battle-turn"><strong>{String(battle?.turn||0).padStart(2,'0')}</strong><span>TURN · 행동 {battle?.step||0}</span></div></div>
+    <div className="battle-clock" role="timer" aria-label="전투 남은 시간">남은 시간 <strong>{formatBattleTime((battle?.timeLimitMs||BATTLE_LIMIT_MS)-(battle?.elapsedMs||0))}</strong><small>영웅별 관측 시간 · 미확보 행동은 추정 · 반격/협공·서버 지연 미완성</small></div>
+    {battle?.reactions?.length>0&&<ol className="battle-reaction-strip" aria-label="이번 행동의 추가 공격">{battle.reactions.map((r,i)=><li key={i}><strong>{r.name}</strong><span>+{((r.endMs-r.startMs)/1000).toFixed(3)}초{r.estimated?' · 추정':' · 관측 시간'}</span></li>)}</ol>}
     <div className="battle-team-headings"><span>ATTACK <b>공격팀</b></span><span><b>방어팀</b> DEFENSE</span></div>
     <div className="battle-field">
       <div className="battle-floor" aria-hidden="true"/><span className="battle-versus" aria-hidden="true">VS</span>
