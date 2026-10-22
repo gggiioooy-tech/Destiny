@@ -23,7 +23,7 @@ export default function BattlePrediction({draft,plans,seed,disabled,exampleCount
   }
   const percent=n=>(n*100).toFixed(0)+'%';
   return <section className="sim-prediction" aria-label="승패 반복 계산">
-    <p className="sim-error-banner">실전 예측 기준 미달 · 최근 추가 기록 {validation.downloadedRecords}개 중 비교 가능한 {validation.eligibleRecords}전에서 {validation.correct}전 일치 ({Math.round(validation.correct/validation.eligibleRecords*100)}%). 독립 검증이 아니며 90% 정확도를 달성하지 못했습니다.</p>
+    <p className="sim-error-banner">실전 예측 기준 미달 · 현재 엔진의 기존 기록 재검사 {validation.downloadedRecords}개 중 비교 가능한 {validation.eligibleRecords}전에서 {validation.correct}전 일치 ({Math.round(validation.correct/validation.eligibleRecords*100)}%). 독립 검증이 아니며 90% 정확도를 달성하지 못했습니다.</p>
     <div className="sim-setup-toolbar"><div><h3>승패 반복 계산</h3><p>같은 편성으로 난수 100개를 계산합니다. 실제 적중률은 별도 검증이 필요합니다.</p></div><div><button type="button" className="sim-button sim-button-primary" disabled={disabled||busy||exampleCount>0} onClick={run}>100회 비교</button><button type="button" className="sim-button" disabled={!busy} onClick={stop}>계산 중지</button></div></div>
     {exampleCount>0&&<p>예시 스탯을 실제 전투 시작 스탯으로 바꾼 뒤 사용할 수 있습니다.</p>}
     {error&&<p role="alert">{error}</p>}

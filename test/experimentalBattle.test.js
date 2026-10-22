@@ -55,3 +55,7 @@ test('equal speed basics follow seat order and higher speed still takes preceden
  h[0].speed=51;assert.equal(advanceBattle(advanceBattle(createBattle(h,{seed:42}))).active,0);
  h[1].battleSeat=5;assert.throws(()=>createBattle(h),/자리번호/);
 });
+
+test('empty skill reservations use the automatic scheduler',()=>{
+ const b=createBattle(prepareHeroes(),{plans:{attacker:[],defender:[]}});const next=advanceBattle(b);assert.ok(next.action);assert.ok([2,3,7].includes(next.action.code));
+});

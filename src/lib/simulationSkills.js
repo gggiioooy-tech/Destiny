@@ -105,7 +105,7 @@ export function coverageIssues(name){
 const compiled=new Map();
 export function heroSkills(name){
   name=canonicalHero(name);
-  if(!compiled.has(name))compiled.set(name,(heroProfile(name)?.skills||[]).map(compileSkill));
+  if(!compiled.has(name))compiled.set(name,(heroProfile(name)?.skills||[]).map(raw=>{const skill=compileSkill(raw);if(name==='델론즈')skill.unsupported=skill.unsupported.filter(t=>!t.includes('변신 후')&&!t.includes('연속 발동'));return skill;}));
   return compiled.get(name);
 }
 export const skillFor=(name,code)=>heroSkills(name).find(s=>s.code===code);

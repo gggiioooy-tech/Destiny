@@ -1,3 +1,5 @@
+import {afterControl,afterSkillPassive,afterHitPassive} from './conditionalPassives.js';
+import {combatSkill,transformDellons,addDellonsStacks} from './heroTransformations.js';
 import {hitProbabilities,calculateHit,rollEffect,calculateShield,calculateRecovery,convertedHealth,HERO_GROWTH} from './combatDamage.js';
 import {receiveDamage,tickPersonalTurn} from './battleSurvival.js';
 import {SIM_ROSTER,canonicalHero,heroSkills,skillFor,DETAILED_HEROES} from './simulationSkills.js';
@@ -12,7 +14,7 @@ export function prepareHeroes(report){
     const name=SIM_HEROES.includes(candidate)?candidate:['연희','쥬리','윤건'][i%3];
     const source=report?.heroes.find(h=>h.side===side&&canonicalHero(h.name)===name);
     const s=source?.stats;
-    return {id:i,name,side,attack:s?Math.max(s['1']||0,s['3']||0):8000,defense:s?.['5']??1800,maxHp:s?.['7']??10000,speed:s?.['9']??(100-i),crit:(s?.['10']??750)/10,critDamage:(s?.['11']??1500)/10,accuracy:(s?.['13']??0)/10,resist:(s?.['14']??0)/10,block:(s?.['17']??0)/10,shred:(s?.['22']??0)/10,elasticity:(s?.['23']??0)/10,weakPoint:(s?.['12']??0)/10,damageReduction:(s?.['18']??0)/10,amplification:(s?.['21']??0)/10,regeneration:(s?.['24']??0)/10,damageIncrease:0,vulnerability:0,weakBonus:0,missChance:0,blockBuff:0,blockDebuff:0,blockReduction:50,origin:source?'수집된 시작 스탯':'테스트 기본값'};
+    return {id:i,name,side,ring:'none',attack:s?Math.max(s['1']||0,s['3']||0):8000,defense:s?.['5']??1800,maxHp:s?.['7']??10000,speed:s?.['9']??(100-i),crit:(s?.['10']??750)/10,critDamage:(s?.['11']??1500)/10,accuracy:(s?.['13']??0)/10,resist:(s?.['14']??0)/10,block:(s?.['17']??0)/10,shred:(s?.['22']??0)/10,elasticity:(s?.['23']??0)/10,weakPoint:(s?.['12']??0)/10,damageReduction:(s?.['18']??0)/10,amplification:(s?.['21']??0)/10,regeneration:(s?.['24']??0)/10,damageIncrease:0,vulnerability:0,weakBonus:0,missChance:0,blockBuff:0,blockDebuff:0,blockReduction:50,origin:source?'수집된 시작 스탯':'테스트 기본값'};
   });
 }
 export function defaultSkillPlans(heroes,report){
@@ -53,12 +55,12 @@ function passiveState(name){
   const reviveUpgrade=text.match(/효과 상승\s*[:：]\s*부활 시 생명력\s*(\d+)%/);
   const reviveImmunity=text.match(/(?:자신 )?부활 시 모든 피해 면역\s*\[(\d+)턴/);
   return {nullify:Number(direct.match(/모든 피해 무효화\s*\[피격\s*(\d+)회/)?.[1]||0),
-    guts:/권능/.test(direct),revivePercent:Number(reviveUpgrade?.[1]||direct.match(/사망 시 생명력\s*(\d+)%로 부활/)?.[1]||0),
+    guts:/권능/.test(direct),gutsShieldPercent:Number(text.match(/권능 발동\s*시.*?공격력의\s*([\d.]+)%/)?.[1]||0),revivePercent:Number(reviveUpgrade?.[1]||direct.match(/사망 시 생명력\s*(\d+)%로 부활/)?.[1]||0),
     reviveIndomitableHits:Number(direct.match(/사망 시 불굴 상태로 부활\s*\[피격\s*(\d+)회/)?.[1]||0),
     reviveImmunity:Number(reviveImmunity?.[1]||0),
     initialShield:shield?{scale:shield[1]==='최대 생명력'?'maxHp':'attack',value:Number(shield[2])/100,turns:Number(shield[3])}:null,
     superiority:Number(direct.match(/우위\s*\[(\d+)턴/)?.[1]||0),
-    ...(/축복/.test(direct)?{blessing:25}:{}),
+    ...(/축복/.test(direct)?{blessing:Number(raw?.definitions?.['축복']?.join(' ').match(/([\d.]+)%/)?.[1]||25)}:{}),
     reviveImmortalTurns:Number(direct.match(/사망 시 불사.*?\[(\d+)턴/)?.[1]||0),
     immunity:Number(direct.match(/모든 피해 면역\s*\[(\d+)턴/)?.[1]||0),
     controlImmune:Number(direct.match(/행동 제어 면역\s*\[(\d+)턴/)?.[1]||0)};
@@ -66,8 +68,9 @@ function passiveState(name){
 export function createBattle(heroes,{seed=1,plans=defaultSkillPlans(heroes)}={}){
   if(heroes.length!==6||heroes.filter(h=>h.side==='attacker').length!==3||heroes.filter(h=>h.side==='defender').length!==3||heroes.some(h=>!SIM_HEROES.includes(h.name)))throw Error('지원 영웅을 양 팀에 3명씩 배치해 주세요.');
   for(const side of ['attacker','defender']){const seats=heroes.filter(h=>h.side===side).map(h=>h.battleSeat??h.id%3+1);if(new Set(seats).size!==3||seats.some(n=>!Number.isInteger(n)||n<1||n>5))throw Error('자리번호는 팀별로 중복 없이 1~5번이어야 합니다.');}
+  if(heroes.some(h=>!['none','daebul','daegwon','gwonbul'].includes(h.ring||'none')))throw Error('반지 종류를 확인해 주세요.');
   for(const h of heroes)for(const k of ['attack','defense','maxHp','speed','crit','critDamage','accuracy','resist','block','shred','elasticity','blockBuff','blockDebuff','blockReduction','weakPoint','damageReduction','amplification','regeneration','damageIncrease','vulnerability','weakBonus','missChance'])if(!Number.isFinite(h[k])||Math.abs(h[k])>1000000||(h[k]<0&&!['resist','crit','weakPoint','block'].includes(k))||(k==='maxHp'&&h[k]<1)||(k==='blockReduction'&&h[k]>100))throw Error('스탯은 유효한 숫자로 입력해 주세요. 막기 피해감소는 0~100%입니다.');
-  for(const side of ['attacker','defender'])if(!Array.isArray(plans[side])||plans[side].length!==3||plans[side].some(p=>!Number.isInteger(p.id)||heroes[p.id]?.side!==side||![2,3].includes(p.code)))throw Error('팀마다 사용할 스킬 3개를 선택해 주세요.');
+  for(const side of ['attacker','defender'])if(!Array.isArray(plans[side])||plans[side].length>3||plans[side].some(p=>!Number.isInteger(p.id)||heroes[p.id]?.side!==side||![2,3].includes(p.code)))throw Error('팀마다 예약 스킬을 0~3개 선택해 주세요.');
   const state={growth:HERO_GROWTH,units:heroes.map((h,i)=>({...h,id:i,hp:h.maxHp,barrier:h.name==='윤건'?calculateShield({base:h.attack*1.85,regeneration:h.regeneration}):0,barrierTurns:h.name==='윤건'?3:0,damageBuffTurns:h.name==='연희'?3:0,blessing:h.name==='윤건'?25:0,reviveImmortalTurns:h.name==='쥬리'?3:0,controlImmune:h.name==='쥬리'?3:0,nullify:h.name==='쥬리'?3:0,sleep:0,defDown:0,defTurns:0,immortal:0,immunity:0,annihilation:0,control:0,silence:0,healBlock:0,damageDealt:0,healingDone:0,awakenGauge:0,awakenMax:skillFor(h.name,7)?.raw.gauge||0,awakenUsed:false,...passiveState(h.name),revived:false,triggered:false,actions:0,skillActions:0})),seed:(Number(seed)>>>0)||1,step:0,turn:0,round:0,phase:0,plans:structuredClone(plans),queue:[],log:[],done:false,winner:null,active:null,targets:[],impacts:[],action:null,awakenLocks:{attacker:0,defender:0}};
   for(const unit of state.units){
     unit.readyAt={};
@@ -87,6 +90,7 @@ function scheduled(s){
       const spec=skillFor(unit.name,code);if(!spec)return false;
       if((unit.readyAt?.[code]||0)>(s.elapsedMs||0))return false;
       if(spec.hits||!spec.effects.length)return true;
+      if(code===7&&unit.name==='델론즈')return true;
       const healing=spec.effects.some(e=>e.type==='heal'),revival=spec.effects.some(e=>e.type==='revive');
       if(!healing&&!revival)return true;
       return healing&&s.units.some(u=>u.side===side&&u.hp>0&&u.hp/u.maxHp<(isReserved?.999:.7))||revival&&s.units.some(u=>u.side===side&&u.hp===0&&!u.annihilation);
@@ -109,6 +113,13 @@ function scheduled(s){
   s.phase=(s.phase+1)%3;s.turn++;return {actor,code:1,kind:'basic'};
 }
 function finishStep(s,events,meta={}){
+  const counts=s.units.map(u=>(u.revivalCount||0)+(u.hp<=0?1:0));
+  for(const unit of s.units.filter(u=>u.name==='델론즈'&&u.hp>0)){
+    for(const dead of s.units){const count=Math.max(0,counts[dead.id]-(s.deathCounts?.[dead.id]||0));if(!count||dead.id===unit.id)continue;
+      if(dead.side===unit.side){unit.awakenGauge=Math.min(unit.awakenMax,unit.awakenGauge+15*count);unit.nullify=Math.min(6,unit.nullify+count);addDellonsStacks(unit,count);events.push('델론즈 · 아군 사망 패시브');}
+      else {const old=unit.enemyDeaths||0;unit.enemyDeaths=old+count;if(unit.transformed)unit.nullify=Math.min(6,unit.nullify+Math.floor(unit.enemyDeaths/2)-Math.floor(old/2));}
+    }
+  }s.deathCounts=counts;
   s.targets=[...new Set(s.targets)];
   const alive=side=>s.units.some(u=>u.side===side&&u.hp>0),a=alive('attacker'),b=alive('defender');
   if(!a||!b){s.done=true;s.winner=a&&!b?'attacker':b&&!a?'defender':null;s.endReason='elimination';}
@@ -134,7 +145,7 @@ export function advanceBattle(previous){
   const enemies=alive(actor.side==='attacker'?'defender':'attacker');
   const weak=random(s)<Math.min(1,actor.weakPoint/100);
   const targetsFor=n=>n===1&&weak?[...enemies].sort((a,b)=>(a.immortal>0||a.immunity>0)-(b.immortal>0||b.immunity>0)||a.hp/a.maxHp-b.hp/b.maxHp).slice(0,1):enemies.slice(0,n);
-  const singleTarget=actor.name==='윤건'&&code!==7?code===1:actor.name==='연희'||actor.name==='쥬리'?false:skillFor(actor.name,code)?.targets===1;
+  const singleTarget=actor.name==='윤건'&&code!==7?code===1:actor.name==='연희'||actor.name==='쥬리'?false:combatSkill(actor,code)?.targets===1;
   const landed=new Set(),reactions=[],counterCandidates=new Set();
   function countRadHits(target){
     for(const rad of s.units.filter(u=>u.side===target.side&&u.name==='라드그리드'&&u.hp>0)){
@@ -152,13 +163,14 @@ export function advanceBattle(previous){
     const missed=superiority||(kind==='basic'&&actor.blind>0)||(!hitWeak&&random(s)<Math.min(1,(actor.missChance+(actor.superiorityMiss||0))/100)),roll=random(s),critical=!missed&&(target.sleep>0||roll<chances.critical),isBlock=!critical&&roll<chances.critical+chances.blocked;
     if(!missed)beforeDamage?.();
     const damage=calculateHit({base,defense:target.defense,defenseDecrease:target.defDown,ignore,critDamage:actor.critDamage,elasticity:target.elasticity,critical,blocked:isBlock,blockReduction:target.blockReduction,weak:hitWeak,weakBonus:actor.weakBonus,damageIncrease:actor.damageIncrease+(actor.name==='연희'&&actor.damageBuffTurns>0&&!actor.panelComputed?35:0),amplification:actor.amplification,...incomingModifiers(actor,target),missed});
-    const previousRevived=target.revived;
+    const previousRevived=target.revived,previousRevivalCount=target.revivalCount||0;
     const outcome=receiveDamage(target,superiority?damage*.8:damage,{pierce:pierce||actor.name==='탄지로'});Object.assign(target,outcome.target);
     if(superiority&&rollEffect({baseChance:100,accuracy:target.accuracy,resistance:actor.resist},()=>random(s))){actor.defDown=Math.max(actor.defDown,.36);actor.defTurns=Math.max(actor.defTurns,2);actor.superiorityMiss=60;actor.superiorityMissTurns=2;}
     if(!missed)landed.add(target.id);
     if(!missed&&outcome.kind!=='immune')countRadHits(target);
+    if(!missed&&outcome.kind!=='immune')afterHitPassive(target,s.units,events);
     if(!missed&&target.name==='루디')counterCandidates.add(target.id);
-    if(target.hp===0||target.revived!==previousRevived)target.awakenGauge=Math.floor((target.awakenGauge||0)*.9);
+    if(target.hp===0||target.revived!==previousRevived||(target.revivalCount||0)!==previousRevivalCount)target.awakenGauge=Math.floor((target.awakenGauge||0)*.9);
     actor.damageDealt+=outcome.damage+outcome.absorbed;
     s.impacts.push({target:target.id,damage:outcome.damage,absorbed:outcome.absorbed,critical,blocked:isBlock,weak:hitWeak,missed,kind:outcome.kind,events:outcome.events});
     events.push(`${target.name} ${outcome.kind==='damage'?'−'+outcome.damage.toLocaleString()+(critical?' 치명타':'')+(isBlock?' 막기':'')+(hitWeak?' 약점':'')+(missed?' 빗나감':''):outcome.events.join(' · ')}${outcome.absorbed?' · 보호막 '+outcome.absorbed.toLocaleString():''}`);
@@ -178,7 +190,7 @@ export function advanceBattle(previous){
   if(actor.sleep>0||actor.control>0){events.push(`${actor.name} · ${actor.sleep?'수면':actor.controlName||'행동 제어'}으로 행동 불가`);}
   else {
     actor.actions++;if(kind==='skill')actor.skillActions++;
-    if([2,3].includes(code)){const cooldown=skillFor(actor.name,code)?.cooldown||0;actor.readyAt[code]=actionStartMs+cooldown*1000;}
+    if([2,3].includes(code)){const cooldown=combatSkill(actor,code)?.cooldown||0;actor.readyAt[code]=actionStartMs+cooldown*1000;}
     let skill='기본 공격';
     if(actor.name==='연희'&&code!==7){
       skill=code===3?'종말의 영면':code===2?'파괴의 손짓':'기본 공격';
@@ -195,11 +207,12 @@ export function advanceBattle(previous){
       for(const t of targets)for(let i=0;i<(code===1?1:3);i++)hit(t,actor.attack*(code===3?.58:code===2?.5:1.45)*(code===3?1+.5*t.hp/t.maxHp:1),{ignore:code!==1?.4:0,pierce:code===3});
       actor.nullify=Math.min(6,actor.nullify+(code===1?1:2));
     } else {
-      const spec=skillFor(actor.name,code);
+      const spec=combatSkill(actor,code);
       skill=spec?.name||`${code===1?'기본 공격':(code-1)+'스킬'} · 자료 없음`;
       if(!spec)events.push('스킬 자료 미확인 · 임의 피해를 생성하지 않습니다');
       else {
         const targets=targetsFor(spec.targets);
+        if(actor.name==='델론즈'&&code===7){transformDellons(actor,s.units);events.push('델론즈 · 변신 · 치명타 피해 중첩·행동 제어 면역');}
         const apply=(target,e)=>{
           if((target.hp<=0&&e.type!=='revive')||(e.group==='enemy'?!effect(target,e.chance,e.status):random(s)>=e.chance/100))return;
           if(e.type==='control'&&target.controlImmune||e.type==='heal'&&(target.healBlock||target.indomitableHits>0)||e.type==='revive'&&(target.hp>0||target.annihilation))return;
@@ -209,6 +222,7 @@ export function advanceBattle(previous){
             else if(e.status==='실명')target.blind=Math.max(target.blind||0,e.duration);
             else {target.control=Math.max(target.control,e.duration);target.controlName=e.status;}
             if(e.status==='감전')target.shockSource={id:actor.id,attack:actor.attack};
+            afterControl(target,events);
             if(e.status!=='실명')s.plans[target.side]=s.plans[target.side].filter(p=>p.id!==target.id);
           } else if(e.type==='annihilation')target.annihilation=Math.max(target.annihilation,e.duration);
           else if(e.type==='dot'){
@@ -229,7 +243,7 @@ export function advanceBattle(previous){
             let left=e.value;
             if(left&&target.barrier>0){target.barrier=0;target.barrierTurns=0;left--;}
             while(left&&target.panelTimedBuffs?.length){const buff=target.panelTimedBuffs[0];target[buff.stat]-=buff.delta;target.panelTimedBuffs=target.panelTimedBuffs.slice(1);left--;}
-            for(const key of ['damageBuffTurns','controlImmune','superiority'])if(left&&target[key]>0&&!(key==='damageBuffTurns'&&target.panelComputed)){target[key]=0;left--;}
+            for(const key of ['damageBuffTurns','controlImmune','superiority'])if(left&&target[key]>0&&!(key==='controlImmune'&&target.transformed)&&!(key==='damageBuffTurns'&&target.panelComputed)){target[key]=0;left--;}
           }
           else if(e.type==='reduceBuff'){
             Object.assign(target,reducePanelTimedBuffs(target,e.value));
@@ -243,17 +257,26 @@ export function advanceBattle(previous){
         };
         const effectTargets=e=>e.group==='self'?[actor]:e.group==='team'?(e.type==='revive'?s.units.filter(u=>u.side===actor.side&&u.hp===0):alive(actor.side).sort((a,b)=>a.hp/a.maxHp-b.hp/b.maxHp)).slice(0,Math.min(3,spec.raw.targets||3)):targets;
         for(const e of spec.effects.filter(e=>e.before))for(const t of effectTargets(e))apply(t,e);
-        for(const t of targets)for(let i=0;i<spec.hits;i++){
-          const base=actor[spec.scale]*spec.coefficient+actor.defense*spec.defenseCoefficient+actor.maxHp*(spec.selfHpCoefficient||0)+(spec.hpRatio?Math.min(t.maxHp*spec.hpRatio,actor.attack*spec.hpCap):0);
+        const strike=t=>{for(let i=0;i<spec.hits;i++){
+          const base=actor[spec.scale]*(spec.coefficient+(spec.missingTargetCoefficient||0)*(3-targets.length))+actor.defense*spec.defenseCoefficient+actor.maxHp*(spec.selfHpCoefficient||0)+(spec.hpRatio?Math.min(t.maxHp*spec.hpRatio,actor.attack*spec.hpCap):0);
           const boost=spec.hpBoost?1+spec.hpBoost.value*(spec.hpBoost.kind==='lost'?1-t.hp/t.maxHp:t.hp/t.maxHp):1;
           const result=hit(t,base*boost,{ignore:spec.ignore,pierce:spec.pierce});
           if(result&&!result.missed)for(const e of spec.effects.filter(e=>e.each&&e.group==='enemy'))apply(t,e);
         }
+          if(spec.executeRatio&&landed.has(t.id)&&t.hp>0&&t.hp/t.maxHp<=spec.executeRatio&&t.hp<=actor.attack*spec.executeCap){const out=receiveDamage(t,t.hp,{execute:true});Object.assign(t,out.target);actor.damageDealt+=out.damage;events.push(t.name+' · 처형');s.impacts.push({target:t.id,damage:out.damage,kind:'execute',events:out.events});}
+        };
+        for(const t of targets)strike(t);
+        if(spec.repeatOnKill&&targets.some(t=>t.hp<=0)){
+          const follow=s.units.find(t=>t.side!==actor.side&&t.hp>0);
+          if(follow&&s.elapsedMs+duration<=s.timeLimitMs){s.elapsedMs+=duration;s.timingEstimates++;strike(follow);events.push(actor.name+' · 처치 후 1회 연속 발동 (시간 추정)');}
+        }
         for(const e of spec.effects.filter(e=>!e.each&&!e.before))for(const t of effectTargets(e))if(e.group!=='enemy'||!spec.hits||landed.has(t.id))apply(t,e);
+        if(spec.cooldownReduction)for(const key of Object.keys(actor.readyAt))actor.readyAt[key]=Math.max(0,actor.readyAt[key]-spec.cooldownReduction*1000);
         if(spec.unsupported.length)events.push(`미구현 조건 ${spec.unsupported.length}개 · 스킬 설명 확인`);
         if(!spec.hits&&!spec.effects.length)events.push('미구현 스킬 · 적용 가능한 수치 미확인');
       }
     }
+    if(kind==='skill')afterSkillPassive(actor,events);
     s.action={source:actor.id,side:actor.side,name:skill,kind,code};
     if(code===7){actor.awakenUsed=true;actor.awakenGauge=actor.awakenMax;events.push('각성기 · 전투당 1회 사용');}
     else if(kind==='skill'&&actor.awakenMax&&!actor.awakenUsed)actor.awakenGauge=Math.min(actor.awakenMax,actor.awakenGauge+45);

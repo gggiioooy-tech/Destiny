@@ -31,6 +31,7 @@ try{
   assert.equal((setup.match(/type="number"/g)||[]).length,1);
   assert.equal((setup.match(/class="sim-seat /g)||[]).length,10);
   assert.ok(!setup.includes('영웅 스탯 입력'));assert.ok(!setup.includes('sim-stat-primary'));assert.equal((setup.match(/aria-haspopup="dialog"/g)||[]).length,6);
+  assert.ok(setup.includes('이 배치에서 영웅 클릭'));assert.equal((setup.match(/예약 모두 해제/g)||[]).length,2);assert.ok(setup.includes('예약 없음 · 자동 스킬 선택'));
   assert.ok(setup.includes('자리 배치'));assert.ok(setup.includes('낮은 자리번호'));
   assert.ok(owner.indexOf('펫 잠재 4줄')<owner.indexOf('자리 배치'));
 

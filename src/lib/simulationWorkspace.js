@@ -45,7 +45,8 @@ export function validateSetupDocument(value){
   const teamSettings=normalizePrebattleSettings(value.version===1?undefined:value.teamSettings);
   const draft=value.draft.map((h,id)=>{
     const example=h?.exampleStats===true||typeof h?.origin==='string'&&h.origin.includes('테스트 기본값');
-    const unit={id,side:id<3?'attacker':'defender',name:canonicalHero(h?.name),origin:example?'테스트 기본값 · 저장한 조합':'불러온 조합 · 직접 저장한 수치',exampleStats:example};
+    if(!['none','daebul','daegwon','gwonbul'].includes(h.ring||'none'))throw Error('반지 종류를 확인해 주세요.');
+    const unit={ring:h.ring||'none',id,side:id<3?'attacker':'defender',name:canonicalHero(h?.name),origin:example?'테스트 기본값 · 저장한 조합':'불러온 조합 · 직접 저장한 수치',exampleStats:example};
     for(const [key]of STAT_FIELDS){const n=h?.[key];if(!Number.isFinite(n))throw Error('조합 스탯이 올바르지 않습니다.');unit[key]=n;}
     return unit;
   });

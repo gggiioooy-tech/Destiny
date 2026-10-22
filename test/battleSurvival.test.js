@@ -51,3 +51,24 @@ test('conversion never heals, respects immortality and bypasses regular damage c
   assert.equal(convertedHealth({hp:2000,maxHp:10000,percent:39}),2000);
   assert.equal(convertedHealth({hp:1,maxHp:10000,percent:0,immortal:true}),1);
 });
+
+test('daebul revives at full HP then with immortality exactly once each',()=>{
+ const start=unit({ring:'daebul'});const first=receiveDamage(start,5000).target;assert.equal(first.hp,1000);assert.equal(first.ringReviveUsed,true);assert.equal(first.immortal,0);
+ const second=receiveDamage(first,5000).target;assert.equal(second.hp,1);assert.equal(second.immortal,3);assert.equal(second.ringImmortalUsed,true);
+ let expired=second;for(let i=0;i<3;i++)expired=tickPersonalTurn(expired,expired).target;assert.equal(expired.hp,0);
+});
+test('daegwon saves lethal HP, creates an attack based shield, then revives at 100 percent',()=>{
+ const first=receiveDamage(unit({ring:'daegwon',hp:500,regeneration:100}),1000).target;assert.equal(first.hp,1);assert.equal(first.barrier,1500);assert.equal(first.gutsUsed,true);
+ const second=receiveDamage(first,5000).target;assert.equal(second.hp,1000);assert.equal(second.ringReviveUsed,true);
+ assert.equal(receiveDamage(second,5000).target.hp,0);
+});
+test('gwonbul uses guts before three-turn immortality and annihilation blocks ring revival',()=>{
+ const first=receiveDamage(unit({ring:'gwonbul'}),5000).target;assert.equal(first.hp,1);assert.equal(first.barrier,1500);
+ const second=receiveDamage(first,5000).target;assert.equal(second.immortal,3);
+ assert.equal(receiveDamage(unit({ring:'daebul',annihilation:2}),5000).target.hp,0);
+});
+
+test('execution bypasses immortality but permits available ring revival',()=>{
+ const first=receiveDamage(unit({hp:200,immortal:2,ring:'daebul'}),200,{execute:true});assert.equal(first.target.hp,1000);assert.equal(first.target.immortal,0);
+ const second=receiveDamage(unit({hp:200,immortal:2,annihilation:1}),200,{execute:true});assert.equal(second.target.hp,0);assert.equal(second.damage,200);
+});
