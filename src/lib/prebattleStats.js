@@ -12,7 +12,11 @@ export const FORMATIONS=[
   {id:'protection',name:'보호진형',back:1,front:4,attack:42,defense:10.5},
 ];
 const primary=['attack','defense','maxHp'];
-export const defaultTeamSettings=()=>({pet:'없음',petEnhancement:5,petSkillLevel:3,formation:'basic',formationAttack:14,formationDefense:21,potentials:Array.from({length:4},()=>({stat:'attack',value:0})),positions:['back','back','back']});
+export const defaultPetPotentials=pet=>Array.from({length:4},()=>({stat:['루','파이크','카람'].includes(pet)?'defense':'attack',value:pet==='없음'?0:15}));
+export const hasManualPotentials=team=>team.potentialsManual===true||(team.potentialsManual===undefined&&team.potentials?.some(p=>p.value!==0));
+export function selectPet(team,pet){const manual=hasManualPotentials(team);return {...team,pet,potentialsManual:manual,potentials:manual?team.potentials:defaultPetPotentials(pet)};}
+
+export const defaultTeamSettings=()=>({pet:'없음',petEnhancement:5,petSkillLevel:3,formation:'basic',formationAttack:14,formationDefense:21,potentialsManual:false,potentials:defaultPetPotentials('없음'),positions:['back','back','back']});
 export const defaultPrebattleSettings=()=>({attacker:defaultTeamSettings(),defender:defaultTeamSettings()});
 export function formationSeats(team){
   if(team.seats)return [...team.seats];
@@ -39,7 +43,7 @@ export function normalizePrebattleSettings(value){
     if(v.seats&&(!Array.isArray(v.seats)||v.seats.length!==3||new Set(v.seats).size!==3||v.seats.some(n=>!Number.isInteger(n)||n<1||n>5)))throw Error('자리번호는 중복 없이 1~5번을 선택해 주세요.');
     const positions=v.seats?v.seats.map(n=>n<=formation.front?'front':'back'):v.positions;
     if(positions.filter(p=>p==='back').length>formation.back||positions.filter(p=>p==='front').length>formation.front)throw Error(formation.name+'의 전열·후열 정원을 초과했습니다. 영웅 위치를 확인해 주세요.');
-    output[side]={...d,pet:petName,petEnhancement:5,petSkillLevel:3,formation:formation.id,formationAttack:formation.attack,formationDefense:formation.defense,potentials:v.potentials.map(p=>({stat:p.stat,value:p.value})),positions:[...positions],...(v.seats?{seats:[...v.seats]}:{})};
+    output[side]={...d,pet:petName,petEnhancement:5,petSkillLevel:3,formation:formation.id,formationAttack:formation.attack,formationDefense:formation.defense,potentialsManual:Boolean(hasManualPotentials(v)),potentials:hasManualPotentials(v)?v.potentials.map(p=>({stat:p.stat,value:p.value})):defaultPetPotentials(petName),positions:[...positions],...(v.seats?{seats:[...v.seats]}:{})};
   }
   return output;
 }

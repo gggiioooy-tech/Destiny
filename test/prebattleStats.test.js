@@ -2,13 +2,13 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {prepareHeroes,changeHero,createBattle,advanceBattle} from '../src/lib/experimentalBattle.js';
 import {SIM_ROSTER} from '../src/lib/simulationSkills.js';
-import {BASE_STATS,PETS,FORMATIONS,formationSeats,placeHero,calculatePrebattle,defaultPrebattleSettings,normalizePrebattleSettings,reducePanelTimedBuffs,incomingModifiers} from '../src/lib/prebattleStats.js';
+import {BASE_STATS,PETS,FORMATIONS,formationSeats,placeHero,selectPet,defaultPetPotentials,calculatePrebattle,defaultPrebattleSettings,normalizePrebattleSettings,reducePanelTimedBuffs,incomingModifiers} from '../src/lib/prebattleStats.js';
 import {setupDocument,readSetupFile} from '../src/lib/simulationWorkspace.js';
 function fixture(names=['선란','여포','하연','하연','루디','윤건']){
   let h=prepareHeroes();names.forEach((name,i)=>h=changeHero(h,i,name));
   return h.map(u=>({...u,attack:1000,defense:100,maxHp:1000,crit:5,critDamage:150,weakPoint:0,accuracy:0,resist:0,block:0,origin:'정보창 수치',exampleStats:false}));
 }
-function settings(){const s=defaultPrebattleSettings();return s;}
+function settings(){const s=defaultPrebattleSettings();s.attacker.potentialsManual=true;s.defender.potentialsManual=true;return s;}
 test('panel + pet growth + base times potential and formation precede strongest team buffs and initial stacks',()=>{
   const h=fixture(),s=settings();s.attacker.pet='제오';s.attacker.formation='protection';s.attacker.formationAttack=42;s.attacker.formationDefense=10.5;s.attacker.positions=['back','front','front'];s.attacker.potentials=[18,15,15,15].map(value=>({stat:'attack',value}));
   const before=structuredClone(h),result=calculatePrebattle(h,s),seon=result.heroes[0];
@@ -101,4 +101,13 @@ test('placing heroes swaps occupied seats, updates rows and persists seat number
  const plans={attacker:Array.from({length:3},()=>({id:0,code:2})),defender:Array.from({length:3},()=>({id:3,code:2}))};
  const loaded=readSetupFile(JSON.stringify(setupDocument({draft:h,plans,inputBasis:'panel',teamSettings:s})));assert.deepEqual(loaded.teamSettings.attacker.seats,[4,1,5]);
  s.attacker.seats=[1,1,5];assert.throws(()=>normalizePrebattleSettings(s));
+});
+
+test('pet defaults select four defense or attack lines and manual values including zero survive switching',()=>{
+ for(const p of PETS){const t=selectPet(defaultPrebattleSettings().attacker,p.name);assert.deepEqual(t.potentials,Array.from({length:4},()=>({stat:['루','파이크','카람'].includes(p.name)?'defense':'attack',value:15})));assert.equal(t.potentialsManual,false);}
+ let t=selectPet(defaultPrebattleSettings().attacker,'루');t=selectPet(t,'제오');assert.deepEqual(t.potentials,defaultPetPotentials('제오'));
+ t={...t,potentialsManual:true,potentials:defaultPetPotentials('없음')};assert.deepEqual(selectPet(t,'카람').potentials,t.potentials);
+ const s=defaultPrebattleSettings();s.attacker.pet='루';const n=normalizePrebattleSettings(s);assert.deepEqual(n.attacker.potentials,defaultPetPotentials('루'));
+ const r=calculatePrebattle(fixture(),s);assert.equal(r.breakdown[0].rows.find(row=>row.stat==='defense').potential,60);
+ const legacy={...t};delete legacy.potentialsManual;legacy.potentials=[{stat:'maxHp',value:12},...defaultPetPotentials('없음').slice(1)];assert.deepEqual(selectPet(legacy,'루').potentials,legacy.potentials);
 });
