@@ -104,7 +104,7 @@ test('placing heroes swaps occupied seats, updates rows and persists seat number
 });
 
 test('pet defaults select four defense or attack lines and manual values including zero survive switching',()=>{
- for(const p of PETS){const t=selectPet(defaultPrebattleSettings().attacker,p.name);assert.deepEqual(t.potentials,Array.from({length:4},()=>({stat:['루','파이크','카람'].includes(p.name)?'defense':'attack',value:15})));assert.equal(t.potentialsManual,false);}
+ for(const p of PETS){const t=selectPet(defaultPrebattleSettings().attacker,p.name);assert.deepEqual(t.potentials,Array.from({length:4},()=>({stat:['루','파이크','카람','제브'].includes(p.name)?'defense':'attack',value:15})));assert.equal(t.potentialsManual,false);}
  let t=selectPet(defaultPrebattleSettings().attacker,'루');t=selectPet(t,'제오');assert.deepEqual(t.potentials,defaultPetPotentials('제오'));
  t={...t,potentialsManual:true,potentials:defaultPetPotentials('없음')};assert.deepEqual(selectPet(t,'카람').potentials,t.potentials);
  const s=defaultPrebattleSettings();s.attacker.pet='루';const n=normalizePrebattleSettings(s);assert.deepEqual(n.attacker.potentials,defaultPetPotentials('루'));

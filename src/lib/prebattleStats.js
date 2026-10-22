@@ -12,7 +12,7 @@ export const FORMATIONS=[
   {id:'protection',name:'보호진형',back:1,front:4,attack:42,defense:10.5},
 ];
 const primary=['attack','defense','maxHp'];
-export const defaultPetPotentials=pet=>Array.from({length:4},()=>({stat:['루','파이크','카람'].includes(pet)?'defense':'attack',value:pet==='없음'?0:15}));
+export const defaultPetPotentials=pet=>Array.from({length:4},()=>({stat:['루','파이크','카람','제브'].includes(pet)?'defense':'attack',value:pet==='없음'?0:15}));
 export const hasManualPotentials=team=>team.potentialsManual===true||(team.potentialsManual===undefined&&team.potentials?.some(p=>p.value!==0));
 export function selectPet(team,pet){const manual=hasManualPotentials(team);return {...team,pet,potentialsManual:manual,potentials:manual?team.potentials:defaultPetPotentials(pet)};}
 
