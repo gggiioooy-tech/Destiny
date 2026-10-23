@@ -13,6 +13,7 @@ export function afterControl(unit,events,units=[]){
   if(!unit.hp)return;
   const sources=[unit,...units.filter(u=>u.id!==unit.id&&u.side===unit.side&&u.hp>0&&u.name==='란드그리드')];
   const source=sources.find(owner=>{
+    if(owner.name==='윤건'&&roleCount(units,owner.side,2)<3)return false;
     const text=heroSkills(owner.name).find(s=>s.code===4)?.raw.text||'';
     return /자신이 행동 제어에 걸릴 시/.test(text)&&(!['윤건','란드그리드'].includes(owner.name)||!unit.controlCleanseUses?.[owner.name]);
   });if(!source)return;

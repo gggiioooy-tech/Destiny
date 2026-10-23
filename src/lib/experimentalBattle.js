@@ -191,6 +191,10 @@ export function advanceBattle(previous){
     if((target.revivalCount||0)>beforeRevival){onRevivalRules(target,s.units,events);queuePassiveAttacks('revive',target,s.units,reactions);}
     if(target.hp>0&&options.direct!==false&&!options.component&&options.landed!==false&&outcome.kind!=='immune'){afterHitPassive(target,s.units,events,{attackToken:s.step});queuePassiveAttacks('hit',target,s.units,reactions);}
     afterHpChange(target,s.units,events);onHealthThreshold(target,s.units,events);
+    if(target.hp>0&&target.control>0&&target.controlName==='오라'&&target.controlSource&&options.direct!==false&&!options.component&&options.landed!==false&&outcome.kind!=='immune'){
+      const trigger={...target.controlSource},source=s.units[trigger.id],extra=applyDamage(target,trigger.attack*.15,{direct:false,fixed:true,creditId:trigger.id});
+      if(source)source.damageDealt+=extra.damage+extra.absorbed;s.impacts.push({target:target.id,source:trigger.id,damage:extra.damage,absorbed:extra.absorbed,kind:'aura_fixed'});
+    }
     if(target.hp>0&&options.direct!==false&&!options.component&&options.landed!==false&&outcome.kind!=='immune'&&(target.revivalCount||0)===beforeRevival)directDebuffHits(target,debuffs,s.units,()=>random(s),secondaryDamage,events,s.elapsedMs);
     if(frozen&&target.hp>0&&options.direct!==false&&options.landed!==false&&outcome.kind!=='immune'){
       const source=s.units[options.creditId??actor.id];if(ice&&source)restoreHp(source,outcome.damage+outcome.absorbed);releaseControl(target);
@@ -274,10 +278,30 @@ export function advanceBattle(previous){
       for(const t of targetsFor(code===1?2:3)){let checked=false;for(let i=0;i<(code===1?1:2);i++)hit(t,actor.attack*(code===3?.87:code===2?.77:.7)+(code===1?Math.min(t.maxHp*.08,actor.attack*1.5):0),{pierce:code===2,beforeDamage:()=>{if(code===3&&!checked){checked=true;if(effect(t,70))t.annihilation=2;}}});if(code===2&&t.hp>0&&landed.has(t.id)&&effect(t,100)){t.defDown=.29;t.defTurns=3;}}
     } else if(actor.name==='윤건'&&code!==7) {
       skill=code===3?'신속연사':code===2?'십연자포':'기본 공격';
-      const targets=targetsFor(code===1?1:3);
-      if(code===3)for(const t of targets){const hp=convertedHealth({hp:t.hp,maxHp:t.maxHp,percent:39,immortal:t.immortal>0});events.push(`${t.name} 생명력 전환 ${t.hp} → ${hp}`);t.hp=hp;}
-      for(const t of targets)for(let i=0;i<(code===1?1:3);i++)hit(t,actor.attack*(code===3?.58:code===2?.5:1.45)*(code===3?1+.5*t.hp/t.maxHp:1),{ignore:code!==1?.4:0,pierce:code===3});
-      actor.nullify=Math.min(6,actor.nullify+(code===1?1:2));
+      const fireYoon=(fireCode,power=1)=>{
+      landed.clear();
+      const targets=targetsFor(fireCode===1?1:3);
+      if(fireCode===3){
+        for(const t of targets)if(t.hp/t.maxHp>=.5&&!t.controlImmune&&!t.stealth&&effect(t,40,'오라')){t.control=2;t.controlName='오라';t.controlSource={id:actor.id,attack:actor.attack};afterControl(t,events,s.units);s.plans[t.side]=s.plans[t.side].filter(p=>p.id!==t.id);}
+        for(const t of targets){const hp=convertedHealth({hp:t.hp,maxHp:t.maxHp,percent:39,immortal:t.immortal>0||t.indomitableHits>0});events.push(`${t.name} 생명력 전환 ${t.hp} → ${hp}`);t.hp=hp;}
+        for(const t of targets){afterHpChange(t,s.units,events);onHealthThreshold(t,s.units,events);}
+      }
+      for(const t of targets)for(let i=0;i<(fireCode===1?1:3);i++)hit(t,power*actor.attack*(fireCode===3?.58:fireCode===2?.5:1.45)*(fireCode===3?1+.5*t.hp/t.maxHp:1),{ignore:fireCode!==1?.4:0,pierce:fireCode===3});
+      for(const t of targets.filter(t=>t.hp>0&&landed.has(t.id)&&!t.stealth))if(effect(t,100)){
+        const result=fireCode===1?reduceBuffDurations(t,1):fireCode===2?dispelBuffs(t,2):null;
+        if(result?.died)onDeathRules(t,s.units,events);
+      }
+      };
+      const deathsBefore=s.units.filter(u=>u.side!==actor.side).map(u=>(u.revivalCount||0)+(u.hp<=0?1:0));
+      fireYoon(code);
+      const killed=s.units.filter(u=>u.side!==actor.side).some((u,i)=>(u.revivalCount||0)+(u.hp<=0?1:0)>deathsBefore[i]);
+      if(code!==1&&killed&&actor.hp>0&&alive(actor.side==='attacker'?'defender':'attacker').length){
+        const nextCode=code===2?3:2,followTiming=actionTiming(actor.name,nextCode,'skill'),spacing=TIMING_CATALOG.spacing?.medianMs||200;
+        if(s.elapsedMs+spacing+followTiming.medianMs<=s.timeLimitMs){
+          s.elapsedMs+=spacing+followTiming.medianMs;if(followTiming.estimated)s.timingEstimates++;else s.timingObserved++;
+          fireYoon(nextCode,.7);events.push(`윤건 · 처치 후 ${nextCode===2?'십연자포':'신속연사'} 70% 위력 1회 연속 발동`);
+        }
+      }
     } else if(actor.name==='클레미스'&&code===7){
       skill='구원의 힘';
       for(const target of s.units.filter(u=>u.side===actor.side&&u.id!==actor.id&&u.hp===0&&!u.annihilation).slice(0,2)){
