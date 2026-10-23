@@ -168,6 +168,7 @@ export function advanceBattle(previous){
   };
   const singleTarget=actor.name==='윤건'&&code!==7?code===1:actor.name==='연희'||actor.name==='쥬리'?false:combatSkill(actor,code)?.targets===1;
   const landed=new Set(),reactions=[],counterCandidates=new Set(),extraUsed=new Set();
+  let attackToken=s.step;
   function countRadHits(target){
     for(const rad of s.units.filter(u=>u.side===target.side&&u.name==='라드그리드'&&u.hp>0)){
       rad.alliedHits=(rad.alliedHits||0)+1;
@@ -189,11 +190,18 @@ export function advanceBattle(previous){
     if(!beforeGuts&&target.gutsUsed)onGutsRules(target,s.units,events,()=>random(s));
     if(beforeHp>0&&(target.hp<=0||(target.revivalCount||0)>beforeRevival)){target.reflux=[];target.crystals=[];target.lubuMarks={};target.palMarks={};spreadReflux(target,debuffs.reflux,s.units,()=>random(s),events);onDeathRules(target,s.units,events);}
     if((target.revivalCount||0)>beforeRevival){onRevivalRules(target,s.units,events);queuePassiveAttacks('revive',target,s.units,reactions);}
-    if(target.hp>0&&options.direct!==false&&!options.component&&options.landed!==false&&outcome.kind!=='immune'){afterHitPassive(target,s.units,events,{attackToken:s.step});queuePassiveAttacks('hit',target,s.units,reactions);}
+    if(target.hp>0&&options.direct!==false&&!options.component&&options.landed!==false&&outcome.kind!=='immune'){afterHitPassive(target,s.units,events,{attackToken});queuePassiveAttacks('hit',target,s.units,reactions);}
     afterHpChange(target,s.units,events);onHealthThreshold(target,s.units,events);
     if(target.hp>0&&target.control>0&&target.controlName==='오라'&&target.controlSource&&options.direct!==false&&!options.component&&options.landed!==false&&outcome.kind!=='immune'){
       const trigger={...target.controlSource},source=s.units[trigger.id],extra=applyDamage(target,trigger.attack*.15,{direct:false,fixed:true,creditId:trigger.id});
       if(source)source.damageDealt+=extra.damage+extra.absorbed;s.impacts.push({target:target.id,source:trigger.id,damage:extra.damage,absorbed:extra.absorbed,kind:'aura_fixed'});
+    }
+    if(target.hp>0&&target.control>0&&target.controlName==='감전'&&target.shockSource&&options.direct!==false&&!options.component&&options.landed!==false&&outcome.kind!=='immune'){
+      const trigger={...target.shockSource},source=s.units[trigger.id];
+      const amount=calculateHit({base:trigger.attack*.4,defense:target.defense,defenseDecrease:target.defDown,...(source?incomingModifiers(source,target):{damageReduction:target.damageReduction})});
+      const extra=applyDamage(target,amount,{direct:false,creditId:trigger.id});
+      if(source)source.damageDealt+=extra.damage+extra.absorbed;
+      s.impacts.push({target:target.id,source:trigger.id,damage:extra.damage,absorbed:extra.absorbed,kind:'shock'});events.push(target.name+' · 감전 추가 피해 '+extra.damage);
     }
     if(target.hp>0&&options.direct!==false&&!options.component&&options.landed!==false&&outcome.kind!=='immune'&&(target.revivalCount||0)===beforeRevival)directDebuffHits(target,debuffs,s.units,()=>random(s),secondaryDamage,events,s.elapsedMs);
     if(frozen&&target.hp>0&&options.direct!==false&&options.landed!==false&&outcome.kind!=='immune'){
@@ -243,13 +251,6 @@ export function advanceBattle(previous){
       events.push(`${target.name} · 분리 피해 ${extra.damage}${extra.absorbed?' · 보호막 '+extra.absorbed:''}`);
     }
     if(target.sleep&&outcome.damage>=target.maxHp*(target.sleepBreak||.3))target.sleep=0;
-    if(!missed&&target.hp>0&&target.control>0&&target.controlName==='감전'&&target.shockSource){
-      const shockCaster=s.units[target.shockSource.id];
-      const shock=calculateHit({base:target.shockSource.attack*.4,defense:target.defense,defenseDecrease:target.defDown,...(shockCaster?incomingModifiers(shockCaster,target):{damageReduction:target.damageReduction})});
-      const extra=applyDamage(target,shock,{direct:false});Object.assign(target,extra.target);
-      const caster=s.units[target.shockSource.id];if(caster)caster.damageDealt+=extra.damage+extra.absorbed;
-      s.impacts.push({target:target.id,damage:extra.damage,absorbed:extra.absorbed,kind:'shock'});events.push(`${target.name} · 감전 추가 피해 ${extra.damage}`);
-    }
     if(target.name==='연희'&&!target.triggered&&target.hp>0&&target.hp<=target.maxHp*.7){target.nullify=4;target.triggered=true;events.push('연희 · 피해 무효화 4회');}
     if(!missed)afterOwnHit(actor);
     if(!missed&&target.hp>0)for(const extra of combatSkill(actor,code)?.extraDamage||[]){
@@ -441,6 +442,7 @@ export function advanceBattle(previous){
   }
   s.reactions=[];
   for(let i=0;i<reactions.length&&i<64&&!s.done;i++){
+    attackToken=s.step+':reaction:'+i;
     const reaction=reactions[i],source=s.units[reaction.source];if(source.hp<=0)continue;
     if((reaction.kind==='counter'||reaction.kind==='assist'||reaction.kind==='juri_assist')&&(source.sleep||source.control))continue;
     const targets=reaction.kind==='rad_passive'||reaction.kind==='hero_passive'?s.units.filter(u=>u.side!==source.side&&u.hp>0):reaction.kind==='counter'?[s.units[reaction.target]].filter(u=>u.hp>0):(reaction.targets||[]).map(id=>s.units[id]).filter(u=>u.hp>0).slice(0,reaction.kind==='juri_assist'?2:combatSkill(source,1)?.targets||1);
