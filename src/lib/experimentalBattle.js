@@ -7,7 +7,7 @@ import {releaseControl} from './controlEffects.js';
 import {applyEquipment} from './equipmentEffects.js';
 import {addDot,dotBase} from './damageOverTime.js';
 import {chooseAutoSkill,AUTO_HEAL_THRESHOLD} from './autoSkill.js';
-import {syncBuffs,dispelBuffs,reduceBuffDurations} from './buffEffects.js';
+import {syncBuffs,dispelBuffs,reduceBuffDurations,extendBuffDurations,grantDelayedBuff,expireDelayedBuff} from './buffEffects.js';
 import {specialHitEffects,directDebuffHits,crystalResonance,tickReflux,spreadReflux,addReflux,applyLubuMark} from './specialDebuffs.js';
 import {damageShares,deferPain} from './passiveDamage.js';
 import {onHealthThreshold,onAttackStacks,onSkillRules,beforeSkillRules,onRevivalRules,onGutsRules,onDeathRules,initializePassives,addStack,restoreHp,grantShield,roleCount} from './passiveRules.js';
@@ -368,7 +368,8 @@ export function advanceBattle(previous){
           else if(e.type==='cooldownUp'&&!target.cooldownImmune){for(const key of [2,3])target.readyAt[key]=Math.max(target.readyAt[key]||0,s.elapsedMs)+e.value*1000;s.plans[target.side]=s.plans[target.side].filter(p=>p.id!==target.id);}
           else if(e.type==='cooldownReset')target.readyAt={};
           else if(e.type==='cooldownDown')for(const key of Object.keys(target.readyAt))target.readyAt[key]=Math.max(0,target.readyAt[key]-e.value*1000);
-          else if(e.type==='extendBuff'){for(const key of ['immunity','controlImmune','immortal','barrierTurns','damageBuffTurns','superiority'])if(target[key]>0&&Number.isFinite(target[key]))target[key]=Math.min(target.buffMaxTurns?.[key]||3,target[key]+e.value);}
+          else if(e.type==='extendBuff')extendBuffDurations(target,e.value);
+          else if(e.type==='delayedTan')grantDelayedBuff(target,e.duration);
           else if(e.type==='extendDebuff')extendDebuffs(target,e.value);
           else if(e.type==='regen'){const count=e.perCleanse?(removedDebuffs.get(target.id)||0):1;if(count&&!target.buffBlock)target.regenBuff={base:actor.maxHp*e.value*count,remaining:e.duration};}
           else if(e.type==='annihilation')target.annihilation=Math.max(target.annihilation,e.duration);
@@ -463,7 +464,7 @@ export function advanceBattle(previous){
   // coefficient, crit/block and personal-turn calculations. Trigger processing
   // after the main action is an approximation until interrupt order is verified.
   for(const id of counterCandidates){const rudy=s.units[id];if(rudy.hp>0&&!rudy.control&&!rudy.sleep&&random(s)<.38)reactions.push({source:id,code:4,kind:'counter',target:actor.id});}
-  if(kind==='basic'&&actor.name!=='쥬리'){const juri=alive(actor.side).find(u=>u.name==='쥬리'&&!u.control&&!u.sleep);if(juri&&random(s)<.35+(juri.immortal>0?.24:0))reactions.push({source:juri.id,code:4,kind:'juri_assist',targets:[...new Set(s.targets)]});}
+  if(kind==='basic'&&actor.name!=='쥬리'){const juri=alive(actor.side).find(u=>u.name==='쥬리'&&!u.control&&!u.sleep);if(juri&&random(s)<Math.min(1,.35+(juri.assistChanceBonus||0)/100))reactions.push({source:juri.id,code:4,kind:'juri_assist',targets:alive(actor.side==='attacker'?'defender':'attacker').map(u=>u.id)});}
   if(kind==='basic'&&actor.name!=='발리스타'){const ballista=alive(actor.side).find(u=>u.name==='발리스타'&&!u.control&&!u.sleep);if(ballista&&random(s)<Math.min(1,.3+(ballista.assistChanceBonus||0)/100))reactions.push({source:ballista.id,code:4,kind:'ballista_assist',targets:[...new Set(s.targets)],spec:{name:'발리스타 협공',attack:1,hits:1}});}
   if(kind==='basic'&&actor.name==='하연'&&actor.hp>0&&!actor.control&&!actor.sleep&&random(s)<.63){
     const allies=alive(actor.side).filter(u=>u.id!==actor.id&&!u.control&&!u.sleep);
@@ -474,7 +475,7 @@ export function advanceBattle(previous){
     attackToken=s.step+':reaction:'+i;
     const reaction=reactions[i],source=s.units[reaction.source];if(source.hp<=0)continue;
     if((reaction.kind==='counter'||reaction.kind==='assist'||reaction.kind==='juri_assist'||reaction.kind==='ballista_assist')&&(source.sleep||source.control))continue;
-    const targets=reaction.kind==='rad_passive'||reaction.kind==='hero_passive'?s.units.filter(u=>u.side!==source.side&&u.hp>0):reaction.kind==='counter'?[s.units[reaction.target]].filter(u=>u.hp>0):(reaction.targets||[]).map(id=>s.units[id]).filter(u=>u.hp>0).slice(0,reaction.kind==='juri_assist'?2:combatSkill(source,1)?.targets||1);
+    const targets=reaction.kind==='rad_passive'||reaction.kind==='hero_passive'?s.units.filter(u=>u.side!==source.side&&u.hp>0):reaction.kind==='counter'?[s.units[reaction.target]].filter(u=>u.hp>0):(reaction.targets||[]).map(id=>s.units[id]).filter(u=>u.hp>0).slice(0,reaction.kind==='juri_assist'?3:combatSkill(source,1)?.targets||1);
     if(!targets.length)continue;
     const timing=actionTiming(source.name,reaction.code,reaction.kind==='rad_passive'?'reaction':reaction.kind==='ballista_assist'?'assist':reaction.kind),start=s.elapsedMs+(TIMING_CATALOG.spacing?.medianMs||200);
     if(start+timing.medianMs>s.timeLimitMs){s.elapsedMs=s.timeLimitMs;break;}
@@ -532,7 +533,7 @@ export function advanceBattle(previous){
     if(before.instantDeathTurns>0&&actor.instantDeathTurns>0){actor.instantDeathTurns--;if(actor.instantDeathTurns===0){applyDamage(actor,actor.hp,{execute:true,direct:false});actor.instantDeathStacks=0;events.push(actor.name+' · 즉사 만료');}else applyDamage(actor,actor.hp*.2,{direct:false,deferred:true});}
     for(const pain of before.deferredPain||[]){if(actor.hp<=0)break;const outcome=applyDamage(actor,pain.perTurn,{direct:false,deferred:true});events.push(actor.name+' · 고통 감내 이연 피해 '+outcome.damage);const current=actor.deferredPain?.find(p=>p.remaining===pain.remaining&&p.perTurn===pain.perTurn);if(current)current.remaining--;}
     actor.deferredPain=(actor.deferredPain||[]).filter(p=>p.remaining>0);
-    if(before.delayedTan>0&&actor.delayedTan>0){actor.delayedTan--;if(!actor.delayedTan&&!actor.buffBlock){actor.nullify=Math.max(actor.nullify,3);const delta=(actor.panelStackBase?.attack||actor.attack)*.25;actor.attack+=delta;actor.panelTimedBuffs=[...(actor.panelTimedBuffs||[]),{stat:'attack',remaining:2,delta,source:'지연 버프'}];events.push(actor.name+' · 지연 버프 만료');}}
+    if(before.delayedTan>0&&actor.delayedTan>0&&(before.delayedTanEpoch||0)===(actor.delayedTanEpoch||0)){actor.delayedTan--;if(!actor.delayedTan){expireDelayedBuff(actor);events.push(actor.name+' · 지연 버프 만료');}}
     // Only ailments already present when this personal turn began can tick.
     for(const dot of before.dots||[]){
       if(actor.hp<=0)break;

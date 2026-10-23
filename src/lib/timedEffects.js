@@ -16,10 +16,13 @@ export function setTimedBuff(target,stat,value,remaining,{ratio=false,source:sou
   if(target.buffBlock)return;
   syncBuffs(target);
   const source=sourceName||'일반 버프 · '+stat;target.panelTimedBuffs??=[];
-  const existing=target.panelTimedBuffs.find(b=>b.source===source),base=target.panelStackBase?.[stat]??((target[stat]||0)-(existing?.delta||0));
+  // A passive can grant several stats with the same source name. Refresh only
+  // this stat's entry, otherwise its delta is applied to a different stat and
+  // expiration later subtracts the wrong amount.
+  const existing=target.panelTimedBuffs.find(b=>b.source===source&&b.stat===stat&&!b.debuff),base=target.panelStackBase?.[stat]??((target[stat]||0)-(existing?.delta||0));
   const delta=ratio?base*value/100:value;
-  if(existing){if(remaining>=existing.remaining)existing.refreshEpoch=(existing.refreshEpoch||0)+1;if(delta>existing.delta){target[stat]+=delta-existing.delta;existing.delta=delta;}existing.remaining=Math.max(existing.remaining,remaining);}
-  else{target[stat]=(target[stat]||0)+delta;target.panelTimedBuffs.push({stat,delta,remaining,source});}syncBuffs(target);
+  if(existing){if(remaining>=existing.remaining)existing.refreshEpoch=(existing.refreshEpoch||0)+1;if(delta>existing.delta){target[stat]+=delta-existing.delta;existing.delta=delta;}existing.remaining=Math.max(existing.remaining,remaining);existing.maxTurns=Math.max(existing.maxTurns||0,remaining);}
+  else{target[stat]=(target[stat]||0)+delta;target.panelTimedBuffs.push({stat,delta,remaining,maxTurns:remaining,source});}syncBuffs(target);
 }
 export function setTimedDecrease(target,stat,value,remaining,{ratio=false}={}){
   target.panelTimedBuffs??=[];const source='감소 디버프 · '+stat,old=target.panelTimedBuffs.find(b=>b.source===source),base=target.panelStackBase?.[stat]??((target[stat]||0)-(old?.delta||0)),delta=-(ratio?base*value/100:value);

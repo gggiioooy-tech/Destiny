@@ -20,6 +20,15 @@ test('same physical attack aura uses the strongest, never adds Seon and Aileen t
   const h=fixture(['선란','여포','아일린','연희','쥬리','윤건']),r=calculatePrebattle(h,settings());
   assert.equal(r.heroes[0].attack,Math.round((1000+1712*.14)*1.52));
   assert.equal(r.breakdown[0].rows.find(r=>r.stat==='attack').bonuses.filter(b=>b.value===25).length,0);
+  assert.equal(r.heroes[0].auraBuffs.includes('attack|아일린'),false);
+});
+
+test('timed initial buffs leave the aura ledger when their live entries expire',()=>{
+ const h=fixture(['관우','여포','메이','연희','쥬리','윤건']),s=settings();s.attacker.positions=['back','back','front'];
+ const r=calculatePrebattle(h,s),u=r.heroes[1];
+ assert.ok(u.panelTimedBuffs.some(b=>b.source==='관우'&&b.stat==='critDamage'));
+ assert.equal(u.auraBuffs.includes('critDamage|관우'),false);
+ const expired=reducePanelTimedBuffs(u,3);assert.equal(expired.panelTimedBuffs.some(b=>b.source==='관우'),false);assert.equal(expired.auraBuffs.includes('critDamage|관우'),false);
 });
 test('pet potential is based on codex base, not equipped panel attack; formation follows each row',()=>{
   const h=fixture(['쥬리','윤건','연희','쥬리','윤건','연희']),s=settings();s.attacker.potentials[0]={stat:'defense',value:15};s.attacker.formation='attack';s.attacker.formationDefense=42;s.attacker.formationAttack=10.5;s.attacker.positions=['front','back','back'];

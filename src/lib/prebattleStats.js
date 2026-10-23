@@ -150,7 +150,7 @@ export function calculatePrebattle(draft,settings,{basis='panel'}={}){
   const heroes=draft.map(h=>{
     const team=teams[h.side],base=BASE_STATS[h.name],role=base?.role||heroProfile(h.name)?.role,type=heroDamageType(h.name),position=team.positions[h.id%3],ref=petReference(team),pet=ref?.pet;
     const applicable=auras.filter(e=>((e.group==='self'&&e.ownerId===h.id)||(e.group==='team'&&e.ownerSide===h.side)||(e.group==='enemy'&&e.ownerSide!==h.side))&&(!e.role||e.role.includes(role))&&(!e.row||e.row===position)&&(!e.affiliation||['탄지로','젠이츠','시노부','기유','네즈코'].includes(h.name))&&['all',type].includes(e.family));
-    const output={...h,battleSeat:formationSeats(team)[h.id%3],battleRow:position,panelComputed:true,origin:h.origin?.includes('테스트 기본값')?h.origin:'영웅 정보창 → 자동 계산',panelTimedBuffs:[],panelStackBase:{},auraBuffs:[...new Set(applicable.filter(e=>e.value>0&&e.group!=='enemy').map(e=>e.stat+'|'+e.source))]},rows=[];
+    const output={...h,battleSeat:formationSeats(team)[h.id%3],battleRow:position,panelComputed:true,origin:h.origin?.includes('테스트 기본값')?h.origin:'영웅 정보창 → 자동 계산',panelTimedBuffs:[],panelStackBase:{},auraBuffs:[]},rows=[];
     for(const stat of [...primary,'crit','critDamage','weakPoint','block','accuracy','resist','damageIncrease','damageReduction','amplification','vulnerability',...namedStats.map(([,stat])=>stat).filter(stat=>stat!=='damageReduction')]){
       const effects=applicable.filter(e=>e.stat===stat),groups=new Map();
       for(const e of effects){
@@ -158,6 +158,9 @@ export function calculatePrebattle(draft,settings,{basis='panel'}={}){
         const old=groups.get(key);if(!old||Math.abs(e.value)>Math.abs(old.value))groups.set(key,e);
       }
       const selected=[...groups.values()];
+      // Only selected permanent effects belong in the aura ledger. Timed
+      // effects are counted from their live entries, not forever after expiry.
+      for(const e of selected.filter(e=>e.value>0&&e.group!=='enemy'&&!e.turns))if(!output.auraBuffs.includes(stat+'|'+e.source))output.auraBuffs.push(stat+'|'+e.source);
       if(stat==='damageIncrease')output.refluxDamageIncrease=(h.refluxDamageIncrease||0)+selected.filter(e=>e.family==='all').reduce((n,e)=>n+e.value,0);
       const growth=pet?.growth?.[stat]?pet.growth[stat][0]+(pet.growth[stat][1]-pet.growth[stat][0])*team.petEnhancement/5:0;
       const potential=primary.includes(stat)?team.potentials.filter(p=>p.stat===stat).reduce((n,p)=>n+p.value,0):0;

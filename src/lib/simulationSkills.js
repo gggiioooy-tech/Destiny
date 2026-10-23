@@ -105,6 +105,7 @@ export function compileSkill(raw){
     if(/위장\s*\[/.test(line)){add('stealth');continue;}
     if(/도발\s*\[/.test(line)){add('taunt');continue;}
     if(/분신\s*\[/.test(line)){add('clone');continue;}
+    if(/지연 버프\s*\[/.test(line)&&definitions['지연 버프']?.some(v=>v.includes('물리 공격력 증가 25%'))) {add('delayedTan');continue;}
     const modifiers=[['협공 확률 증가','assistChanceBonus'],['물리 취약','physicalVulnerability'],['마법 취약','magicVulnerability'],['물리 감쇄','physicalReduction'],['마법 감쇄','magicReduction'],['받는 회복량 감소','healingReduction'],['받는 회복량 증가','healingIncrease'],['받는 보호막 감소','shieldReduction'],['빗나감 확률 증가','missChance'],['치명타 피해 증가','critDamage'],['치명타 확률 증가','crit'],['약점 공격 확률 증가','weakPoint'],['효과 적중 증가','accuracy'],['효과 저항 증가','resist'],['막기 확률 증가','block'],['감쇄','damageReduction'],['물리 피해량 증가','damageIncrease'],['마법 피해량 증가','damageIncrease'],['피해량 증가','damageIncrease'],['물리 공격력 증가','attack'],['마법 공격력 증가','attack'],['모든 공격력 증가','attack'],['방어력 증가','defense']];
     const modifier=modifiers.find(([label])=>line.includes(label));
     if(modifier){const [label,stat]=modifier,value=Number(line.match(new RegExp(label+'\\s*([\\d.]+)%'))?.[1]||definedValue(label));if(value){add('statTimed',{stat,value,ratio:['attack','defense'].includes(stat),family:/^물리/.test(label)?'physical':/^마법/.test(label)?'magic':'all',debuff:group==='enemy'});continue;}}

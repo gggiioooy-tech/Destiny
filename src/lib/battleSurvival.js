@@ -60,20 +60,22 @@ export function tickPersonalTurn(unit,before){
   // unrelated timed buff already existed at action start.
   if(unit.panelTimedBuffs){
     const previous=before.panelTimedBuffs||[];next.panelTimedBuffs=[];
-    for(const buff of unit.panelTimedBuffs){const old=previous.find(b=>b.source===buff.source&&b.stat===buff.stat&&b.delta===buff.delta);const remaining=old&&(buff.refreshEpoch||0)===(old.refreshEpoch||0)&&buff.remaining<=old.remaining?buff.remaining-1:buff.remaining;if(remaining>0)next.panelTimedBuffs.push({...buff,remaining});else next[buff.stat]-=buff.delta;}
+    for(const buff of unit.panelTimedBuffs){const old=previous.find(b=>b.source===buff.source&&b.stat===buff.stat&&b.delta===buff.delta);const extended=(buff.extensionTotal||0)-(old?.extensionTotal||0);const remaining=old&&(buff.refreshEpoch||0)===(old.refreshEpoch||0)&&buff.remaining-extended<=old.remaining?buff.remaining-1:buff.remaining;if(remaining>0)next.panelTimedBuffs.push({...buff,remaining});else next[buff.stat]-=buff.delta;}
   }
-  if(before.statusImmunities){next.statusImmunities={...next.statusImmunities};for(const [key,turns]of Object.entries(before.statusImmunities))if((next.statusImmunityEpochs?.[key]||0)===(before.statusImmunityEpochs?.[key]||0)&&next.statusImmunities[key]<=turns)next.statusImmunities[key]=Math.max(0,next.statusImmunities[key]-1);}
+  if(before.statusImmunities){next.statusImmunities={...next.statusImmunities};for(const [key,turns]of Object.entries(before.statusImmunities)){const extended=(next.statusImmunityExtensionTotals?.[key]||0)-(before.statusImmunityExtensionTotals?.[key]||0);if((next.statusImmunityEpochs?.[key]||0)===(before.statusImmunityEpochs?.[key]||0)&&next.statusImmunities[key]-extended<=turns)next.statusImmunities[key]=Math.max(0,next.statusImmunities[key]-1);}}
   if(before.fateThreadDurations?.length){next.fateThreadDurations=(next.fateThreadDurations||[]).map((v,i)=>i<before.fateThreadDurations.length?v-1:v).filter(v=>v>0);next.fateThreads=next.fateThreadDurations.length;}
   // Only durations that existed before this basic-attack turn are ticked.
   for(const key of ['sleep','control','silence','blind','healBlock','defTurns','immunity','physicalImmunity','magicImmunity','controlImmune','annihilation','barrierTurns','damageBuffTurns','superiority','superiorityMissTurns','blockDownTurns','stealth','judgment','buffBlock','cooldownImmune','linkTurns','cloneTurns','taunt']){
-    if(before[key]>0&&next[key]>0&&next[key]<=before[key]&&(key!=='barrierTurns'||(next.barrierEpoch||0)===(before.barrierEpoch||0)))next[key]--;
+    const extended=(next.buffExtensionTotals?.[key]||0)-(before.buffExtensionTotals?.[key]||0);
+    if(before[key]>0&&next[key]>0&&next[key]-extended<=before[key]&&(key!=='barrierTurns'||(next.barrierEpoch||0)===(before.barrierEpoch||0)))next[key]--;
   }
   if(!next.defTurns)next.defDown=0;
   if(before.control>0&&!next.control)releaseControl(next);
   if(!next.superiorityMissTurns)next.superiorityMiss=0;
   if(before.blockDownTurns>0&&!next.blockDownTurns)next.blockDebuff=0;
   if(before.barrierTurns>0&&!next.barrierTurns){next.barrier=0;next.barrierProtected=false;}
-  if(before.immortal>0&&next.immortal>0&&next.immortal<=before.immortal){
+  const extendedImmortal=(next.buffExtensionTotals?.immortal||0)-(before.buffExtensionTotals?.immortal||0);
+  if(before.immortal>0&&next.immortal>0&&next.immortal-extendedImmortal<=before.immortal){
     next.immortal--;
     if(!next.immortal){next.hp=0;next.barrier=0;events.push('불사 만료 · 사망');}
   }

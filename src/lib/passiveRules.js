@@ -3,6 +3,7 @@ import roster from './simulationRoster.json' with {type:'json'};
 import {calculateRecovery,rollEffect,casterEffect} from './combatDamage.js';
 import {setTimedBuff,setTimedDebuff} from './timedEffects.js';
 import {startingShieldRules,passiveShieldRules} from './passiveShields.js';
+import {extendBuffDurations,grantDelayedBuff} from './buffEffects.js';
 
 const profiles=new Map(roster.heroes.map(h=>[h.name,h]));
 export const passiveText=name=>{const p=profiles.get(name)?.skills.find(s=>s.code===4);return [p?.text,p?.enhanced,p?.upgrades].filter(Boolean).join('\n');};
@@ -25,7 +26,7 @@ export function initializePassives(units){
     if(profiles.get(unit.name)?.role===2&&units.some(u=>u.side===unit.side&&u.name==='동영'&&u.battleRow===unit.battleRow))unit.immunity=Math.max(unit.immunity,1);
     if(text.includes('고통 감내'))unit.endurePain=true;
     if(units.some(u=>u.side===unit.side&&u.name==='루디'))unit.linkTurns=2;
-    if(profiles.get(unit.name)?.role===1&&units.some(u=>u.side===unit.side&&u.name==='탄지로'))unit.delayedTan=2;
+    if(profiles.get(unit.name)?.role===1&&units.some(u=>u.side===unit.side&&u.name==='탄지로'))grantDelayedBuff(unit,2);
     for(const {text:line,group} of passiveSections(unit.name)){
       const immunity=line.match(/^- (기절|마비|빙결|석화|감전|수면|침묵|화상|중독) 면역\s*\[(\d+)턴/);if(!immunity)continue;
       for(const target of group==='team'?units.filter(u=>u.side===unit.side):[unit]){target.statusImmunities??={};target.statusImmunities[immunity[1]]=Number(immunity[2]);}
@@ -91,7 +92,7 @@ export function onAttackStacks(unit,units,events){
   if(unit.name==='시노부'&&unit.lastAttackBasic)addStack(unit,'poisonStacks','attack',5,6,3);
   if(unit.name==='프레이야'){addStack(unit,'divinityStacks','attack',5,6,4);events.push('프레이야 · 신성 중첩');}
   if(unit.name==='기유'){unit.damageIncrease=(unit.damageIncrease||0)+((unit.giyuDamageStacks||0)<10?5:0);unit.giyuDamageStacks=Math.min(10,(unit.giyuDamageStacks||0)+1);}
-  if(unit.name==='쥬리'&&unit.passiveAttackCount%3===0){for(const key of ['immortal','controlImmune','immunity','barrierTurns'])if(unit[key]>0&&Number.isFinite(unit[key]))unit[key]=Math.min(3,unit[key]+1);events.push('쥬리 · 3회 공격 턴제 버프 연장');}
+  if(unit.name==='쥬리'&&unit.passiveAttackCount%3===0){extendBuffDurations(unit,1);events.push('쥬리 · 3회 공격 턴제 버프 연장');}
   if(unit.name==='헤브니아'&&unit.passiveAttackCount%2===0)for(const ally of units.filter(u=>u.side===unit.side))restoreHp(ally,unit.attack*.35);
 }
 export function beforeSkillRules(unit,units,events,rng=()=>0){
@@ -134,6 +135,7 @@ export function onSkillRules(unit,units,events,rng=()=>0,{includeBefore=true}={}
   if(text.includes('불굴')&&unit.indomitableHits>0&&unit.name==='동영')unit.indomitableHits=Math.min(8,unit.indomitableHits);
 }
 export function onRevivalRules(unit,units,events){
+  if(unit.name==='쥬리'&&unit.immortal>0)setTimedBuff(unit,'assistChanceBonus',24,3,{source:'신의 저울'});
   for(const r of passiveShieldRules(unit.name).filter(r=>r.trigger==='revive'&&r.group==='self'&&!r.conditional))grantShield(unit,unit[r.scale]*r.value,r.turns);
   if(unit.name==='성진우'){for(let i=0;i<10;i++)addStack(unit,'jinwooLevels','attack',3,40);for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0))ally.nullify=Math.min(6,(ally.nullify||0)+(ally.id===unit.id?3:1));}
   if(unit.name==='선란')unit.superiority=2;
