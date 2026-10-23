@@ -197,6 +197,7 @@ export function calculatePrebattle(draft,settings,{basis='panel'}={}){
 export function reducePanelTimedBuffs(unit,turns=1){
   const next={...unit},buffs=[];
   for(const buff of unit.panelTimedBuffs||[]){
+    if(buff.debuff){buffs.push({...buff});continue;}
     const remaining=Math.max(0,buff.remaining-turns);
     if(remaining)buffs.push({...buff,remaining});else next[buff.stat]-=buff.delta;
   }

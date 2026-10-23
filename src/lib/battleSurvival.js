@@ -3,7 +3,7 @@ import {releaseControl} from './controlEffects.js';
 
 // Explicit experimental ordering: immunity → nullification → blessing → shield → HP
 // → immortality/guts → revival. Complex simultaneous trigger order remains unverified.
-export function receiveDamage(unit,amount,{pierce=false,execute=false,deferred=false}={}){
+export function receiveDamage(unit,amount,{pierce=false,execute=false,deferred=false,fixed=false}={}){
   const target={...unit},events=[];
   const result={target,events,damage:0,absorbed:0,kind:'damage'};
   if(target.hp<=0)return result;
@@ -16,7 +16,7 @@ export function receiveDamage(unit,amount,{pierce=false,execute=false,deferred=f
   }
   let pending=Math.max(0,Math.round(amount));
   if(!execute&&!deferred&&target.reductionHits>0){pending=Math.round(pending*(1-(target.hitReduction||0)/100));target.reductionHits--;}
-  if(!execute&&!deferred&&target.blessing>0)pending=Math.min(pending,Math.floor(target.maxHp*target.blessing/100));
+  if(!execute&&!deferred&&!fixed&&target.blessing>0)pending=Math.min(pending,Math.floor(target.maxHp*target.blessing/100));
   result.absorbed=execute||deferred?0:Math.min(target.barrier||0,pending);target.barrier=(target.barrier||0)-result.absorbed;pending-=result.absorbed;
   const before=target.hp;target.hp=execute?0:Math.max(0,before-pending);
   if(!execute&&target.immortal>0)target.hp=Math.max(1,target.hp);
