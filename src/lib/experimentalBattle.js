@@ -1,10 +1,11 @@
 import {queuePassiveAttacks} from './passiveAttacks.js';
 import {setTimedDebuff,setTimedBuff,setTimedDecrease} from './timedEffects.js';
 import {conditionalDamage,afterOwnSkill,beforeOwnSkill,afterOwnHit,extraCondition,palanusMark,buffCount} from './skillRules.js';
-import {syncDebuffs,cleanseDebuffs} from './statusEffects.js';
+import {syncDebuffs,cleanseDebuffs,extendDebuffs} from './statusEffects.js';
 import {releaseControl} from './controlEffects.js';
 import {applyEquipment} from './equipmentEffects.js';
 import {addDot,dotBase} from './damageOverTime.js';
+import {chooseAutoSkill,AUTO_HEAL_THRESHOLD} from './autoSkill.js';
 import {specialHitEffects,directDebuffHits,crystalResonance,tickReflux,spreadReflux,addReflux,applyLubuMark} from './specialDebuffs.js';
 import {damageShares,deferPain} from './passiveDamage.js';
 import {onHealthThreshold,onAttackStacks,onSkillRules,onRevivalRules,onGutsRules,onDeathRules,initializePassives,addStack,restoreHp,roleCount} from './passiveRules.js';
@@ -99,18 +100,19 @@ function scheduled(s){
     s.plans[side]=plan.filter(p=>ready.some(u=>u.id===p.id));
     const reserved=s.plans[side][0]||null;
     const usable=(unit,code,isReserved=false)=>{
-      const spec=skillFor(unit.name,code);if(!spec)return false;
+      const spec=combatSkill(unit,code);if(!spec)return false;
       if((unit.readyAt?.[code]||0)>(s.elapsedMs||0))return false;
       if(spec.hits||!spec.effects.length)return true;
       if(code===7&&unit.name==='델론즈')return true;
       const healing=spec.effects.some(e=>e.type==='heal'),revival=spec.effects.some(e=>e.type==='revive');
       if(!healing&&!revival)return true;
-      return healing&&s.units.some(u=>u.side===side&&u.hp>0&&u.hp/u.maxHp<(isReserved?.999:.7))||revival&&s.units.some(u=>u.side===side&&u.hp===0&&!u.annihilation);
+      return healing&&s.units.some(u=>u.side===side&&u.hp>0&&!u.healBlock&&!u.immortal&&!u.indomitableHits&&u.hp/u.maxHp<(isReserved?.999:AUTO_HEAL_THRESHOLD))||revival&&s.units.some(u=>u.side===side&&u.hp===0&&!u.annihilation);
     };
-    const lock=s.awakenLocks[side],awakened=!reserved&&!lock?ready.filter(u=>!u.awakenUsed&&u.awakenMax>0&&u.awakenGauge>=u.awakenMax&&usable(u,7)).sort((a,b)=>b.speed-a.speed||(a.battleSeat??a.id%3+1)-(b.battleSeat??b.id%3+1)||a.id-b.id)[0]:null;
-    const candidate=reserved?s.units[reserved.id]:awakened||ready.sort((a,b)=>a.skillActions-b.skillActions||a.id-b.id).find(u=>heroSkills(u.name).some(v=>[2,3].includes(v.code)&&usable(u,v.code)));
-    const available=candidate?heroSkills(candidate.name).filter(v=>[2,3].includes(v.code)&&usable(candidate,v.code)):[];
-    const code=reserved?.code||(awakened?7:available[candidate?.skillActions%available.length]?.code||2);
+    const lock=s.awakenLocks[side];
+    const candidates=reserved?[]:ready.flatMap(unit=>heroSkills(unit.name).filter(v=>[2,3,7].includes(v.code)&&usable(unit,v.code)&&(v.code!==7||!lock&&!unit.awakenUsed&&unit.awakenMax>0&&unit.awakenGauge>=unit.awakenMax)).map(v=>({unit,code:v.code,spec:combatSkill(unit,v.code)})));
+    const automatic=reserved?null:chooseAutoSkill(candidates,s.units,side,()=>random(s));
+    const candidate=reserved?s.units[reserved.id]:automatic?.unit;
+    const code=reserved?.code||automatic?.code||2;
     const actor=candidate&&usable(candidate,code,Boolean(reserved))?candidate:null;
     if(actor&&reserved)s.plans[side].shift();
     s.phase=1;s.skillSide=side==='attacker'?'defender':'attacker';
@@ -274,6 +276,7 @@ export function advanceBattle(previous){
         const targets=targetsFor(spec.targets);
         if(actor.name==='팔라누스'&&[2,3].includes(code))for(const t of targets)markPalanus(t);
         if(actor.name==='델론즈'&&code===7){transformDellons(actor,s.units);events.push('델론즈 · 변신 · 치명타 피해 중첩·행동 제어 면역');}
+        const removedBuffs=new Map(),removedDebuffs=new Map();
         const apply=(target,e)=>{
           syncDebuffs(target);
           if(e.group==='enemy'&&target.stealth>0)return;
@@ -310,11 +313,13 @@ export function advanceBattle(previous){
           else if(e.type==='cooldownUp'&&!target.cooldownImmune)for(const key of [2,3])target.readyAt[key]=Math.max(target.readyAt[key]||0,s.elapsedMs)+e.value*1000;
           else if(e.type==='cooldownDown')for(const key of Object.keys(target.readyAt))target.readyAt[key]=Math.max(0,target.readyAt[key]-e.value*1000);
           else if(e.type==='extendBuff'){for(const key of ['immunity','controlImmune','immortal','barrierTurns','damageBuffTurns','superiority'])if(target[key]>0&&Number.isFinite(target[key]))target[key]=Math.min(target.buffMaxTurns?.[key]||3,target[key]+e.value);}
-          else if(e.type==='regen')target.regenBuff={base:actor.maxHp*e.value,remaining:e.duration};
+          else if(e.type==='extendDebuff')extendDebuffs(target,e.value);
+          else if(e.type==='regen'){const count=e.perCleanse?(removedDebuffs.get(target.id)||0):1;if(count&&!target.buffBlock)target.regenBuff={base:actor.maxHp*e.value*count,remaining:e.duration};}
           else if(e.type==='annihilation')target.annihilation=Math.max(target.annihilation,e.duration);
           else if(e.type==='dot'){
             const entry={name:e.status,source:actor.id,attack:actor.attack,remaining:e.duration,value:e.value,scale:e.scale,cap:e.cap,pierce:e.pierce};
-            addDot(target,entry);
+            const count=e.perDispel?(removedBuffs.get(target.id)||0):1;
+            for(let n=0;n<count;n++)if(!e.perDispel||effect(target,e.instanceChance,e.status))addDot(target,entry);
           }
           else if(e.type==='blockDown'){target.blockDebuff=Math.max(target.blockDebuff,e.value);target.blockDownTurns=Math.max(target.blockDownTurns||0,e.duration);}
           else if(e.type==='defDown'){target.defDown=e.maxStacks>1?Math.min(e.value*e.maxStacks,target.defDown+e.value):Math.max(target.defDown,e.value);target.defTurns=e.duration;}
@@ -323,14 +328,15 @@ export function advanceBattle(previous){
           else if(e.type==='revive'&&target.hp===0&&!target.annihilation){target.hp=Math.max(1,Math.round(target.maxHp*e.value/100));s.impacts.push({target:target.id,heal:target.hp});}
           else if(e.type==='nullify')target.nullify=Math.max(target.nullify,e.value);
           else if(['immunity','controlImmune','healBlock'].includes(e.type)){target[e.type]=Math.max(target[e.type],e.duration);target.buffMaxTurns??={};target.buffMaxTurns[e.type]=Math.max(target.buffMaxTurns[e.type]||0,e.duration);}
-          else if(e.type==='cleanse')cleanseDebuffs(target,e.value??Infinity,{controlOnly:e.controlOnly});
+          else if(e.type==='cleanse')removedDebuffs.set(target.id,cleanseDebuffs(target,e.value??Infinity,{controlOnly:e.controlOnly}));
           else if(e.type==='dispel'){
             // Buff ordering remains approximate until application timestamps are available.
             let left=e.value;
             if(left&&target.barrier>0){target.barrier=0;target.barrierTurns=0;left--;}
             while(left&&target.panelTimedBuffs?.some(b=>!b.debuff)){const index=target.panelTimedBuffs.findIndex(b=>!b.debuff),[buff]=target.panelTimedBuffs.splice(index,1);target[buff.stat]-=buff.delta;left--;}
             for(const key of ['damageBuffTurns','controlImmune','superiority'])if(left&&target[key]>0&&!(key==='controlImmune'&&target.transformed)&&!(key==='damageBuffTurns'&&target.panelComputed)){target[key]=0;left--;}
-            if(left&&target.immortal>0){target.immortal=0;target.hp=0;target.barrier=0;onDeathRules(target,s.units,events);}
+            if(left&&target.immortal>0){target.immortal=0;target.hp=0;target.barrier=0;left--;onDeathRules(target,s.units,events);}
+            removedBuffs.set(target.id,e.value-left);
           }
           else if(e.type==='reduceBuff'){
             Object.assign(target,reducePanelTimedBuffs(target,e.value));
@@ -340,6 +346,8 @@ export function advanceBattle(previous){
             if(hadImmortal&&!target.immortal){target.hp=0;target.barrier=0;}
           }
           const labels={heal:'회복',shield:'보호막',revive:'부활',annihilation:'절멸',defDown:'방어력 감소',nullify:'피해 무효화',immunity:'피해 면역',controlImmune:'행동 제어 면역',healBlock:'회복 불가',cleanse:'디버프 해제',reduceBuff:'턴제 버프 감소'};
+          const durationKey={control:e.status==='수면'?'sleep':e.status==='침묵'?'silence':e.status==='실명'?'blind':'control',defDown:'defTurns',blockDown:'blockDownTurns',instantDeath:'instantDeathTurns',healBlock:'healBlock',buffBlock:'buffBlock',annihilation:'annihilation'}[e.type];
+          if(durationKey&&e.duration){target.debuffMaxTurns??={};target.debuffMaxTurns[durationKey]=Math.max(target.debuffMaxTurns[durationKey]||0,e.duration);}
           syncDebuffs(target);
           drainControlBursts(target);
           events.push(`${target.name} · ${e.status||labels[e.type]||'효과 적용'}`);

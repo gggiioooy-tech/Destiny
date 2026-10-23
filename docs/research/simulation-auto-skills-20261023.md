@@ -1,0 +1,13 @@
+# Automatic guild-war skill selection — 2026-10-23
+
+Engine `2026-10-23.2` replaces least-used-hero/alternating-skill scheduling with seeded random selection from all ready ordinary skills. Initial replay reservations remain authoritative. User confirmed that a ready awakening always takes priority once reservations are exhausted. Revive priority is retained, followed by healing when a living, healable ally has less than 60% HP. The user described 60% as approximate; this is not represented as an official exact threshold. Ordinary candidates are weighted equally per available skill, not per hero. The exact server weighting is unknown.
+
+Pet potential defaults remain four lines of 15%, defense for Lu/Pike/Karam/Jave and attack for other supported pets. Starting visible battle stats are never given those visible bonuses again. Explicit manual values remain respected. Ring effects remain the previously supplied Daegwon/Daebul/Gwonbul rules, chosen in each hero editor. Unknown archived rings are not silently guessed or inferred from outcomes.
+
+The requested [damage calculator](https://v0-damage-simulator.vercel.app/) was reopened. Its public UI does not establish random AI selection; the earlier local code audit documents its defense divisor and panel/pet/formation calculation separately. [System documentation](https://www.namu.moe/w/세븐나이츠%20리버스/시스템) supports initial reservations and revive/heal priority but explicitly leaves later probability weights unspecified.
+
+Additional [awakened Hayeon documentation](https://www.namu.moe/w/하연(세븐나이츠%20리버스)/각성) was used for per-dispelled-buff bleed, per-cleansed-debuff regeneration and capped debuff duration extension. Cleanse counts now feed subsequent effects within that skill only; they do not leak between actions. Scalar reductions retain numeric zero after cleanse so later stacking cannot produce NaN. Exact buff dispel order and Hayeon's simultaneous interactions remain approximate. The ambiguous HP-threshold passive interpretation was not changed on this evidence alone.
+
+Regression results on the existing 160 records: 154 eligible, 150 decided, 4 abstained, 89 correct. Accuracy is 59.3% among decided battles or 57.8% among all eligible. Majority-class baseline is 66.2%. These are reused correlated records, not a new independent holdout. The 90% target remains unvalidated. Compared with the preceding held-aside benchmark, the sample and engine changed, so percentages cannot be treated as a direct improvement measurement.
+
+Wiki mechanics are community evidence, paraphrased with attribution to NamuWiki contributors (CC BY-NC-SA 2.0 KR where applicable). User-confirmed assumptions are identified above rather than attributed to the wiki.

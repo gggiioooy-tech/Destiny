@@ -81,11 +81,11 @@ export function compileSkill(raw){
     const chance=Number(line.match(/([\d.]+)%\s*확률/)?.[1]||100);
     const each=/각 공격마다/.test(line);
     const add=(type,extra={})=>skill.effects.push({type,group,roles:roles?.length?roles:null,row,duration,chance,each,before:!each&&Boolean(damage)&&lines.indexOf(line)<lines.indexOf(damage),...extra});
-    const dot=line.match(/(?:^[- ]*|각 공격마다\s*)(화상|극독|중독|출혈)\s*\[/);
+    const dot=line.match(/(?:^[- ]*|각 공격마다\s*|해제한 버프 개수만큼\s*)(화상|극독|중독|출혈)\s*\[/);
     if(dot){
       const rule=definitions[dot[1]]?.join(' ')||'',ratio=rule.match(/(?:공격력|최대 생명력)의?\s*([\d.]+)%/),cap=rule.match(/공격력의\s*([\d.]+)%.*(?:넘|초과)/);
       const fallback={화상:{value:.8,scale:'attack'},중독:{value:.06,scale:'targetHp',cap:1.5},출혈:{value:.6,scale:'attack',pierce:true}}[dot[1]];
-      if(ratio||fallback){add('dot',{status:dot[1],value:ratio?Number(ratio[1])/100:fallback.value,scale:rule.includes('최대 생명력')?'targetHp':fallback?.scale||'attack',cap:cap?Number(cap[1])/100:fallback?.cap||null,pierce:dot[1]==='출혈'});continue;}
+      if(ratio||fallback){add('dot',{status:dot[1],value:ratio?Number(ratio[1])/100:fallback.value,scale:rule.includes('최대 생명력')?'targetHp':fallback?.scale||'attack',cap:cap?Number(cap[1])/100:fallback?.cap||null,pierce:dot[1]==='출혈',perDispel:line.includes('해제한 버프'),...(line.includes('해제한 버프')?{chance:100,instanceChance:chance}:{})});continue;}
     }
     const cc=line.match(/(?:^[- ]*|각 공격마다\s*)(감전|기절|마비|수면|깊은 수면|빙결|빙극|석화|침묵|공포|실명)\s*\[/);
     if(cc){const upgraded=lines.find(l=>l.includes('확률 상승')&&l.includes(cc[1]));add('control',{status:cc[1],chance:Number(upgraded?.match(/([\d.]+)%/)?.[1]||chance)});continue;}
@@ -106,7 +106,9 @@ export function compileSkill(raw){
     if(cooldown){add(cooldown[1]==='증가'?'cooldownUp':'cooldownDown',{value:Number(cooldown[2])});continue;}
     const extend=line.match(/턴제 버프 증가\s*(\d+)턴/);
     if(extend){add('extendBuff',{value:Number(extend[1])});continue;}
-    if(/지속 회복\s*\[/.test(line)){const rule=definitions['지속 회복']?.join(' ')||'',value=rule.match(/최대 생명력의\s*([\d.]+)%/);if(value){add('regen',{value:Number(value[1])/100});continue;}}
+    const extendDebuff=line.match(/턴제 디버프 증가\s*(\d+)턴/);
+    if(extendDebuff){add('extendDebuff',{value:Number(extendDebuff[1])});continue;}
+    if(/지속 회복\s*\[/.test(line)){const rule=definitions['지속 회복']?.join(' ')||'',value=rule.match(/최대 생명력의\s*([\d.]+)%/);if(value){add('regen',{value:Number(value[1])/100,perCleanse:line.includes('해제한 디버프')});continue;}}
     const revive=line.match(/사망한 대상.*?생명력\s*([\d.]+)%.*부활/);
     if(revive){add('revive',{value:Number(revive[1])});continue;}
     const def=line.match(/방어력 감소(?:\(중첩\))?(?:\s*([\d.]+)%)?/);

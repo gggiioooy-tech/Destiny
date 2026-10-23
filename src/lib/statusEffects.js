@@ -25,7 +25,7 @@ export function cleanseDebuffs(unit,count=Infinity,{controlOnly=false}={}){
     if(removed>=count)break;
     if(controlOnly&&!['control','sleep','silence','blind'].includes(entry.key))continue;
     const scalar=scalars.find(([key])=>key===entry.key);
-    if(scalar){if(entry.key==='control')releaseControl(unit);else{unit[entry.key]=0;for(const key of scalar[1])delete unit[key];}}
+    if(scalar){if(entry.key==='control')releaseControl(unit);else{unit[entry.key]=0;for(const key of scalar[1]){if(typeof unit[key]==='number')unit[key]=0;else delete unit[key];}}}
     else if(entry.key==='palMarks')delete unit.palMarks[entry.ref];
     else {const key=entry.key,field=['reflux','crystals'].includes(key)?'id':'effectId',index=unit[key].findIndex(e=>e[field]===entry.ref),[effect]=unit[key].splice(index,1);if(key==='panelTimedBuffs')unit[effect.stat]-=effect.delta;}
     unit.debuffOrder=unit.debuffOrder.filter(e=>e!==entry);removed++;
@@ -33,3 +33,7 @@ export function cleanseDebuffs(unit,count=Infinity,{controlOnly=false}={}){
   return removed;
 }
 export function clearDebuffs(unit){return cleanseDebuffs(unit,Infinity);}
+export function extendDebuffs(unit,turns){
+  for(const [key]of scalars)if(unit[key]>0&&unit.debuffMaxTurns?.[key])unit[key]=Math.min(unit.debuffMaxTurns[key],unit[key]+turns);
+  for(const key of ['dots','panelTimedBuffs'])for(const effect of unit[key]||[])if((key==='dots'||effect.debuff)&&effect.maxTurns)effect.remaining=Math.min(effect.maxTurns,effect.remaining+turns);
+}
