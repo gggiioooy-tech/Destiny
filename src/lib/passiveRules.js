@@ -1,6 +1,7 @@
 import roster from './simulationRoster.json' with {type:'json'};
 import {calculateRecovery,calculateShield,rollEffect,casterEffect} from './combatDamage.js';
 import {setTimedDebuff} from './timedEffects.js';
+import {startingShieldRules,passiveShieldRules} from './passiveShields.js';
 
 const profiles=new Map(roster.heroes.map(h=>[h.name,h]));
 export const passiveText=name=>{const p=profiles.get(name)?.skills.find(s=>s.code===4);return [p?.text,p?.enhanced,p?.upgrades].filter(Boolean).join('\n');};
@@ -8,7 +9,10 @@ export function roleCount(units,side,role){const team=units.filter(u=>u.side===s
 export function initializePassives(units){
   for(const unit of units){
     const text=passiveText(unit.name);
-    if(unit.name==='초선')grantShield(unit,unit.maxHp*.45,3);
+    // Reset the legacy regex result: a conditional guts shield is never initial.
+    unit.barrier=0;unit.barrierTurns=0;
+    for(const rule of startingShieldRules(unit.name))grantShield(unit,unit[rule.scale]*rule.value,rule.turns);
+    for(const rule of passiveShieldRules(unit.name).filter(r=>r.trigger==='guts'&&r.group==='self'&&r.scale==='attack'&&!r.conditional))unit.gutsShieldPercent=Math.max(unit.gutsShieldPercent||0,rule.value*100);
     const stealth=passiveSections(unit.name).find(r=>r.group==='self'&&r.text.includes('위장')&&!/부활|발동|경우/.test(r.text));if(stealth)unit.stealth=Number(stealth.text.match(/(\d+)턴/)?.[1]||2);
     if(unit.name==='여포')unit.blessing=roleCount(units,unit.side,1)>=3?25:0;
     if(unit.name==='카일'&&roleCount(units,unit.side,1)>=3)unit.nullify=Math.max(unit.nullify,4);
@@ -100,8 +104,8 @@ export function onSkillRules(unit,units,events,rng=()=>0){
     if(group!=='self'||!line.includes('자신의 스킬 1회 발동 시'))continue;
     const n=line.match(/모든 피해 무효화.*?피격\s*(\d+)회/);if(n)unit.nullify=Math.min(Number(line.match(/최대\s*(\d+)회/)?.[1]||6),unit.nullify+Number(n[1]));
     if(line.includes('불굴 효과의 피격 횟수')&&unit.indomitableHits>0)unit.indomitableHits=Math.min(8,unit.indomitableHits+1);
-    const m=line.match(/(?:공격력|최대 생명력)의\s*([\d.]+)%.*보호막/);if(m)grantShield(unit,unit[line.includes('최대 생명력')?'maxHp':'attack']*Number(m[1])/100,Number(line.match(/(\d+)턴/)?.[1]||3));
   }
+  if(unit.name!=='나타'&&unit.name!=='윤건')for(const r of passiveShieldRules(unit.name).filter(r=>r.trigger==='skill'&&!r.conditional&&unit.skillActions%r.every===0))for(const target of r.group==='team'?units.filter(u=>u.side===unit.side&&u.hp>0):[unit])grantShield(target,unit[r.scale]*r.value,r.turns);
   for(const caster of units.filter(u=>u.side===unit.side&&u.hp>0)){
     caster.partySkillCount=(caster.partySkillCount||0)+1;
     if(caster.name==='시노부'&&caster.partySkillCount%2===0)for(const ally of units.filter(u=>u.side===unit.side))restoreHp(ally,caster.attack*.3);
@@ -117,6 +121,7 @@ export function onSkillRules(unit,units,events,rng=()=>0){
   if(text.includes('불굴')&&unit.indomitableHits>0&&unit.name==='동영')unit.indomitableHits=Math.min(8,unit.indomitableHits);
 }
 export function onRevivalRules(unit,units,events){
+  for(const r of passiveShieldRules(unit.name).filter(r=>r.trigger==='revive'&&r.group==='self'&&!r.conditional))grantShield(unit,unit[r.scale]*r.value,r.turns);
   if(unit.name==='성진우'){for(let i=0;i<10;i++)addStack(unit,'jinwooLevels','attack',3,40);for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0))ally.nullify=Math.min(6,(ally.nullify||0)+(ally.id===unit.id?3:1));}
   if(unit.name==='선란')unit.superiority=2;
   if(unit.name==='여포')unit.readyAt={};
@@ -131,7 +136,6 @@ export function onRevivalRules(unit,units,events){
   for(const {text:line,group} of passiveSections(unit.name)){
     if(group!=='self'||!/(?:자신 )?부활 시/.test(line)||/효과 상승/.test(line))continue;
     const n=line.match(/모든 피해 무효화.*?피격\s*(\d+)회/);if(n&&unit.name!=='성진우')unit.nullify=Math.min(6,unit.nullify+Number(n[1]));
-    const shield=line.match(/공격력의\s*([\d.]+)%.*보호막/);if(shield)grantShield(unit,unit.attack*Number(shield[1])/100,Number(line.match(/(\d+)턴/)?.[1]||3));
     if(line.includes('위장'))unit.stealth=Number(line.match(/(\d+)턴/)?.[1]||2);
     if(line.includes('독 축적')&&!unit.poisonReviveUsed){unit.poisonReviveUsed=true;for(let i=0;i<3;i++)addStack(unit,'poisonStacks','attack',5,6,3);}
   }events.push(unit.name+' · 부활 패시브');
@@ -153,6 +157,7 @@ export function onDeathRules(dead,units,events){
     const ally=unit.side===dead.side,text=passiveText(unit.name);
     if(unit.name==='하연')unit.awakenGauge=Math.min(unit.awakenMax,unit.awakenGauge+11);
     if(!ally){
+      if(unit.name==='브란즈&브란셀'&&roleCount(units,unit.side,1)>=3)for(const r of passiveShieldRules(unit.name).filter(r=>r.trigger==='death'&&r.group==='self'))grantShield(unit,unit[r.scale]*r.value,r.turns);
       if(unit.name==='성진우')for(let i=0;i<2;i++)addStack(unit,'jinwooLevels','attack',3,40);
       if(unit.indomitableHits>0)unit.indomitableHits=Math.min(8,unit.indomitableHits+(unit.name==='탄지로'?2:1));
       for(const {text:line,group} of passiveSections(unit.name)){

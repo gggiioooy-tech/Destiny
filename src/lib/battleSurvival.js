@@ -25,7 +25,7 @@ export function receiveDamage(unit,amount,{pierce=false,execute=false,deferred=f
     target.hp=1;target.gutsUsed=true;events.push('권능');
     if(target.name==='델론즈'){target.nullify=Math.max(target.nullify||0,4);target.awakenGauge=Math.min(target.awakenMax||85,(target.awakenGauge||0)+25);}
     if(target.gutsShieldPercent)target.barrierTurns=Math.max(target.barrierTurns||0,3);
-    if(!target.buffBlock)target.barrier=Math.max(target.barrier,(ringGuts?Math.round(target.attack*1.5):calculateShield({base:target.attack*(target.gutsShieldPercent||0)/100,regeneration:target.regeneration||0}))*(1-(target.shieldReduction||0)/100));
+    if(!target.buffBlock)target.barrier=Math.max(target.barrier,Math.max(ringGuts?Math.round(target.attack*1.5):0,calculateShield({base:target.attack*(target.gutsShieldPercent||0)/100,regeneration:target.regeneration||0}))*(1-(target.shieldReduction||0)/100));
   }
   if(execute){target.immortal=0;target.indomitableHits=0;target.barrier=0;events.push('처형');}
   if(target.hp===0&&!target.annihilation){

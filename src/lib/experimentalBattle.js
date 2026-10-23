@@ -63,14 +63,12 @@ function passiveState(name){
     if(self&&l.startsWith('-')&&!/경우|이하|이상|발동 시|부활 시|아군|적군/.test(l))own.push(l);
   }
   const direct=own.join('\n');
-  const shield=direct.match(/시전자 (?:물리 |마법 )?(공격력|최대 생명력)의\s*([\d.]+)%.*?보호막\s*\[(\d+)턴/);
   const reviveUpgrade=text.match(/효과 상승\s*[:：]\s*부활 시 생명력\s*(\d+)%/);
   const reviveImmunity=text.match(/(?:자신 )?부활 시 모든 피해 면역\s*\[(\d+)턴/);
   return {nullify:Number(direct.match(/모든 피해 무효화\s*\[피격\s*(\d+)회/)?.[1]||0),
     guts:/권능/.test(direct),gutsShieldPercent:Number(text.match(/보호막 흡수량이? (?:물리 |마법 )?공격력의\s*([\d.]+)%/)?.[1]||text.match(/권능 발동\s*시.*?공격력의\s*([\d.]+)%/)?.[1]||0),revivePercent:Number(reviveUpgrade?.[1]||direct.match(/사망 시 생명력\s*(\d+)%로 부활/)?.[1]||0),
     reviveIndomitableHits:Number(direct.match(/사망 시 불굴 상태로 부활\s*\[피격\s*(\d+)회/)?.[1]||0),
     reviveImmunity:Number(reviveImmunity?.[1]||0),
-    initialShield:shield?{scale:shield[1]==='최대 생명력'?'maxHp':'attack',value:Number(shield[2])/100,turns:Number(shield[3])}:null,
     superiority:Number(direct.match(/우위\s*\[(\d+)턴/)?.[1]||0),
     ...(/축복/.test(direct)?{blessing:Number(raw?.definitions?.['축복']?.join(' ').match(/([\d.]+)%/)?.[1]||25)}:{}),
     reviveImmortalTurns:Number(text.match(/턴 상승\s*[:：]\s*불사 지속\s*(\d+)턴/)?.[1]||direct.match(/사망 시 불사.*?\[(\d+)턴/)?.[1]||0),
@@ -86,7 +84,6 @@ export function createBattle(heroes,{seed=1,plans=defaultSkillPlans(heroes)}={})
   const state={growth:HERO_GROWTH,units:heroes.map((h,i)=>({...h,id:i,hp:h.maxHp,barrier:h.name==='윤건'?calculateShield({base:h.attack*1.85,regeneration:h.regeneration}):0,barrierTurns:h.name==='윤건'?3:0,damageBuffTurns:h.name==='연희'?3:0,blessing:h.name==='윤건'?25:0,reviveImmortalTurns:h.name==='쥬리'?3:0,controlImmune:h.name==='쥬리'?3:0,nullify:h.name==='쥬리'?3:0,sleep:0,defDown:0,defTurns:0,immortal:0,immunity:0,annihilation:0,control:0,silence:0,healBlock:0,damageDealt:0,healingDone:0,awakenGauge:0,awakenMax:skillFor(h.name,7)?.raw.gauge||0,awakenUsed:false,...passiveState(h.name),revived:false,triggered:false,actions:0,skillActions:0})),seed:(Number(seed)>>>0)||1,step:0,turn:0,round:0,phase:0,plans:structuredClone(plans),queue:[],log:[],done:false,winner:null,active:null,targets:[],impacts:[],action:null,awakenLocks:{attacker:0,defender:0}};
   for(const unit of state.units){
     unit.readyAt={};unit.buffMaxTurns=Object.fromEntries(['immunity','controlImmune','immortal','barrierTurns','damageBuffTurns','superiority'].map(k=>[k,unit[k]||0]));
-    if(unit.initialShield){unit.barrier=calculateShield({base:unit[unit.initialShield.scale]*unit.initialShield.value,regeneration:unit.regeneration});unit.barrierTurns=unit.initialShield.turns;}
   }
   initializePassives(state.units);
   for(const unit of state.units){applyEquipment(unit);syncBuffs(unit);}

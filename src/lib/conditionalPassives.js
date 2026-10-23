@@ -31,7 +31,8 @@ export function afterControl(unit,events,units=[]){
 }
 export function afterSkillPassive(unit,events){
   const text=heroSkills(unit.name).find(s=>s.code===4)?.raw.text||'';
-  const rule=text.match(/자신의 스킬 1회 발동 시 시전자 (?:물리 |마법 )?(공격력|최대 생명력)의\s*([\d.]+)%/);
+  const line=text.split('\n').find(l=>l.includes('자신의 스킬 1회 발동 시')&&/생명력 회복|만큼 회복/.test(l));
+  const rule=line?.match(/자신의 스킬 1회 발동 시 시전자 (?:물리 |마법 )?(공격력|최대 생명력)의\s*([\d.]+)%/);
   if(rule){const amount=heal(unit,unit[rule[1]==='최대 생명력'?'maxHp':'attack']*Number(rule[2])/100);if(amount)events.push(unit.name+' · 스킬 사용 회복 '+amount);}
 }
 export function afterHitPassive(unit,units,events,{attackToken}={}){
