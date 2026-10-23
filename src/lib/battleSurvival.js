@@ -1,13 +1,15 @@
 import {calculateShield} from './combatDamage.js';
+import {resetRevivalDebuffs} from './statusEffects.js';
 import {releaseControl} from './controlEffects.js';
 
 // Explicit experimental ordering: immunity → nullification → blessing → shield → HP
 // → immortality/guts → revival. Complex simultaneous trigger order remains unverified.
-export function receiveDamage(unit,amount,{pierce=false,execute=false,deferred=false,fixed=false}={}){
+export function damageImmune(unit,{pierce=false,execute=false,deferred=false,damageType}={}){return !pierce&&!execute&&!deferred&&(unit.immunity>0||damageType==='physical'&&unit.physicalImmunity>0||damageType==='magic'&&unit.magicImmunity>0);}
+export function receiveDamage(unit,amount,{pierce=false,execute=false,deferred=false,fixed=false,damageType}={}){
   const target={...unit},events=[];
   const result={target,events,damage:0,absorbed:0,kind:'damage'};
   if(target.hp<=0)return result;
-  if(!execute&&!deferred&&target.immunity>0&&!pierce){result.kind='immune';events.push('피해 면역');return result;}
+  if(damageImmune(target,{pierce,execute,deferred,damageType})){result.kind='immune';events.push('피해 면역');return result;}
   // Penetration bypasses immunity, not hit-count nullification.
   if(!execute&&!deferred&&target.nullify>0){target.nullify--;result.kind='nullify';events.push('피해 무효화');return result;}
   if(!execute&&target.indomitableHits>0){
@@ -31,7 +33,7 @@ export function receiveDamage(unit,amount,{pierce=false,execute=false,deferred=f
   if(target.hp===0&&!target.annihilation){
     if(['daebul','daegwon'].includes(target.ring)&&!target.ringReviveUsed){target.hp=target.maxHp;target.ringReviveUsed=true;events.push('반지 · 생명력 100% 부활');}
     else if(['daebul','gwonbul'].includes(target.ring)&&!target.ringImmortalUsed){target.hp=1;target.immortal=3;target.controlImmune=Math.max(target.controlImmune||0,3);target.ringImmortalUsed=true;events.push('반지 · 불사 3턴 부활');}
-    if(events.some(e=>e.startsWith('반지 · '))){target.revivalCount=(target.revivalCount||0)+1;for(const key of ['sleep','control','silence','blind','healBlock','defDown','defTurns'])target[key]=0;target.dots=[];}
+    if(events.some(e=>e.startsWith('반지 · '))){target.revivalCount=(target.revivalCount||0)+1;resetRevivalDebuffs(target);}
   }
   if(target.hp===0&&!target.annihilation&&!target.revived){
     if(target.reviveIndomitableHits){target.hp=1;target.indomitableHits=target.reviveIndomitableHits;target.revived=true;events.push('불굴 부활');}
@@ -39,7 +41,7 @@ export function receiveDamage(unit,amount,{pierce=false,execute=false,deferred=f
     else if(target.revivePercent){target.hp=Math.max(1,Math.round(target.maxHp*target.revivePercent/100));target.revived=true;events.push('부활');}
     if(target.revived){
       target.revivalCount=(target.revivalCount||0)+1;
-      for(const key of ['sleep','control','silence','blind','healBlock','defDown','defTurns'])target[key]=0;
+      resetRevivalDebuffs(target);
       if(target.reviveImmunity)target.immunity=target.reviveImmunity;
       target.dots=[];
     }
@@ -61,7 +63,7 @@ export function tickPersonalTurn(unit,before){
   if(before.statusImmunities){next.statusImmunities={...next.statusImmunities};for(const [key,turns]of Object.entries(before.statusImmunities))if(next.statusImmunities[key]<=turns)next.statusImmunities[key]=Math.max(0,next.statusImmunities[key]-1);}
   if(before.fateThreadDurations?.length){next.fateThreadDurations=(next.fateThreadDurations||[]).map((v,i)=>i<before.fateThreadDurations.length?v-1:v).filter(v=>v>0);next.fateThreads=next.fateThreadDurations.length;}
   // Only durations that existed before this basic-attack turn are ticked.
-  for(const key of ['sleep','control','silence','blind','healBlock','defTurns','immunity','controlImmune','annihilation','barrierTurns','damageBuffTurns','superiority','superiorityMissTurns','blockDownTurns','stealth','judgment','buffBlock','cooldownImmune','linkTurns','cloneTurns','taunt']){
+  for(const key of ['sleep','control','silence','blind','healBlock','defTurns','immunity','physicalImmunity','magicImmunity','controlImmune','annihilation','barrierTurns','damageBuffTurns','superiority','superiorityMissTurns','blockDownTurns','stealth','judgment','buffBlock','cooldownImmune','linkTurns','cloneTurns','taunt']){
     if(before[key]>0&&next[key]>0&&next[key]<=before[key])next[key]--;
   }
   if(!next.defTurns)next.defDown=0;

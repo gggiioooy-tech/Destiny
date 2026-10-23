@@ -1,3 +1,4 @@
+import sequences from './battleSequenceCatalog.json' with {type:'json'};
 import catalog from './battleTimingCatalog.json' with {type:'json'};
 import {canonicalHero} from './simulationSkills.js';
 export const BATTLE_LIMIT_MS=210000;
@@ -27,3 +28,9 @@ export function resolveTimeout(units){
   return {winner:Math.abs(difference)<1e-12?null:difference>0?'attacker':'defender',basis:'remaining_team_hp_ratio',attackerHpRatio:ratio(a),defenderHpRatio:ratio(d)};
 }
 export function formatBattleTime(ms){const seconds=Math.max(0,Math.ceil(ms/1000));return `${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;}
+
+export function followupTiming(name,parentCode,followCode=parentCode){
+  const observed=sequences.followups[canonicalHero(name)+'|'+parentCode];
+  if(observed?.count>=5)return {count:observed.count,medianMs:observed.durationMs,spacingMs:observed.gapMs,estimated:false,source:'observed_triggered_cast_sequence'};
+  return {...actionTiming(name,followCode,'skill'),spacingMs:catalog.spacing?.medianMs||200,estimated:true,source:'estimated_triggered_cast_sequence'};
+}

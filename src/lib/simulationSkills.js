@@ -36,6 +36,9 @@ export function compileSkill(raw){
     pierce:/관통/.test(compact),ignore:/방어 무시/.test(compact)?.4:0,
     hpRatio:hp?Number(hp[1])/100:0,hpCap:cap?Number(cap[1])/100:0,
     cooldown:raw.cooldown||0,effects:[],extraDamage:[],unsupported:[],raw};
+  skill.requiresTargetBuff=/대상에게 해제 가능한 버프가 있어야 사용 가능/.test(text);
+  skill.requiresAllyDebuff=/아군에게 해제 가능한 디버프가 있어야 사용 가능/.test(text);
+  skill.allyTargets=Number(text.match(/대상 수 변경\s*[:：]\s*아군\s*(\d+)명/)?.[1]||raw.targets||3);
   skill.targetPreference=/버프가 많은 순/.test(beforeDamage)?'buffs':/공격력이 높은 순/.test(beforeDamage)?'attack':/후열 우선/.test(beforeDamage)?'back':/전열 우선/.test(beforeDamage)?'front':null;
   if(skill.ignore){const rule=definitions['방어 무시']?.join(' ')||'';skill.ignore=Number(rule.match(/([\d.]+)%/)?.[1]||40)/100;}
   skill.critBonus=Number([...text.matchAll(/치명타 확률\s*([\d.]+)%\s*추가 적용/g)].at(-1)?.[1]||0);
@@ -49,7 +52,10 @@ export function compileSkill(raw){
   // Effect lines are read only before explanatory definitions. Conditional mechanics
   // need dedicated handlers and are surfaced in the battle report rather than guessed.
   let group=raw.targetType===1?'self':[2,3].includes(raw.targetType)?'team':'enemy',details=false,roles=null,row=null;
-  for(const line of lines){
+  for(const sourceLine of lines){
+    let line=sourceLine,targetCondition=null;
+    const conditional=line.match(/^- 대상이 \[마법 취약\] 상태일 경우 (.+)$/);
+    if(conditional){targetCondition={stat:'magicVulnerability',above:0};line='- '+conditional[1];}
     if(/부가효과 상세|\[ 펼치기/.test(line))details=true;
     if(details)continue;
     const label=line.replace(/^[\[(]\s*/,'');
@@ -57,9 +63,10 @@ export function compileSkill(raw){
     else if(/^자신/.test(label)){group='self';roles=null;row=null;}
     else if(/^(?:모든 |단일 )?적군/.test(label)){group='enemy';roles=null;row=null;}
     if(!line.startsWith('-'))continue;
+    if(/해제 가능한 (?:버프|디버프)가 있어야 사용 가능/.test(line))continue;
     if(/(?:피해량|회복량|보호막|효과|확률|턴) 상승\s*[:：]|대상 수 변경/.test(line))continue;
     const hpConvert=line.match(/생명력 전환\s*([\d.]+)%/);
-    if(hpConvert&&!/경우|이상|이하|소모/.test(line)){skill.effects.push({type:'healthConvert',group,duration:0,chance:100,value:Number(hpConvert[1]),before:Boolean(damage)&&lines.indexOf(line)<lines.indexOf(damage)});continue;}
+    if(hpConvert&&!/경우|이상|이하|소모/.test(line)){skill.effects.push({type:'healthConvert',group,targetCondition,duration:0,chance:100,value:Number(hpConvert[1]),before:Boolean(damage)&&lines.indexOf(sourceLine)<lines.indexOf(damage)});continue;}
     const drain=line.match(/피해량의\s*([\d.]+)%\s*만큼 생명력 회복/);
     if(drain&&!/경우|이상|이하/.test(line)){skill.effects.push({type:'drain',group,duration:0,chance:100,value:Number(drain[1])/100,before:false});continue;}
     if(line!==damage&&/추가.*피해/.test(line)&&!/(?:중첩당|버프 1개당|디버프 1개당|무한의 탑|스킬로|해당 스킬|피해량 추가)/.test(line)){
@@ -74,13 +81,13 @@ export function compileSkill(raw){
       else if(!/경우|상태|발동/.test(line))condition={type:'always'};
       if(coefficient&&condition){const upgraded=lines.find(l=>l.includes('피해량 상승')&&l.includes(condition.type==='weak'?'약점':condition.type==='critical'?'치명타':'미사용표식'));skill.extraDamage.push({condition,coefficient:Number(upgraded?.match(/공격력의\s*([\d.]+)%/)?.[1]||coefficient[1])/100,each:/각 공격마다/.test(line),fixed:/고정 피해/.test(line),ignore:/방어 무시/.test(line)?skill.ignore||.4:0,pierce:/관통/.test(line),key:line});continue;}
     }
-    if(/(?:경우|발동 시|사망 시|이하|이상|마다.*기본 공격|연속|해당 스킬|횟수|게이지)/.test(line)){
+    if(/(?:경우|발동 시|사망 시|이하|이상|마다.*기본 공격|연속|해당 스킬|횟수)/.test(line)){
       if(!/피해량 상승/.test(line))skill.unsupported.push(line);continue;
     }
     const duration=Number(line.match(/(\d+)\s*턴/)?.[1]||(/중첩/.test(line)?999:1));
     const chance=Number(line.match(/([\d.]+)%\s*확률/)?.[1]||100);
     const each=/각 공격마다/.test(line);
-    const add=(type,extra={})=>skill.effects.push({type,group,roles:roles?.length?roles:null,row,duration,chance,each,before:!each&&Boolean(damage)&&lines.indexOf(line)<lines.indexOf(damage),...extra});
+    const add=(type,extra={})=>skill.effects.push({type,group,targetCondition,roles:roles?.length?roles:null,row,duration,chance,each,before:!each&&Boolean(damage)&&lines.indexOf(sourceLine)<lines.indexOf(damage),...extra});
     const dot=line.match(/(?:^[- ]*|각 공격마다\s*|해제한 버프 개수만큼\s*)(화상|극독|중독|출혈)\s*\[/);
     if(dot){
       const rule=definitions[dot[1]]?.join(' ')||'',ratio=rule.match(/(?:공격력|최대 생명력)의?\s*([\d.]+)%/),cap=rule.match(/공격력의\s*([\d.]+)%.*(?:넘|초과)/);
@@ -102,15 +109,16 @@ export function compileSkill(raw){
     if(modifier){const [label,stat]=modifier,value=Number(line.match(new RegExp(label+'\\s*([\\d.]+)%'))?.[1]||definedValue(label));if(value){add('statTimed',{stat,value,ratio:['attack','defense'].includes(stat),family:/^물리/.test(label)?'physical':/^마법/.test(label)?'magic':'all',debuff:group==='enemy'});continue;}}
     const decreases=[['모든 공격력 감소','attack'],['물리 공격력 감소','attack'],['마법 공격력 감소','attack'],['치명타 확률 감소','crit'],['효과 저항 감소','resist'],['약점 공격 확률 감소','weakPoint'],['피해량 감소','damageIncrease'],['효과 적용 확률 감소','effectChanceBonus']];
     const decrease=decreases.find(([label])=>line.includes(label));if(decrease){const [label,stat]=decrease,value=Number(line.match(new RegExp(label+'\\s*([\\d.]+)%'))?.[1]||definedValue(label));if(value){add('statDecrease',{stat,value,ratio:stat==='attack'});continue;}}
-    const cooldown=line.match(/스킬 쿨타임 (증가|감소)\s*(\d+)초/);
-    if(cooldown){add(cooldown[1]==='증가'?'cooldownUp':'cooldownDown',{value:Number(cooldown[2])});continue;}
+    if(/^(?:- )?(?:모든 )?스킬 쿨타임 초기화$/.test(line)){add('cooldownReset');continue;}
+    const cooldown=line.match(/스킬 쿨타임 (증가|감소)(?: 효과)?\s*(\d+)초/);
+    if(cooldown){const upgraded=lines.find(l=>l.includes('확률 상승')&&l.includes('스킬 쿨타임 '+cooldown[1]));add(cooldown[1]==='증가'?'cooldownUp':'cooldownDown',{value:Number(cooldown[2]),chance:Number(upgraded?.match(/([\d.]+)%/)?.[1]||chance)});continue;}
     const extend=line.match(/턴제 버프 증가\s*(\d+)턴/);
     if(extend){add('extendBuff',{value:Number(extend[1])});continue;}
     const extendDebuff=line.match(/턴제 디버프 증가\s*(\d+)턴/);
     if(extendDebuff){add('extendDebuff',{value:Number(extendDebuff[1])});continue;}
     if(/지속 회복\s*\[/.test(line)){const rule=definitions['지속 회복']?.join(' ')||'',value=rule.match(/최대 생명력의\s*([\d.]+)%/);if(value){add('regen',{value:Number(value[1])/100,perCleanse:line.includes('해제한 디버프')});continue;}}
     const revive=line.match(/사망한 대상.*?생명력\s*([\d.]+)%.*부활/);
-    if(revive){add('revive',{value:Number(revive[1])});continue;}
+    if(revive){const upgraded=text.match(/효과 상승\s*[:：]\s*부활 시 생명력\s*([\d.]+)%/);add('revive',{value:Number(upgraded?.[1]||revive[1])});continue;}
     const def=line.match(/방어력 감소(?:\(중첩\))?(?:\s*([\d.]+)%)?/);
     if(def&&(def[1]||definedValue('방어력 감소'))){add('defDown',{value:Number(def[1]||definedValue('방어력 감소'))/100,maxStacks:Number(line.match(/최대\s*(\d+)중첩/)?.[1]||1)});continue;}
     const shield=line.match(/(?:공격력|방어력|최대 생명력)의\s*([\d.]+)%.*보호막/);
@@ -119,6 +127,8 @@ export function compileSkill(raw){
     if(heal){const upgraded=lines.find(l=>/회복량 상승/.test(l));add('heal',{value:Number(upgraded?.match(/(?:공격력|방어력|최대 생명력)의\s*([\d.]+)%/)?.[1]||heal[1])/100,scale:line.includes('최대 생명력')?'maxHp':line.includes('방어력')?'defense':'attack'});continue;}
     const nullify=line.match(/모든 피해 무효화\s*\[피격\s*(\d+)회/);
     if(nullify){add('nullify',{value:Number(nullify[1])});continue;}
+    if(/물리 피해 면역\s*\[/.test(line)){add('physicalImmunity');continue;}
+    if(/마법 피해 면역\s*\[/.test(line)){add('magicImmunity');continue;}
     if(/모든 피해 면역\s*\[/.test(line)){add('immunity');continue;}
     if(/행동 제어 면역\s*\[/.test(line)){add('controlImmune');continue;}
     if(/디버프 해제/.test(line)){add('cleanse',{value:Number(line.match(/디버프 해제\s*(\d+)개/)?.[1]||0)||Infinity,controlOnly:/행동 제어/.test(line)});continue;}

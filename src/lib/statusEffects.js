@@ -37,3 +37,13 @@ export function extendDebuffs(unit,turns){
   for(const [key]of scalars)if(unit[key]>0&&unit.debuffMaxTurns?.[key])unit[key]=Math.min(unit.debuffMaxTurns[key],unit[key]+turns);
   for(const key of ['dots','panelTimedBuffs'])for(const effect of unit[key]||[])if((key==='dots'||effect.debuff)&&effect.maxTurns)effect.remaining=Math.min(effect.maxTurns,effect.remaining+turns);
 }
+
+// Revival is a new life, not a cleanse cast: remove even unremovable ailments
+// without triggering freeze/petrification release damage from the dead life.
+export function resetRevivalDebuffs(unit){
+  for(const [key,metadata]of scalars){unit[key]=0;for(const field of metadata){if(typeof unit[field]==='number')unit[field]=0;else delete unit[field];}}
+  for(const buff of unit.panelTimedBuffs||[])if(buff.debuff)unit[buff.stat]-=buff.delta;
+  unit.panelTimedBuffs=(unit.panelTimedBuffs||[]).filter(b=>!b.debuff);
+  for(const key of ['dots','reflux','crystals','deferredPain','pendingControlBursts','debuffOrder'])unit[key]=[];
+  unit.palMarks={};unit.lubuMarks={};unit.cancelReservations=false;
+}

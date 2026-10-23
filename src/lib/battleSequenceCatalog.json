@@ -1,0 +1,189 @@
+{
+  "checkedAt": "2026-10-23",
+  "battles": 160,
+  "activePackets": 2795,
+  "ownPassivePacketOrder": {
+    "선란": {
+      "before": 0,
+      "after": 94
+    },
+    "클레미스": {
+      "before": 158,
+      "after": 0
+    },
+    "탄지로": {
+      "before": 0,
+      "after": 102
+    },
+    "여포": {
+      "before": 0,
+      "after": 55
+    },
+    "란드그리드": {
+      "before": 0,
+      "after": 6
+    },
+    "윤건": {
+      "before": 185,
+      "after": 108
+    },
+    "시노부": {
+      "before": 0,
+      "after": 77
+    },
+    "동영": {
+      "before": 0,
+      "after": 50
+    },
+    "겔리두스": {
+      "before": 0,
+      "after": 53
+    },
+    "델론즈": {
+      "before": 0,
+      "after": 38
+    },
+    "트루드": {
+      "before": 0,
+      "after": 23
+    },
+    "하연": {
+      "before": 0,
+      "after": 32
+    },
+    "스쿨드": {
+      "before": 0,
+      "after": 26
+    },
+    "밀리아": {
+      "before": 17,
+      "after": 0
+    },
+    "실베스타": {
+      "before": 0,
+      "after": 23
+    },
+    "아리스": {
+      "before": 83,
+      "after": 13
+    },
+    "녹스": {
+      "before": 0,
+      "after": 11
+    },
+    "크리스": {
+      "before": 0,
+      "after": 10
+    },
+    "라드그리드": {
+      "before": 0,
+      "after": 8
+    },
+    "브란즈&브란셀": {
+      "before": 0,
+      "after": 1
+    },
+    "오르카": {
+      "before": 0,
+      "after": 2
+    },
+    "연희": {
+      "before": 13,
+      "after": 0
+    },
+    "젠이츠": {
+      "before": 0,
+      "after": 2
+    },
+    "쥬리": {
+      "before": 0,
+      "after": 7
+    },
+    "기유": {
+      "before": 0,
+      "after": 2
+    },
+    "아일린": {
+      "before": 0,
+      "after": 1
+    },
+    "손오공": {
+      "before": 0,
+      "after": 5
+    },
+    "프레이야": {
+      "before": 0,
+      "after": 2
+    },
+    "미스트": {
+      "before": 0,
+      "after": 1
+    },
+    "바네사": {
+      "before": 3,
+      "after": 0
+    },
+    "린": {
+      "before": 2,
+      "after": 0
+    }
+  },
+  "followups": {
+    "스파이크|2": {
+      "count": 14,
+      "gapMs": 0,
+      "durationMs": 714
+    },
+    "여포|3": {
+      "count": 3,
+      "gapMs": 1071,
+      "durationMs": 2857
+    },
+    "젠이츠|2": {
+      "count": 25,
+      "gapMs": 1071,
+      "durationMs": 2166
+    },
+    "델론즈|3": {
+      "count": 30,
+      "gapMs": 1071,
+      "durationMs": 2854
+    },
+    "윤건|2": {
+      "count": 28,
+      "gapMs": 1071,
+      "durationMs": 3397
+    },
+    "윤건|3": {
+      "count": 6,
+      "gapMs": 1071,
+      "durationMs": 2142
+    },
+    "아리스|2": {
+      "count": 9,
+      "gapMs": 1071,
+      "durationMs": 2309
+    },
+    "발리스타|3": {
+      "count": 2,
+      "gapMs": 4999,
+      "durationMs": 2857
+    },
+    "실베스타|2": {
+      "count": 2,
+      "gapMs": 3928,
+      "durationMs": 2168
+    },
+    "프레이야|2": {
+      "count": 1,
+      "gapMs": 1071,
+      "durationMs": 2231
+    },
+    "파이|3": {
+      "count": 1,
+      "gapMs": 0,
+      "durationMs": 767
+    }
+  },
+  "note": "Observed parent-skill packet sequences. Follow-up rows can retain the parent skill group identifier. Stage gaps are observed scheduling intervals, not isolated network latency or universal priorities."
+}

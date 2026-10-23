@@ -4,7 +4,7 @@ import {rememberDebuff} from './statusEffects.js';
 
 export function buffCount(unit){
   const keys=new Set(unit.auraBuffs||[]);
-  for(const key of ['immunity','nullify','controlImmune','immortal','indomitableHits','barrier','superiority','stealth','linkTurns','cloneTurns','cooldownImmune','reductionHits','blessing'])if(unit[key]>0)keys.add(key);
+  for(const key of ['immunity','physicalImmunity','magicImmunity','nullify','controlImmune','immortal','indomitableHits','barrier','superiority','stealth','linkTurns','cloneTurns','cooldownImmune','reductionHits','blessing'])if(unit[key]>0)keys.add(key);
   if(unit.guts&&!unit.gutsUsed)keys.add('guts');
   for(const buff of unit.panelTimedBuffs||[])if(!buff.debuff)keys.add(buff.stat+'|'+buff.source);
   if(unit.seonStacks)keys.add('귀면');if(unit.poisonStacks)keys.add('독 축적');if(unit.rudyStance)keys.add('방어자세');

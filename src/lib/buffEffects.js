@@ -23,7 +23,7 @@ export function dispelBuffs(u,count){
 }
 export function reduceBuffDurations(u,turns){
   const hadImmortal=u.immortal>0;
-  for(const key of [...fields,'immunity'])if(Number.isFinite(u[key])&&u[key]>0&&!(key==='controlImmune'&&u.transformed))u[key]=Math.max(0,u[key]-turns);
+  for(const key of [...fields,'immunity','physicalImmunity','magicImmunity'])if(Number.isFinite(u[key])&&u[key]>0&&!(key==='controlImmune'&&u.transformed))u[key]=Math.max(0,u[key]-turns);
   if(!u.barrierTurns)u.barrier=0;
   u.panelTimedBuffs=(u.panelTimedBuffs||[]).filter(b=>{if(b.debuff)return true;b.remaining=Math.max(0,b.remaining-turns);if(b.remaining)return true;u[b.stat]-=b.delta;return false;});
   if(u.regenBuff){u.regenBuff.remaining-=turns;if(u.regenBuff.remaining<=0)delete u.regenBuff;}

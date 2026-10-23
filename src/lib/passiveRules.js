@@ -95,22 +95,30 @@ export function onAttackStacks(unit,units,events){
   if(unit.name==='쥬리'&&unit.passiveAttackCount%3===0){for(const key of ['immortal','controlImmune','immunity','barrierTurns'])if(unit[key]>0&&Number.isFinite(unit[key]))unit[key]=Math.min(3,unit[key]+1);events.push('쥬리 · 3회 공격 턴제 버프 연장');}
   if(unit.name==='헤브니아'&&unit.passiveAttackCount%2===0)for(const ally of units.filter(u=>u.side===unit.side))restoreHp(ally,unit.attack*.35);
 }
-export function onSkillRules(unit,units,events,rng=()=>0){
+export function beforeSkillRules(unit,units,events,rng=()=>0){
   if(unit.name==='윤건'&&roleCount(units,unit.side,2)>=3)unit.nullify=Math.min(6,(unit.nullify||0)+2);
+  if(unit.name==='연희')grantShield(unit,unit.attack*1.35,3);
+  if(unit.name==='린')unit.nullify=Math.min(6,(unit.nullify||0)+2);
+  if(unit.name==='바네사')for(const target of units.filter(u=>u.side!==unit.side&&u.hp>0))if(rollEffect(casterEffect(unit,target,100),rng))setTimedDebuff(target,'magicVulnerability',24,2);
+  if(unit.name==='클레미스')for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0&&!u.buffBlock))ally.regenBuff={base:unit.maxHp*.15,remaining:1};
+  if(unit.name==='아리스')for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0&&u.battleRow==='front'))grantShield(ally,unit.attack*.52,2);
+}
+export function onSkillRules(unit,units,events,rng=()=>0,{includeBefore=true}={}){
+  if(includeBefore)beforeSkillRules(unit,units,events,rng);
   const text=passiveText(unit.name);
   if(unit.name==='나타')for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0))grantShield(ally,unit.attack*.55,2);
   if(unit.name==='오를리')for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0&&(u.id===unit.id||profiles.get(u.name)?.role===2)))if(!ally.buffBlock)ally.nullify=Math.min(6,(ally.nullify||0)+1);
-  const debuff={'스쿨드':['shieldReduction',60,3],'바네사':['magicVulnerability',24,2],'카구라':['physicalVulnerability',24,2]}[unit.name];
+  const debuff={'스쿨드':['shieldReduction',60,3],'카구라':['physicalVulnerability',24,2]}[unit.name];
   if(debuff)for(const target of units.filter(u=>u.side!==unit.side&&u.hp>0))if(rollEffect(casterEffect(unit,target,100),rng)){
     const [stat,value,remaining]=debuff;setTimedDebuff(target,stat,value,remaining);
   }
   if(unit.name==='선란'&&unit.skillActions%2===0)unit.superiority=unit.superiority?Math.min(3,unit.superiority+1):1;
-  if(unit.name!=='윤건')for(const {text:line,group} of passiveSections(unit.name)){
+  if(!['윤건','린'].includes(unit.name))for(const {text:line,group} of passiveSections(unit.name)){
     if(group!=='self'||!line.includes('자신의 스킬 1회 발동 시'))continue;
     const n=line.match(/모든 피해 무효화.*?피격\s*(\d+)회/);if(n)unit.nullify=Math.min(Number(line.match(/최대\s*(\d+)회/)?.[1]||6),unit.nullify+Number(n[1]));
     if(line.includes('불굴 효과의 피격 횟수')&&unit.indomitableHits>0)unit.indomitableHits=Math.min(8,unit.indomitableHits+1);
   }
-  if(unit.name!=='나타'&&unit.name!=='윤건')for(const r of passiveShieldRules(unit.name).filter(r=>r.trigger==='skill'&&!r.conditional&&unit.skillActions%r.every===0))for(const target of r.group==='team'?units.filter(u=>u.side===unit.side&&u.hp>0):[unit])grantShield(target,unit[r.scale]*r.value,r.turns);
+  if(!['나타','윤건','연희'].includes(unit.name))for(const r of passiveShieldRules(unit.name).filter(r=>r.trigger==='skill'&&!r.conditional&&unit.skillActions%r.every===0))for(const target of r.group==='team'?units.filter(u=>u.side===unit.side&&u.hp>0):[unit])grantShield(target,unit[r.scale]*r.value,r.turns);
   for(const caster of units.filter(u=>u.side===unit.side&&u.hp>0)){
     caster.partySkillCount=(caster.partySkillCount||0)+1;
     if(caster.name==='시노부'&&caster.partySkillCount%2===0)for(const ally of units.filter(u=>u.side===unit.side))restoreHp(ally,caster.attack*.3);
@@ -119,8 +127,8 @@ export function onSkillRules(unit,units,events,rng=()=>0){
       else if(!ally.buffBlock){const existing=ally.panelTimedBuffs?.find(b=>b.source==='불공정 계약');if(existing)existing.remaining=2;else{const delta=(ally.panelStackBase?.attack||ally.attack)*.25;ally.attack+=delta;ally.panelTimedBuffs=[...(ally.panelTimedBuffs||[]),{stat:'attack',delta,remaining:2,source:'불공정 계약'}];}ally.nullify=Math.min(6,ally.nullify+1);}
     }
     if(caster.id===unit.id&&caster.name==='손오공')for(const ally of units.filter(u=>u.side===unit.side))restoreHp(ally,caster.attack*.55);
-    if(caster.id===unit.id&&caster.name==='클레미스')for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0))ally.regenBuff={base:caster.maxHp*.15,remaining:1};
-    if(caster.id===unit.id&&caster.name==='아리스')for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0&&u.battleRow==='front'))grantShield(ally,caster.attack*.52,2);
+
+
     if(caster.id===unit.id&&caster.name==='미스트'&&unit.skillActions%2===0)for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0))ally.controlImmune=Math.max(ally.controlImmune,2);
   }
   if(text.includes('불굴')&&unit.indomitableHits>0&&unit.name==='동영')unit.indomitableHits=Math.min(8,unit.indomitableHits);
