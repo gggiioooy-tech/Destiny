@@ -1,0 +1,335 @@
+{
+  "battles": 26,
+  "zeroDurationCode7Rows": 29,
+  "damagingCode7Rows": 114,
+  "damagingCode7MedianMs": 767.0,
+  "tenStackRevivalGrantRows": 37,
+  "ragePacketDeltas": [
+    {
+      "delta": 1,
+      "count": 468
+    },
+    {
+      "delta": 11,
+      "count": 1
+    }
+  ],
+  "blockResponsesPerOwnerPacket": [
+    {
+      "blockedDamageRows": 2,
+      "responseRows": 1,
+      "count": 60
+    },
+    {
+      "blockedDamageRows": 1,
+      "responseRows": 1,
+      "count": 34
+    },
+    {
+      "blockedDamageRows": 3,
+      "responseRows": 1,
+      "count": 13
+    },
+    {
+      "blockedDamageRows": 4,
+      "responseRows": 1,
+      "count": 7
+    }
+  ],
+  "gaugeValues": [
+    {
+      "state": [
+        true,
+        75,
+        75,
+        1
+      ],
+      "count": 212
+    },
+    {
+      "state": [
+        false,
+        0,
+        75,
+        1
+      ],
+      "count": 211
+    },
+    {
+      "state": [
+        true,
+        50,
+        75,
+        1
+      ],
+      "count": 142
+    },
+    {
+      "state": [
+        false,
+        3,
+        75,
+        0
+      ],
+      "count": 72
+    },
+    {
+      "state": [
+        true,
+        53,
+        75,
+        1
+      ],
+      "count": 64
+    },
+    {
+      "state": [
+        true,
+        63,
+        75,
+        1
+      ],
+      "count": 44
+    },
+    {
+      "state": [
+        true,
+        44,
+        75,
+        1
+      ],
+      "count": 42
+    },
+    {
+      "state": [
+        true,
+        56,
+        75,
+        1
+      ],
+      "count": 40
+    },
+    {
+      "state": [
+        true,
+        66,
+        75,
+        1
+      ],
+      "count": 40
+    },
+    {
+      "state": [
+        false,
+        52,
+        75,
+        0
+      ],
+      "count": 39
+    },
+    {
+      "state": [
+        false,
+        6,
+        75,
+        0
+      ],
+      "count": 34
+    },
+    {
+      "state": [
+        false,
+        0,
+        75,
+        0
+      ],
+      "count": 30
+    }
+  ],
+  "gaugeTransitions": [
+    {
+      "state": [
+        "other",
+        true,
+        true,
+        0
+      ],
+      "count": 737
+    },
+    {
+      "state": [
+        "other",
+        false,
+        false,
+        0
+      ],
+      "count": 469
+    },
+    {
+      "state": [
+        "other",
+        true,
+        true,
+        3
+      ],
+      "count": 211
+    },
+    {
+      "state": [
+        "own_basic",
+        true,
+        true,
+        -25
+      ],
+      "count": 119
+    },
+    {
+      "state": [
+        "other",
+        false,
+        false,
+        3
+      ],
+      "count": 96
+    },
+    {
+      "state": [
+        "own_skill",
+        true,
+        true,
+        0
+      ],
+      "count": 52
+    },
+    {
+      "state": [
+        "own_basic",
+        false,
+        false,
+        15
+      ],
+      "count": 49
+    },
+    {
+      "state": [
+        "own_basic",
+        true,
+        true,
+        0
+      ],
+      "count": 43
+    },
+    {
+      "state": [
+        "other",
+        true,
+        true,
+        13
+      ],
+      "count": 41
+    },
+    {
+      "state": [
+        "own_basic",
+        false,
+        false,
+        0
+      ],
+      "count": 34
+    },
+    {
+      "state": [
+        "other",
+        true,
+        true,
+        10
+      ],
+      "count": 26
+    },
+    {
+      "state": [
+        "other",
+        false,
+        false,
+        10
+      ],
+      "count": 17
+    },
+    {
+      "state": [
+        "own_skill",
+        true,
+        true,
+        3
+      ],
+      "count": 16
+    },
+    {
+      "state": [
+        "own_skill",
+        false,
+        false,
+        0
+      ],
+      "count": 14
+    },
+    {
+      "state": [
+        "other",
+        false,
+        false,
+        13
+      ],
+      "count": 11
+    },
+    {
+      "state": [
+        "own_basic",
+        true,
+        true,
+        3
+      ],
+      "count": 11
+    },
+    {
+      "state": [
+        "own_skill",
+        false,
+        false,
+        45
+      ],
+      "count": 8
+    },
+    {
+      "state": [
+        "other",
+        true,
+        true,
+        -5
+      ],
+      "count": 5
+    },
+    {
+      "state": [
+        "own_skill",
+        true,
+        true,
+        13
+      ],
+      "count": 5
+    },
+    {
+      "state": [
+        "own_basic",
+        true,
+        true,
+        10
+      ],
+      "count": 5
+    }
+  ],
+  "limitations": [
+    "Net packet transitions may contain other gauge changes.",
+    "This is archive evidence, not exhaustive same-frame priority verification."
+  ]
+}

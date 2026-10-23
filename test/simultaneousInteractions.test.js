@@ -21,7 +21,7 @@ for(const [index,hero]of SIM_ROSTER.entries())test('interaction smoke: '+hero.na
  for(let step=0;step<300&&!b.done;step++){const before=b.elapsedMs||0;b=advanceBattle(b);assert.ok(b.elapsedMs>=before,hero.name+' clock');assert.ok(b.elapsedMs<=b.timeLimitMs);for(const u of b.units)for(const key of ['hp','maxHp','attack','defense','damageDealt','barrier']){assert.ok(Number.isFinite(u[key]),hero.name+' '+key);assert.ok(u[key]>=0,hero.name+' '+key);}}
  assert.equal(b.done,true,hero.name+' battle must terminate');
 });
-test('a separate assist counts as a new attack for Skuld while multihits share one token',()=>{
+test('Skuld gains one fate thread across multihits and an assist in the same action packet',()=>{
  let result;for(let seed=1;seed<40&&!result;seed++){let h=prepareHeroes();for(const [slot,name]of [[0,'하연'],[1,'메이'],[2,'루디'],[3,'스쿨드'],[4,'연희'],[5,'하연']])h=changeHero(h,slot,name);let b=createBattle(h,{seed,plans:{attacker:[],defender:[]}});for(const u of b.units){u.maxHp=100000;u.hp=100000;u.attack=1;u.defense=0;u.nullify=0;u.immunity=0;u.barrier=0;u.missChance=0;u.weakPoint=100;}b.units[3].hp=90000;b.phase=1;b.queue=[0];const n=advanceBattle(b);if(n.reactions.some(r=>r.kind==='assist'&&r.targets.includes(3)))result=n;}
- assert.ok(result);assert.equal(result.units[3].fateThreads,2);
+ assert.ok(result);assert.equal(result.units[3].fateThreads,1);
 });

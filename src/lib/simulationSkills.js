@@ -153,13 +153,13 @@ export function coverageIssues(name){
   const notes=skills.flatMap(s=>s.unsupported.map(text=>({skill:s.name,code:s.code,text})));
   if(!DETAILED_HEROES.has(canonicalHero(name)))notes.unshift({skill:'고유 패시브',code:4,text:'조건부 발동과 중첩을 포함한 고유 패시브 전체 동작은 미완성입니다.'});
   const awakened=skills.find(s=>s.code===7);
-  if(awakened)notes.push({skill:'각성기',code:7,text:awakened.raw.gauge?'게이지와 1회 사용을 계산합니다. 각성기 고유 부가 효과는 일부 미반영입니다.':'필요 게이지 미확인으로 각성기 자동 사용은 제외됩니다.'});
+  if(awakened)notes.push({skill:'각성기',code:7,text:awakened.raw.passiveAwakening?'자동 활성화·게이지 소모·막기 대응을 계산합니다. 동시 발동 순서는 추가 검증 중입니다.':awakened.raw.gauge?'게이지와 1회 사용을 계산합니다. 각성기 고유 부가 효과는 일부 미반영입니다.':'필요 게이지 미확인으로 각성기 자동 사용은 제외됩니다.'});
   return notes;
 }
 const compiled=new Map();
 export function heroSkills(name){
   name=canonicalHero(name);
-  if(!compiled.has(name))compiled.set(name,(heroProfile(name)?.skills||[]).map(raw=>{const skill=compileSkill(raw);if(name==='델론즈')skill.unsupported=skill.unsupported.filter(t=>!t.includes('변신 후')&&!t.includes('연속 발동'));return skill;}));
+  if(!compiled.has(name))compiled.set(name,(heroProfile(name)?.skills||[]).map(raw=>{const skill=compileSkill(raw);if(name==='델론즈')skill.unsupported=skill.unsupported.filter(t=>!t.includes('변신 후')&&!t.includes('연속 발동'));if(name==='아리스'&&raw.code===7)skill.unsupported=skill.unsupported.filter(t=>!t.includes('자신이 막기 성공')&&!t.includes('모든 피해가 방어 무시'));return skill;}));
   return compiled.get(name);
 }
 export const skillFor=(name,code)=>heroSkills(name).find(s=>s.code===code);

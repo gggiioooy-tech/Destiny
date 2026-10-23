@@ -16,6 +16,10 @@ try{
   assert.equal((html.match(/role="progressbar"/g)||[]).length,6);
   assert.ok(html.includes('battle-floating'));assert.ok(html.includes('battle-skill-banner'));
   assert.ok(html.includes('aria-valuenow='));assert.ok(html.includes('no-referrer'));
+  const passive={...battle,units:battle.units.map((u,i)=>i?u:{...u,name:'아리스',awakenMax:75,awakenGauge:50,awakenUsed:true,passiveAwakenActive:true})};
+  const activePassiveHtml=renderToStaticMarkup(React.createElement(Arena,{draft,battle:passive}));assert.ok(activePassiveHtml.includes('각성 패시브 활성 · 50/75'));
+  passive.units[0].passiveAwakenActive=false;passive.units[0].awakenGauge=0;
+  assert.ok(renderToStaticMarkup(React.createElement(Arena,{draft,battle:passive})).includes('각성 패시브 종료'));
   for(const currentUser of [null,{role:'member'},{role:'admin',isOwner:false}])assert.equal(renderToStaticMarkup(React.createElement(Simulation,{currentUser})), '');
   const owner=renderToStaticMarkup(React.createElement(Simulation,{currentUser:{role:'admin',isOwner:true}}));
   assert.ok(owner.includes('176종 영웅 선택'));assert.ok(owner.includes('전투 종료'));assert.ok(owner.includes('영웅을 선택해 스탯 편집'));

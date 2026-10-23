@@ -1,6 +1,7 @@
 import React,{useState} from 'react';
 import {heroProfile} from '../lib/simulationSkills.js';
 import {BATTLE_LIMIT_MS,formatBattleTime} from '../lib/battleTiming.js';
+import {awakeningGaugeLabel} from '../lib/passiveAwakening.js';
 import './battleArena.css';
 
 const number=n=>Math.round(n||0).toLocaleString('ko-KR');
@@ -31,7 +32,7 @@ export default function BattleArena({draft,battle,running}){
               {hit&&<div className="battle-floating" aria-hidden="true">{damage>0?<><small>{impacts.some(e=>e.critical)?'CRITICAL':impacts.some(e=>e.weak)?'WEAK POINT':'HIT'}</small><strong>−{number(damage)}</strong></>:healing>0?<strong className="battle-heal">+{number(healing)}</strong>:<strong className="battle-immune">{impacts.some(e=>e.kind==='nullify')?'무효화':'면역'}</strong>}</div>}
               {hp<=0&&<span className="battle-dead-label">전투 불능</span>}
             </div>
-            <div className="battle-fighter-info"><div className="battle-fighter-name"><b>{u.name}</b><span>{heroProfile(u.name)?.awakened?'각성':index===0?'선봉':'후열'}</span></div><div className="battle-hp" role="progressbar" aria-label={`${u.name} 생명력`} aria-valuemin={0} aria-valuemax={u.maxHp} aria-valuenow={hp}><i style={{width:`${Math.max(0,Math.min(100,100*hp/u.maxHp))}%`}}/></div><span className="battle-hp-number">{number(hp)} <span>/ {number(u.maxHp)}</span></span>{u.awakenMax>0&&<div className="battle-gauge"><span>{u.awakenUsed?'각성기 사용 완료':`각성 ${u.awakenGauge}/${u.awakenMax}`}</span><div role="meter" aria-label={`${u.name} 각성 게이지`} aria-valuemin={0} aria-valuemax={u.awakenMax} aria-valuenow={u.awakenGauge}><i style={{width:`${100*u.awakenGauge/u.awakenMax}%`}}/></div></div>}<div className="battle-badges">{badges(u).map(text=><span key={text}>{text}</span>)}</div></div>
+            <div className="battle-fighter-info"><div className="battle-fighter-name"><b>{u.name}</b><span>{heroProfile(u.name)?.awakened?'각성':index===0?'선봉':'후열'}</span></div><div className="battle-hp" role="progressbar" aria-label={`${u.name} 생명력`} aria-valuemin={0} aria-valuemax={u.maxHp} aria-valuenow={hp}><i style={{width:`${Math.max(0,Math.min(100,100*hp/u.maxHp))}%`}}/></div><span className="battle-hp-number">{number(hp)} <span>/ {number(u.maxHp)}</span></span>{u.awakenMax>0&&<div className="battle-gauge"><span>{awakeningGaugeLabel(u)}</span><div role="meter" aria-label={`${u.name} 각성 게이지`} aria-valuemin={0} aria-valuemax={u.awakenMax} aria-valuenow={u.awakenGauge}><i style={{width:`${100*u.awakenGauge/u.awakenMax}%`}}/></div></div>}<div className="battle-badges">{badges(u).map(text=><span key={text}>{text}</span>)}</div></div>
           </article>;
         })}
       </div>)}

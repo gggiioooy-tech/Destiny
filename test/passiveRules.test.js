@@ -47,7 +47,7 @@ test('pain defers exactly 75 percent into five equal installments and ignores sm
   assert.equal(deferPain(u,2000),500);assert.deepEqual(u.deferredPain,[{remaining:5,perTurn:300}]);
 });
 test('stack growth uses a fixed base, caps and does not keep adding damage at cap',()=>{
-  const b=battle(['아리스','프레이야']);const a=b.units[0];for(let i=0;i<50;i++)afterHitPassive(a,b.units,[]);assert.equal(a.arisStacks,30);assert.equal(a.damageIncrease,60);
+  const b=battle(['아리스','프레이야']);const a=b.units[0],arisBase=a.attack;for(let i=0;i<50;i++)afterHitPassive(a,b.units,[]);assert.equal(a.arisStacks,30);assert.equal(a.damageIncrease,180);assert.ok(Math.abs(a.attack-arisBase*2.8)<1e-8);
   const f=b.units[1],old=f.attack;for(let i=0;i<10;i++)onAttackStacks(f,b.units,[]);assert.equal(f.divinityStacks,6);assert.ok(Math.abs(f.attack-old-old/1.2*.1)<1e-8);
 });
 test('party skill counters do not grant Klemyth regeneration on another hero skill',()=>{

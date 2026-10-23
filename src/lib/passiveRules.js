@@ -50,13 +50,18 @@ export function passiveSections(name){
 }
 export function restoreHp(unit,base){
   if(unit.hp<=0||unit.healBlock||unit.indomitableHits>0||unit.immortal>0)return 0;
-  const amount=Math.min(unit.maxHp-unit.hp,calculateRecovery({base,regeneration:unit.regeneration||0,increase:unit.healingIncrease||0,decrease:unit.healingReduction||0}));unit.hp+=amount;return amount;
+  const amount=Math.min(unit.maxHp-unit.hp,calculateRecovery({base,regeneration:unit.regeneration||0,increase:unit.healingIncrease||0,decrease:Math.max(unit.healingReduction||0,unit.awakeningHealingReduction||0)}));unit.hp+=amount;return amount;
 }
 export function grantShield(unit,base,turns){return applyShield(unit,base,turns);}
 export function addStack(unit,key,stat,step,max,initial=0){
   const previous=unit[key]??initial,next=Math.min(max,previous+1);
   unit.stackBases??={};unit.stackBases[key]??=unit.panelStackBase?.[stat]??(unit[stat]/(1+initial*step/100));
   unit[stat]+=unit.stackBases[key]*(next-previous)*step/100;unit[key]=next;
+}
+export function addArisRage(unit,count){
+  const old=unit.arisStacks||0;
+  for(let i=0;i<count;i++)addStack(unit,'arisStacks','attack',6,30);
+  unit.damageIncrease=(unit.damageIncrease||0)+(unit.arisStacks-old)*6;
 }
 export function onHealthThreshold(unit,units,events){
   if(unit.hp<=0)return;
@@ -140,7 +145,7 @@ export function onRevivalRules(unit,units,events){
   if(unit.name==='성진우'){for(let i=0;i<10;i++)addStack(unit,'jinwooLevels','attack',3,40);for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0))ally.nullify=Math.min(6,(ally.nullify||0)+(ally.id===unit.id?3:1));}
   if(unit.name==='선란')unit.superiority=2;
   if(unit.name==='여포')unit.readyAt={};
-  if(unit.name==='아리스'){const old=unit.arisStacks||0;unit.arisStacks=Math.min(30,old+10);unit.damageIncrease+=(unit.arisStacks-old)*2;}
+  if(unit.name==='아리스')addArisRage(unit,10);
   if(unit.name==='아일린')unit.immunity=Math.max(unit.immunity,3);
   if(unit.name==='동영'&&unit.indomitableHits>0){unit.awakenGauge=Math.min(unit.awakenMax,unit.awakenGauge+40);for(const ally of units.filter(u=>u.side===unit.side))restoreHp(ally,unit.attack*.65);}
   if(unit.name==='칼 헤론'&&!unit.calReviveUsed){unit.calReviveUsed=true;for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0&&profiles.get(u.name)?.role===1)){ally.nullify=Math.min(6,ally.nullify+2);for(const key of ['control','sleep'])ally[key]=0;const delta=19;ally.damageIncrease+=delta;ally.panelTimedBuffs=[...(ally.panelTimedBuffs||[]),{stat:'damageIncrease',remaining:3,delta,source:'칼 헤론 부활'}];}}
@@ -168,6 +173,10 @@ export function onGutsRules(unit,units,events,rng){
   if(unit.name==='하연')for(const key of ['healBlock','buffBlock'])if(rollEffect(casterEffect(unit,target,100),rng))target[key]=Math.max(target[key]||0,2);
 }
 export function onDeathRules(dead,units,events){
+  if(dead.name==='아리스'){
+    dead.attack-=(dead.stackBases?.arisStacks||0)*.06*(dead.arisStacks||0);
+    dead.damageIncrease=(dead.damageIncrease||0)-6*(dead.arisStacks||0);dead.arisStacks=0;
+  }
   if(dead.name==='루디'){dead.defense-=(dead.stackBases?.rudyStance||0)*.15*(dead.rudyStance||0);dead.rudyStance=0;}
   if(dead.name==='선란'){const count=dead.seonStacks??3,base=dead.stackBases?.seonStacks??dead.panelStackBase?.attack??dead.attack/(1+count*.07);dead.attack-=base*.07*count;dead.critDamage-=10*count;dead.seonStacks=0;}
   for(const unit of units.filter(u=>u.hp>0&&u.id!==dead.id)){

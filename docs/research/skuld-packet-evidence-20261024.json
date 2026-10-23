@@ -1,0 +1,24 @@
+{
+  "hero": "스쿨드",
+  "owners": 15,
+  "newThreadRows": 76,
+  "maxNewThreadsPerOwnerPacket": 1,
+  "cases": [
+    {
+      "newThreads": 1,
+      "otherSideDamageActions": 0,
+      "count": 37
+    },
+    {
+      "newThreads": 1,
+      "otherSideDamageActions": 1,
+      "count": 38
+    },
+    {
+      "newThreads": 1,
+      "otherSideDamageActions": 2,
+      "count": 1
+    }
+  ],
+  "limitation": "Packet grouping and status add rows are observational evidence; zero-damage result rows can include status applications. This does not prove every same-frame interruption or every hit counter."
+}

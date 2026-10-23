@@ -1,12 +1,12 @@
 import {applyShield} from './shieldEffects.js';
-import {addStack,roleCount} from './passiveRules.js';
+import {addStack,roleCount,addArisRage} from './passiveRules.js';
 import {heroSkills,heroProfile} from './simulationSkills.js';
 import {calculateRecovery} from './combatDamage.js';
 import {cleanseDebuffs} from './statusEffects.js';
 
 function heal(unit,base){
   if(unit.healBlock||unit.indomitableHits>0||unit.immortal>0||unit.hp<=0)return 0;
-  const amount=Math.min(unit.maxHp-unit.hp,calculateRecovery({base,regeneration:unit.regeneration||0,increase:unit.healingIncrease||0,decrease:unit.healingReduction||0}));
+  const amount=Math.min(unit.maxHp-unit.hp,calculateRecovery({base,regeneration:unit.regeneration||0,increase:unit.healingIncrease||0,decrease:Math.max(unit.healingReduction||0,unit.awakeningHealingReduction||0)}));
   unit.hp+=amount;return amount;
 }
 function shield(unit,base,turns){return applyShield(unit,base,turns);}
@@ -39,6 +39,7 @@ export function afterSkillPassive(unit,events){
 }
 export function afterHitPassive(unit,units,events,{attackToken}={}){
   if(unit.hp<=0)return;
+  if(unit.name==='아리스'&&attackToken!==undefined){if(unit.arisRageHitToken===attackToken)return;unit.arisRageHitToken=attackToken;}
   unit.passiveHits=(unit.passiveHits||0)+1;
   const giyu=units.find(u=>u.side===unit.side&&u.hp>0&&u.name==='기유');
   if(giyu&&unit.passiveHits%4===0){cleanseOne(unit);unit.awakenGauge=Math.min(unit.awakenMax||0,(unit.awakenGauge||0)+10);}
@@ -58,7 +59,7 @@ export function afterHitPassive(unit,units,events,{attackToken}={}){
 
   if(unit.name==='시노부'&&unit.passiveHits%2===0){addStack(unit,'poisonStacks','attack',5,6,3);heal(unit,unit.attack*.35);}
   if(unit.name==='선란'&&unit.passiveHits%3===0&&roleCount(units,unit.side,1)>=3){const old=unit.seonStacks??3;addStack(unit,'seonStacks','attack',7,6,3);unit.critDamage+=(unit.seonStacks-old)*10;events.push('선란 · 귀면 중첩');}
-  if(unit.name==='아리스'){const old=unit.arisStacks||0;unit.arisStacks=Math.min(30,old+1);unit.damageIncrease+=(unit.arisStacks-old)*2;unit.awakenGauge=Math.min(unit.awakenMax,unit.awakenGauge+3);}
+  if(unit.name==='아리스'){addArisRage(unit,1);unit.awakenGauge=Math.min(unit.awakenMax,unit.awakenGauge+3);}
   if(unit.name==='손오공')for(const key of Object.keys(unit.readyAt||{}))unit.readyAt[key]=Math.max(0,unit.readyAt[key]-10000);
   if(unit.name==='카르마')addStack(unit,'patienceStacks','defense',13,4);
 
