@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {canonicalHero} from '../src/lib/simulationSkills.js';
-const root=process.argv[2]||'tmp/validation-replays',groups=new Map(),seen=new Set(),allGaps=[];
+const root=process.argv[2]||'tmp/validation-replays',groups=new Map(),cooldowns=new Map(),seen=new Set(),allGaps=[];
 for(const dir of fs.readdirSync(root)){
   const file=path.join(root,dir,'timeline.json');if(!fs.existsSync(file))continue;
   const report=JSON.parse(fs.readFileSync(file,'utf8'));if(!report.replaySha256||seen.has(report.replaySha256))continue;seen.add(report.replaySha256);
@@ -14,6 +14,7 @@ for(const dir of fs.readdirSync(root)){
     const kind=a.actionType===3?'counter':a.actionType===4?'assist':a.actionKind==='normal_attack'&&a.skillCode===1&&a.actionType===0?'basic':a.actionKind==='active_skill'&&[2,3,7].includes(a.skillCode)?'skill':'reaction';
     const key=canonicalHero(hero.name)+'|'+kind+'|'+a.skillCode;
     if(!groups.has(key))groups.set(key,[]);groups.get(key).push(duration);
+    if(kind==='skill'&&[2,3].includes(a.skillCode)&&a.skillCooltime>a.stageTime){const cooldown=a.skillCooltime-a.stageTime;if(cooldown>=10000&&cooldown<=180000){if(!cooldowns.has(key))cooldowns.set(key,[]);cooldowns.get(key).push(cooldown);}}
     if(['basic','skill'].includes(kind))primaries.push(a);
   }
   // Observed inter-action spacing is not labelled as network latency. Reactions
@@ -22,8 +23,8 @@ for(const dir of fs.readdirSync(root)){
   for(let i=1;i<primaries.length;i++){const gap=primaries[i].stageTime-primaries[i-1].skillEndTime;if(gap>=0&&gap<=1000)allGaps.push(gap);}
 }
 function distribution(values){const v=values.slice().sort((a,b)=>a-b),q=p=>v[Math.floor((v.length-1)*p)];return {count:v.length,medianMs:q(.5),p10Ms:q(.1),p90Ms:q(.9),minMs:v[0],maxMs:v.at(-1)};}
-const entries=Object.fromEntries([...groups].sort(([a],[b])=>a.localeCompare(b)).map(([key,values])=>[key,distribution(values)]));
-const output={version:1,checkedAt:'2026-10-22',replayCount:seen.size,timeUnit:'milliseconds',
+const entries=Object.fromEntries([...groups].sort(([a],[b])=>a.localeCompare(b)).map(([key,values])=>[key,{...distribution(values),...(cooldowns.has(key)?{cooldown:distribution(cooldowns.get(key))}:{})}]));
+const output={version:2,checkedAt:'2026-10-23',replayCount:seen.size,timeUnit:'milliseconds',
   note:'StageTime/SkillEndTime observations; not isolated animation constants or network latency. ActionType 3/4 are classified as counter/assist from observed examples; passive triggers remain separate.',
   spacing:allGaps.length?distribution(allGaps):null,entries};
 fs.writeFileSync('src/lib/battleTimingCatalog.json',JSON.stringify(output,null,2)+'\n');

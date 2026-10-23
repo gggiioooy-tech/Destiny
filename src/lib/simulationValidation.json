@@ -1,15 +1,15 @@
 {
-  "engineVersion": "2026-10-22.6",
-  "checkedAt": "2026-10-22",
-  "mode": "retrospective_baseline",
-  "downloadedRecords": 40,
-  "eligibleRecords": 39,
+  "engineVersion": "2026-10-23.1",
+  "checkedAt": "2026-10-23",
+  "mode": "held_aside_records_correlated_wars",
+  "downloadedRecords": 60,
+  "eligibleRecords": 59,
   "excludedRecords": 1,
-  "correct": 22,
+  "correct": 24,
   "samplesPerBattle": 32,
   "independentHoldout": false,
   "target90Validated": false,
-  "decidedRecords": 39,
-  "abstainedRecords": 0,
+  "decidedRecords": 56,
+  "abstainedRecords": 3,
   "sourceArchivedRecords": 599
 }

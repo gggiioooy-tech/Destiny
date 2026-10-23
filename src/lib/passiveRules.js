@@ -1,5 +1,5 @@
 import roster from './simulationRoster.json' with {type:'json'};
-import {calculateRecovery,calculateShield,rollEffect} from './combatDamage.js';
+import {calculateRecovery,calculateShield,rollEffect,casterEffect} from './combatDamage.js';
 import {setTimedDebuff} from './timedEffects.js';
 
 const profiles=new Map(roster.heroes.map(h=>[h.name,h]));
@@ -90,7 +90,7 @@ export function onSkillRules(unit,units,events,rng=()=>0){
   if(unit.name==='나타')for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0))grantShield(ally,unit.attack*.55,2);
   if(unit.name==='오를리')for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0&&(u.id===unit.id||profiles.get(u.name)?.role===2)))if(!ally.buffBlock)ally.nullify=Math.min(6,(ally.nullify||0)+1);
   const debuff={'스쿨드':['shieldReduction',60,3],'바네사':['magicVulnerability',24,2],'카구라':['physicalVulnerability',24,2]}[unit.name];
-  if(debuff)for(const target of units.filter(u=>u.side!==unit.side&&u.hp>0))if(rollEffect({baseChance:100,accuracy:unit.accuracy,resistance:target.resist},rng)){
+  if(debuff)for(const target of units.filter(u=>u.side!==unit.side&&u.hp>0))if(rollEffect(casterEffect(unit,target,100),rng)){
     const [stat,value,remaining]=debuff;setTimedDebuff(target,stat,value,remaining);
   }
   if(unit.name==='선란'&&unit.skillActions%2===0)unit.superiority=unit.superiority?Math.min(3,unit.superiority+1):1;
@@ -143,9 +143,10 @@ export function onGutsRules(unit,units,events,rng){
   const hp=unit.hp;unit.hp=Math.min(unit.maxHp,target.hp);target.hp=target.immortal>0||target.indomitableHits>0?1:Math.min(target.maxHp,hp);
   events.push(unit.name+' · '+target.name+' 생명력 교환');
   if(unit.name==='팔라누스')unit.immunity=Math.max(unit.immunity,2);
-  if(unit.name==='하연')for(const key of ['healBlock','buffBlock'])if(rollEffect({baseChance:100,accuracy:unit.accuracy,resistance:target.resist},rng))target[key]=Math.max(target[key]||0,2);
+  if(unit.name==='하연')for(const key of ['healBlock','buffBlock'])if(rollEffect(casterEffect(unit,target,100),rng))target[key]=Math.max(target[key]||0,2);
 }
 export function onDeathRules(dead,units,events){
+  if(dead.name==='루디'){dead.defense-=(dead.stackBases?.rudyStance||0)*.15*(dead.rudyStance||0);dead.rudyStance=0;}
   for(const unit of units.filter(u=>u.hp>0&&u.id!==dead.id)){
     const ally=unit.side===dead.side,text=passiveText(unit.name);
     if(unit.name==='하연')unit.awakenGauge=Math.min(unit.awakenMax,unit.awakenGauge+11);

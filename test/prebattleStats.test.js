@@ -33,9 +33,9 @@ test('Yun self crit and weak, Juri resistance, and role-qualified Tan accuracy a
   assert.equal(r.heroes[1].resist,15); // 49 own resistance minus strongest enemy 34, not 68.
   assert.equal(r.heroes[2].accuracy,37);assert.equal(r.heroes[0].accuracy,0);
 });
-test('battle-start mode bypasses all pet, formation and aura conversion',()=>{
+test('battle-start mode preserves visible start stats and adds non-panel combat modifiers',()=>{
   const h=fixture(),s=settings();s.attacker.pet='제오';const r=calculatePrebattle(h,s,{basis:'battle'});
-  assert.deepEqual(r.heroes,h);assert.notEqual(r.heroes,h);assert.equal(r.breakdown.length,0);
+  for(let i=0;i<h.length;i++)for(const key of ['attack','defense','maxHp','crit','critDamage','speed','accuracy','resist','block','shred','elasticity'])assert.equal(r.heroes[i][key],h[i][key]);assert.notEqual(r.heroes,h);assert.equal(r.breakdown.length,0);assert.equal(r.heroes[0].damageIncrease,14);
 });
 test('timed pet attack expires independently from permanent buffs and never gets applied twice',()=>{
   const s=settings();s.attacker.pet='제오';const r=calculatePrebattle(fixture(),s),unit=r.heroes[0],before=unit.attack;

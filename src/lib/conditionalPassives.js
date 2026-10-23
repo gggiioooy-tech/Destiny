@@ -1,6 +1,7 @@
 import {addStack,roleCount} from './passiveRules.js';
 import {heroSkills,heroProfile} from './simulationSkills.js';
 import {calculateRecovery,calculateShield} from './combatDamage.js';
+import {cleanseDebuffs} from './statusEffects.js';
 
 function heal(unit,base){
   if(unit.healBlock||unit.indomitableHits>0||unit.immortal>0||unit.hp<=0)return 0;
@@ -16,7 +17,7 @@ export function afterControl(unit,events,units=[]){
     return /자신이 행동 제어에 걸릴 시/.test(text)&&(!['윤건','란드그리드'].includes(owner.name)||!unit.controlCleanseUses?.[owner.name]);
   });if(!source)return;
   unit.controlCleanseUses={...unit.controlCleanseUses,[source.name]:true};
-  for(const key of ['control','sleep','silence','blind'])unit[key]=0;
+  cleanseDebuffs(unit,Infinity,{controlOnly:source.name!=='윤건'});
   unit.controlImmune=Math.max(unit.controlImmune||0,['윤건','란드그리드'].includes(source.name)?2:1);events.push(unit.name+' · 행동 제어 해제');
   if(source.name==='젠이츠'){
     unit.awakenGauge=Math.min(unit.awakenMax,unit.awakenGauge+25);
@@ -70,12 +71,5 @@ export function afterHpChange(unit,units,events){if(unit.hp<=0)return;
   if(unit.name==='하연'&&unit.hp<=unit.maxHp*.5&&!unit.hayeonRescueUsed){unit.hayeonRescueUsed=true;for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0)){heal(ally,unit.maxHp*.22);shield(ally,unit.maxHp*.25,2);}events.push('하연 · 절반 HP 아군 전체 회복·보호막');}
 }
 
-// Until all effects carry creation timestamps, this priority is an explicit
-// approximation of the game's application-order cleanse, not a verified order.
-export function cleanseOne(unit){
-  for(const keys of [['control','controlName'],['sleep'],['silence'],['blind'],['healBlock'],['buffBlock'],['defTurns','defDown'],['annihilation'],['instantDeathTurns','instantDeathStacks'],['blockDownTurns','blockDebuff'],['superiorityMissTurns','superiorityMiss']])if(unit[keys[0]]){for(const key of keys)unit[key]=0;return true;}
-  for(const key of ['reflux','crystals'])if(unit[key]?.length){unit[key].shift();return true;}
-  const timed=unit.panelTimedBuffs?.findIndex(b=>b.debuff);if(timed>=0){const [buff]=unit.panelTimedBuffs.splice(timed,1);unit[buff.stat]-=buff.delta;return true;}
-  const dot=unit.dots?.findIndex(d=>!d.unremovable);if(dot>=0){unit.dots.splice(dot,1);return true;}
-  return false;
-}
+// The shared ledger preserves creation order for instrumented effect paths.
+export function cleanseOne(unit){return cleanseDebuffs(unit,1)>0;}

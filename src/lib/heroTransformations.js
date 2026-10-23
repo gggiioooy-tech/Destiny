@@ -4,6 +4,8 @@ import {skillFor} from './simulationSkills.js';
 export const TRANSFORMATION_SOURCE='https://www.namu.moe/w/델론즈(세븐나이츠%20리버스)/각성';
 export function combatSkill(unit,code){
   const base=skillFor(unit.name,code);
+  if(unit.name==='선란'&&code===7&&base)return {...base,hpBoost:(unit.seonStacks??3)>=6?{kind:'current',value:1}:null};
+  if(unit.name==='시노부'&&code===7&&base)return {...base,hpBoost:{kind:'current',value:.5}};
   if(unit.name==='손오공'&&unit.cloneTurns>0&&base){
     const skill={...base,critBonus:100,unsupported:[],effects:[]};
     if(code===1)return {...skill,name:'기본 공격 · 분신',coefficient:.75,hits:2,effects:[{type:'control',group:'enemy',status:'석화',duration:1,chance:30}]};

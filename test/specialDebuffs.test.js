@@ -15,9 +15,9 @@ test('reflux respects resistance and a seven-instance cap',()=>{
   for(let i=0;i<10;i++)addReflux(source,target,2,100,always);assert.equal(target.reflux.length,7);
 });
 test('reflux damage uses full-transcendence HP ratio and caster attack cap once per direct hit',()=>{
-  const source=unit(0,'멜키르'),target=unit(1,'루디','defender'),hits=[];source.damageIncrease=20;
+  const source=unit(0,'멜키르'),target=unit(1,'루디','defender'),hits=[];source.refluxDamageIncrease=20;
   addReflux(source,target,2,100,always);directDebuffHits(target,structuredClone(target),[source,target],always,(...args)=>hits.push(args),[],0);
-  assert.equal(hits.length,1);assert.equal(hits[0][1],1800);
+  assert.equal(hits.length,1);assert.equal(hits[0][1],Math.round(1800/(1+1000*.00214)));
 });
 test('reflux expiration spreads without ticking newly received effects',()=>{
   const source=unit(0,'멜키르'),host=unit(1,'루디','defender'),ally=unit(2,'하연','defender');

@@ -110,7 +110,20 @@ function specialAuras(hero,draft){
   return [];
 }
 export function calculatePrebattle(draft,settings,{basis='panel'}={}){
-  if(basis==='battle')return {heroes:structuredClone(draft).map(h=>settings?.[h.side]?.seats?{...h,battleSeat:settings[h.side].seats[h.id%3]}:h),breakdown:[],warnings:[]};
+  if(basis==='battle'){
+    // Numeric start stats already include attack/HP/critical/gear passives.
+    // Damage families and recovery/status modifiers aren't in that stat packet.
+    const hidden=['damageIncrease','vulnerability','weakBonus','missChance','physicalVulnerability','magicVulnerability','physicalReduction','magicReduction','healingIncrease','healingReduction','effectChanceBonus','shockChanceBonus','refluxDamageIncrease'];
+    const extras=calculatePrebattle(draft,settings,{basis:'panel'});
+    const heroes=structuredClone(draft).map((h,i)=>{
+      const unit=settings?.[h.side]?.seats?{...h,battleSeat:settings[h.side].seats[h.id%3],battleRow:settings[h.side].positions?.[h.id%3]}:h;
+      if(h.panelComputed||h.battleModifiersComputed)return unit;
+      for(const stat of hidden)unit[stat]=extras.heroes[i][stat]||0;
+      unit.panelTimedBuffs=[...(h.panelTimedBuffs||[]),...extras.heroes[i].panelTimedBuffs.filter(b=>hidden.includes(b.stat))];unit.auraBuffs=extras.heroes[i].auraBuffs;unit.battleModifiersComputed=true;
+      return unit;
+    });
+    return {heroes,breakdown:[],warnings:extras.warnings};
+  }
   if(basis!=='panel')throw Error('입력 기준을 확인해 주세요.');
   const teams=normalizePrebattleSettings(settings),warnings=[],auras=[];
   for(const hero of draft)for(const stat of [...primary,'speed','crit','critDamage','weakPoint','block','accuracy','resist','damageIncrease','damageReduction','amplification','vulnerability'])if(!Number.isFinite(hero[stat])||Math.abs(hero[stat])>1000000||(hero[stat]<0&&!['crit','weakPoint','block','resist'].includes(stat))||(stat==='maxHp'&&hero[stat]<1))throw Error('영웅 정보창 수치를 유효한 숫자로 입력해 주세요.');
@@ -137,7 +150,7 @@ export function calculatePrebattle(draft,settings,{basis='panel'}={}){
   const heroes=draft.map(h=>{
     const team=teams[h.side],base=BASE_STATS[h.name],role=base?.role||heroProfile(h.name)?.role,type=heroDamageType(h.name),position=team.positions[h.id%3],ref=petReference(team),pet=ref?.pet;
     const applicable=auras.filter(e=>((e.group==='self'&&e.ownerId===h.id)||(e.group==='team'&&e.ownerSide===h.side)||(e.group==='enemy'&&e.ownerSide!==h.side))&&(!e.role||e.role.includes(role))&&(!e.row||e.row===position)&&(!e.affiliation||['탄지로','젠이츠','시노부','기유','네즈코'].includes(h.name))&&['all',type].includes(e.family));
-    const output={...h,battleSeat:formationSeats(team)[h.id%3],battleRow:position,panelComputed:true,origin:h.origin?.includes('테스트 기본값')?h.origin:'영웅 정보창 → 자동 계산',panelTimedBuffs:[],panelStackBase:{}},rows=[];
+    const output={...h,battleSeat:formationSeats(team)[h.id%3],battleRow:position,panelComputed:true,origin:h.origin?.includes('테스트 기본값')?h.origin:'영웅 정보창 → 자동 계산',panelTimedBuffs:[],panelStackBase:{},auraBuffs:[...new Set(applicable.filter(e=>e.value>0&&e.group!=='enemy').map(e=>e.stat+'|'+e.source))]},rows=[];
     for(const stat of [...primary,'crit','critDamage','weakPoint','block','accuracy','resist','damageIncrease','damageReduction','amplification','vulnerability',...namedStats.map(([,stat])=>stat).filter(stat=>stat!=='damageReduction')]){
       const effects=applicable.filter(e=>e.stat===stat),groups=new Map();
       for(const e of effects){
@@ -145,6 +158,7 @@ export function calculatePrebattle(draft,settings,{basis='panel'}={}){
         const old=groups.get(key);if(!old||Math.abs(e.value)>Math.abs(old.value))groups.set(key,e);
       }
       const selected=[...groups.values()];
+      if(stat==='damageIncrease')output.refluxDamageIncrease=(h.refluxDamageIncrease||0)+selected.filter(e=>e.family==='all').reduce((n,e)=>n+e.value,0);
       const growth=pet?.growth?.[stat]?pet.growth[stat][0]+(pet.growth[stat][1]-pet.growth[stat][0])*team.petEnhancement/5:0;
       const potential=primary.includes(stat)?team.potentials.filter(p=>p.stat===stat).reduce((n,p)=>n+p.value,0):0;
       const formation=stat==='attack'&&position==='back'?team.formationAttack:stat==='defense'&&position==='front'?team.formationDefense:0;

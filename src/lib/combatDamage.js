@@ -3,11 +3,12 @@
 export const DEFENSE_COEFFICIENT=0.00214;
 export const HERO_GROWTH=Object.freeze({transcendence:6,enhancement:5,skills:'full',label:'6초월 · 5강 · 풀스킬 강화'});
 const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
-export function effectProbability({baseChance,accuracy=0,resistance=0}){
+export function effectProbability({baseChance,accuracy=0,resistance=0,chanceBonus=0}){
   const remainingResistance=clamp(resistance-accuracy,0,100)/100;
-  const skillChance=clamp(baseChance,0,100)/100;
+  const skillChance=clamp(baseChance*Math.max(0,1+chanceBonus/100),0,100)/100;
   return {remainingResistance,skillChance,applied:skillChance*(1-remainingResistance)};
 }
+export function casterEffect(source,target,baseChance,status){return {baseChance,accuracy:source.accuracy||0,resistance:target.resist||0,chanceBonus:(source.effectChanceBonus||0)+(status==='감전'?source.shockChanceBonus||0:0)};}
 export function rollEffect(settings,random){
   const {remainingResistance,skillChance}=effectProbability(settings);
   if(random()<remainingResistance)return false;

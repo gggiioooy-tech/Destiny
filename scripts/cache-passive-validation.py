@@ -6,7 +6,7 @@ from pathlib import Path
 
 root=Path(__file__).resolve().parents[1]
 archive=Path(sys.argv[1]).resolve()
-limit=min(40,max(1,int(sys.argv[2]) if len(sys.argv)>2 else 30))
+limit=min(200,max(1,int(sys.argv[2]) if len(sys.argv)>2 else 30))
 config=json.loads((archive/'config.private.json').read_text(encoding='utf8'))
 sys.path.insert(0,config['protobufPath']);sys.path.insert(0,str(root/'tools/pc-collector'))
 from google.protobuf import descriptor_pb2,descriptor_pool,message_factory
@@ -42,6 +42,20 @@ while jobs and len(selected)<limit:
 
 out=archive/'replays';out.mkdir(exist_ok=True)
 counts={'selected':len(selected),'heroCoverage':len(covered),'downloaded':0,'cached':0,'analyzed':0,'failed':0}
+def initial_context(raw,record):
+    def cls(name):return message_factory.GetMessageClass(pool.FindMessageTypeByName('re.'+name))
+    result={side:{'heroes':[]} for side in ('attacker','defender')}
+    pack=cls('MReplayDataPack').FromString(raw)
+    types={cls(n)().MessageID:cls(n)for n in ('ACSpawnRoundPlayerNoti','ACNextRoundEnemyNoti')}
+    for packet in pack.Packet:
+        if packet.MessageID not in types:continue
+        event=types[packet.MessageID].FromString(packet.Data)
+        for hero in event.Datas:
+            side={1:'attacker',2:'defender'}.get(hero.Team)
+            if not side or hero.TemplateId not in record['payload'][side]['heroIds']:continue
+            result[side]['heroes'].append({'heroId':hero.TemplateId,'seat':hero.Position,'formationGroup':hero.Formation.FormationGroup,'transcendence':hero.TranscendCount,'enhancement':hero.ReinforceLevel})
+            if event.HasField('Pet'):result[side]['petId']=event.Pet.PetTID
+    return result
 records=[]
 for index,(key,(direction,row,record)) in enumerate(selected):
     ref=row.get('ReplayUrl','')
@@ -52,10 +66,11 @@ for index,(key,(direction,row,record)) in enumerate(selected):
         else:
             with urllib.request.build_opener(NoRedirect).open('https://tskgb-replay.netmarble.com/'+ref,timeout=15) as response:raw=response.read(8*1024*1024+1)
             if len(raw)>8*1024*1024:raise ValueError('size')
-            rawfile.write_bytes(raw);counts['downloaded']+=1;time.sleep(.5)
+            rawfile.write_bytes(raw);counts['downloaded']+=1;time.sleep(1)
         decoded=extract(pool,raw,row,direction,record)
         for side in ('attacker','defender'):record['payload'][side]['skills']=decoded[side]
         record['payload']['heroStats']=decoded['heroStats']
+        record['payload']['initialContext']=initial_context(raw,record)
         report=analysis.analyze(pool,raw,record,{'direction':direction,'row':row})
         (folder/'timeline.json').write_text(json.dumps(report,ensure_ascii=True),encoding='utf8')
         (folder/'record.json').write_text(json.dumps(record,ensure_ascii=True),encoding='utf8')

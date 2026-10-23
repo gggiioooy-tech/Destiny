@@ -1,4 +1,5 @@
 import {calculateShield} from './combatDamage.js';
+import {releaseControl} from './controlEffects.js';
 
 // Explicit experimental ordering: immunity → nullification → blessing → shield → HP
 // → immortality/guts → revival. Complex simultaneous trigger order remains unverified.
@@ -60,10 +61,11 @@ export function tickPersonalTurn(unit,before){
   if(before.statusImmunities){next.statusImmunities={...next.statusImmunities};for(const [key,turns]of Object.entries(before.statusImmunities))if(next.statusImmunities[key]<=turns)next.statusImmunities[key]=Math.max(0,next.statusImmunities[key]-1);}
   if(before.fateThreadDurations?.length){next.fateThreadDurations=(next.fateThreadDurations||[]).map((v,i)=>i<before.fateThreadDurations.length?v-1:v).filter(v=>v>0);next.fateThreads=next.fateThreadDurations.length;}
   // Only durations that existed before this basic-attack turn are ticked.
-  for(const key of ['sleep','control','silence','blind','healBlock','defTurns','immunity','controlImmune','annihilation','barrierTurns','damageBuffTurns','superiority','superiorityMissTurns','blockDownTurns','stealth','judgment','buffBlock','cooldownImmune','linkTurns','cloneTurns']){
+  for(const key of ['sleep','control','silence','blind','healBlock','defTurns','immunity','controlImmune','annihilation','barrierTurns','damageBuffTurns','superiority','superiorityMissTurns','blockDownTurns','stealth','judgment','buffBlock','cooldownImmune','linkTurns','cloneTurns','taunt']){
     if(before[key]>0&&next[key]>0&&next[key]<=before[key])next[key]--;
   }
   if(!next.defTurns)next.defDown=0;
+  if(before.control>0&&!next.control)releaseControl(next);
   if(!next.superiorityMissTurns)next.superiorityMiss=0;
   if(before.blockDownTurns>0&&!next.blockDownTurns)next.blockDebuff=0;
   if(before.barrierTurns>0&&!next.barrierTurns)next.barrier=0;

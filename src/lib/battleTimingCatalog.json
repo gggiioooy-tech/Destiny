@@ -1,28 +1,44 @@
 {
-  "version": 1,
-  "checkedAt": "2026-10-22",
-  "replayCount": 12,
+  "version": 2,
+  "checkedAt": "2026-10-23",
+  "replayCount": 160,
   "timeUnit": "milliseconds",
   "note": "StageTime/SkillEndTime observations; not isolated animation constants or network latency. ActionType 3/4 are classified as counter/assist from observed examples; passive triggers remain separate.",
   "spacing": {
-    "count": 461,
+    "count": 6456,
     "medianMs": 200,
     "p10Ms": 200,
     "p90Ms": 685,
     "minMs": 0,
-    "maxMs": 970
+    "maxMs": 1000
   },
   "entries": {
-    "겔리두스|basic|1": {
-      "count": 10,
+    "겔리두스|assist|1": {
+      "count": 44,
       "medianMs": 1000,
       "p10Ms": 1000,
       "p90Ms": 1000,
       "minMs": 1000,
       "maxMs": 1000
     },
+    "겔리두스|basic|1": {
+      "count": 301,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1071
+    },
+    "겔리두스|reaction|1": {
+      "count": 9,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
     "겔리두스|reaction|4": {
-      "count": 7,
+      "count": 216,
       "medianMs": 1048,
       "p10Ms": 1048,
       "p90Ms": 1048,
@@ -30,31 +46,63 @@
       "maxMs": 1048
     },
     "겔리두스|skill|2": {
-      "count": 2,
+      "count": 64,
       "medianMs": 2142,
       "p10Ms": 2142,
       "p90Ms": 2142,
       "minMs": 2142,
-      "maxMs": 2142
+      "maxMs": 2142,
+      "cooldown": {
+        "count": 64,
+        "medianMs": 57793,
+        "p10Ms": 55282,
+        "p90Ms": 60387,
+        "minMs": 55232,
+        "maxMs": 61978
+      }
     },
     "겔리두스|skill|3": {
-      "count": 2,
+      "count": 52,
       "medianMs": 2857,
       "p10Ms": 2857,
       "p90Ms": 2857,
       "minMs": 2857,
-      "maxMs": 2857
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 52,
+        "medianMs": 69039,
+        "p10Ms": 66456,
+        "p90Ms": 71010,
+        "minMs": 65180,
+        "maxMs": 72017
+      }
     },
-    "기유|basic|1": {
-      "count": 14,
+    "기유|assist|1": {
+      "count": 56,
       "medianMs": 952,
       "p10Ms": 952,
       "p90Ms": 952,
       "minMs": 952,
       "maxMs": 952
     },
+    "기유|basic|1": {
+      "count": 320,
+      "medianMs": 952,
+      "p10Ms": 952,
+      "p90Ms": 952,
+      "minMs": 952,
+      "maxMs": 1071
+    },
     "기유|reaction|1": {
-      "count": 2,
+      "count": 26,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "기유|reaction|2": {
+      "count": 3,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -62,31 +110,111 @@
       "maxMs": 1071
     },
     "기유|skill|2": {
-      "count": 4,
+      "count": 68,
       "medianMs": 2426,
       "p10Ms": 2426,
       "p90Ms": 2426,
-      "minMs": 2426,
-      "maxMs": 2426
+      "minMs": 1071,
+      "maxMs": 2426,
+      "cooldown": {
+        "count": 66,
+        "medianMs": 74781,
+        "p10Ms": 73070,
+        "p90Ms": 77502,
+        "minMs": 72848,
+        "maxMs": 79197
+      }
     },
     "기유|skill|3": {
-      "count": 4,
+      "count": 51,
       "medianMs": 2857,
       "p10Ms": 2857,
       "p90Ms": 2857,
       "minMs": 2857,
-      "maxMs": 2857
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 51,
+        "medianMs": 96239,
+        "p10Ms": 94504,
+        "p90Ms": 98570,
+        "minMs": 94285,
+        "maxMs": 101525
+      }
     },
     "기유|skill|7": {
-      "count": 2,
+      "count": 41,
       "medianMs": 5000,
       "p10Ms": 5000,
       "p90Ms": 5000,
       "minMs": 5000,
       "maxMs": 5000
     },
+    "녹스|basic|1": {
+      "count": 42,
+      "medianMs": 1016,
+      "p10Ms": 1016,
+      "p90Ms": 1016,
+      "minMs": 1016,
+      "maxMs": 1016
+    },
+    "녹스|reaction|1": {
+      "count": 2,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "녹스|skill|2": {
+      "count": 11,
+      "medianMs": 2142,
+      "p10Ms": 2142,
+      "p90Ms": 2142,
+      "minMs": 2142,
+      "maxMs": 2142,
+      "cooldown": {
+        "count": 11,
+        "medianMs": 74292,
+        "p10Ms": 70799,
+        "p90Ms": 76014,
+        "minMs": 70713,
+        "maxMs": 76657
+      }
+    },
+    "녹스|skill|3": {
+      "count": 13,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 13,
+        "medianMs": 56053,
+        "p10Ms": 53787,
+        "p90Ms": 59074,
+        "minMs": 53638,
+        "maxMs": 59485
+      }
+    },
+    "녹스|skill|7": {
+      "count": 7,
+      "medianMs": 5000,
+      "p10Ms": 5000,
+      "p90Ms": 5000,
+      "minMs": 5000,
+      "maxMs": 5000
+    },
+    "델론즈|assist|1": {
+      "count": 3,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
     "델론즈|basic|1": {
-      "count": 27,
+      "count": 267,
       "medianMs": 1000,
       "p10Ms": 1000,
       "p90Ms": 1000,
@@ -94,7 +222,7 @@
       "maxMs": 1071
     },
     "델론즈|reaction|1": {
-      "count": 1,
+      "count": 22,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -102,7 +230,7 @@
       "maxMs": 1071
     },
     "델론즈|reaction|2": {
-      "count": 1,
+      "count": 5,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -110,38 +238,54 @@
       "maxMs": 1071
     },
     "델론즈|skill|2": {
-      "count": 7,
-      "medianMs": 2294,
+      "count": 79,
+      "medianMs": 2290,
       "p10Ms": 1071,
       "p90Ms": 2294,
       "minMs": 1071,
-      "maxMs": 2294
+      "maxMs": 2294,
+      "cooldown": {
+        "count": 62,
+        "medianMs": 61684,
+        "p10Ms": 59837,
+        "p90Ms": 64163,
+        "minMs": 59149,
+        "maxMs": 65616
+      }
     },
     "델론즈|skill|3": {
-      "count": 11,
-      "medianMs": 2854,
+      "count": 106,
+      "medianMs": 2857,
       "p10Ms": 2854,
       "p90Ms": 2857,
       "minMs": 2854,
-      "maxMs": 2857
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 76,
+        "medianMs": 81899,
+        "p10Ms": 80188,
+        "p90Ms": 84836,
+        "minMs": 79763,
+        "maxMs": 86868
+      }
     },
     "델론즈|skill|7": {
-      "count": 3,
+      "count": 36,
       "medianMs": 5208,
       "p10Ms": 5208,
-      "p90Ms": 5208,
+      "p90Ms": 5220,
       "minMs": 5208,
-      "maxMs": 5208
+      "maxMs": 5220
     },
     "동영|basic|1": {
-      "count": 13,
+      "count": 176,
       "medianMs": 1097,
       "p10Ms": 1097,
       "p90Ms": 1097,
-      "minMs": 1097,
+      "minMs": 1071,
       "maxMs": 1097
     },
-    "동영|reaction|2": {
+    "동영|reaction|1": {
       "count": 1,
       "medianMs": 1071,
       "p10Ms": 1071,
@@ -149,8 +293,16 @@
       "minMs": 1071,
       "maxMs": 1071
     },
+    "동영|reaction|2": {
+      "count": 23,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
     "동영|reaction|4": {
-      "count": 19,
+      "count": 192,
       "medianMs": 767,
       "p10Ms": 767,
       "p90Ms": 1071,
@@ -158,23 +310,63 @@
       "maxMs": 1071
     },
     "동영|skill|2": {
-      "count": 3,
+      "count": 52,
       "medianMs": 2142,
       "p10Ms": 1071,
       "p90Ms": 2142,
       "minMs": 1071,
-      "maxMs": 2142
+      "maxMs": 2142,
+      "cooldown": {
+        "count": 32,
+        "medianMs": 89642,
+        "p10Ms": 88688,
+        "p90Ms": 91582,
+        "minMs": 87924,
+        "maxMs": 92744
+      }
+    },
+    "동영|skill|3": {
+      "count": 31,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 31,
+        "medianMs": 84696,
+        "p10Ms": 83285,
+        "p90Ms": 86945,
+        "minMs": 83132,
+        "maxMs": 88068
+      }
+    },
+    "동영|skill|7": {
+      "count": 17,
+      "medianMs": 5330,
+      "p10Ms": 5330,
+      "p90Ms": 5330,
+      "minMs": 5330,
+      "maxMs": 5330
     },
     "라드그리드|basic|1": {
-      "count": 3,
+      "count": 73,
       "medianMs": 1000,
       "p10Ms": 1000,
       "p90Ms": 1000,
       "minMs": 1000,
-      "maxMs": 1000
+      "maxMs": 1071
+    },
+    "라드그리드|reaction|1": {
+      "count": 5,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
     },
     "라드그리드|reaction|4": {
-      "count": 8,
+      "count": 79,
       "medianMs": 744,
       "p10Ms": 744,
       "p90Ms": 744,
@@ -182,23 +374,127 @@
       "maxMs": 744
     },
     "라드그리드|skill|2": {
-      "count": 2,
+      "count": 15,
       "medianMs": 2605,
       "p10Ms": 2605,
       "p90Ms": 2605,
-      "minMs": 2605,
-      "maxMs": 2605
+      "minMs": 1071,
+      "maxMs": 2605,
+      "cooldown": {
+        "count": 14,
+        "medianMs": 79046,
+        "p10Ms": 77771,
+        "p90Ms": 80673,
+        "minMs": 77128,
+        "maxMs": 82420
+      }
     },
     "라드그리드|skill|3": {
-      "count": 2,
+      "count": 16,
       "medianMs": 3322,
       "p10Ms": 3322,
       "p90Ms": 3322,
       "minMs": 3322,
-      "maxMs": 3322
+      "maxMs": 3322,
+      "cooldown": {
+        "count": 16,
+        "medianMs": 79499,
+        "p10Ms": 77874,
+        "p90Ms": 81853,
+        "minMs": 77808,
+        "maxMs": 83085
+      }
+    },
+    "란드그리드|basic|1": {
+      "count": 15,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
+    "란드그리드|reaction|4": {
+      "count": 2,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "란드그리드|skill|2": {
+      "count": 4,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 2350,
+      "cooldown": {
+        "count": 1,
+        "medianMs": 81279,
+        "p10Ms": 81279,
+        "p90Ms": 81279,
+        "minMs": 81279,
+        "maxMs": 81279
+      }
+    },
+    "란드그리드|skill|3": {
+      "count": 3,
+      "medianMs": 3044,
+      "p10Ms": 3044,
+      "p90Ms": 3044,
+      "minMs": 3044,
+      "maxMs": 3044,
+      "cooldown": {
+        "count": 3,
+        "medianMs": 82197,
+        "p10Ms": 82078,
+        "p90Ms": 82197,
+        "minMs": 82078,
+        "maxMs": 82540
+      }
+    },
+    "로지|basic|1": {
+      "count": 16,
+      "medianMs": 1104,
+      "p10Ms": 1104,
+      "p90Ms": 1104,
+      "minMs": 1104,
+      "maxMs": 1104
+    },
+    "로지|skill|2": {
+      "count": 5,
+      "medianMs": 2144,
+      "p10Ms": 2144,
+      "p90Ms": 2144,
+      "minMs": 2144,
+      "maxMs": 2144,
+      "cooldown": {
+        "count": 5,
+        "medianMs": 63315,
+        "p10Ms": 60959,
+        "p90Ms": 65467,
+        "minMs": 60959,
+        "maxMs": 66227
+      }
+    },
+    "로지|skill|3": {
+      "count": 1,
+      "medianMs": 2952,
+      "p10Ms": 2952,
+      "p90Ms": 2952,
+      "minMs": 2952,
+      "maxMs": 2952,
+      "cooldown": {
+        "count": 1,
+        "medianMs": 88608,
+        "p10Ms": 88608,
+        "p90Ms": 88608,
+        "minMs": 88608,
+        "maxMs": 88608
+      }
     },
     "루디|basic|1": {
-      "count": 10,
+      "count": 152,
       "medianMs": 1000,
       "p10Ms": 1000,
       "p90Ms": 1000,
@@ -206,39 +502,63 @@
       "maxMs": 1071
     },
     "루디|counter|4": {
-      "count": 3,
+      "count": 162,
       "medianMs": 1000,
       "p10Ms": 1000,
       "p90Ms": 1000,
       "minMs": 1000,
       "maxMs": 1000
     },
+    "루디|reaction|1": {
+      "count": 12,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
     "루디|skill|2": {
-      "count": 2,
-      "medianMs": 2145,
+      "count": 39,
+      "medianMs": 2555,
       "p10Ms": 2145,
-      "p90Ms": 2145,
+      "p90Ms": 2555,
       "minMs": 2145,
-      "maxMs": 2145
+      "maxMs": 2555,
+      "cooldown": {
+        "count": 39,
+        "medianMs": 68831,
+        "p10Ms": 67508,
+        "p90Ms": 71729,
+        "minMs": 67246,
+        "maxMs": 72135
+      }
     },
     "루디|skill|3": {
-      "count": 2,
-      "medianMs": 2857,
+      "count": 40,
+      "medianMs": 2956,
       "p10Ms": 2857,
-      "p90Ms": 2857,
+      "p90Ms": 2956,
       "minMs": 2857,
-      "maxMs": 2857
+      "maxMs": 2956,
+      "cooldown": {
+        "count": 40,
+        "medianMs": 73103,
+        "p10Ms": 71857,
+        "p90Ms": 76704,
+        "minMs": 71474,
+        "maxMs": 77075
+      }
     },
     "루디|skill|7": {
-      "count": 1,
-      "medianMs": 5102,
+      "count": 23,
+      "medianMs": 5294,
       "p10Ms": 5102,
-      "p90Ms": 5102,
+      "p90Ms": 5294,
       "minMs": 5102,
-      "maxMs": 5102
+      "maxMs": 5294
     },
     "린|basic|1": {
-      "count": 4,
+      "count": 3,
       "medianMs": 1074,
       "p10Ms": 1074,
       "p90Ms": 1074,
@@ -254,6 +574,46 @@
       "maxMs": 1071
     },
     "린|skill|2": {
+      "count": 2,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 2577,
+      "cooldown": {
+        "count": 1,
+        "medianMs": 62433,
+        "p10Ms": 62433,
+        "p90Ms": 62433,
+        "minMs": 62433,
+        "maxMs": 62433
+      }
+    },
+    "린|skill|3": {
+      "count": 1,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 1,
+        "medianMs": 71428,
+        "p10Ms": 71428,
+        "p90Ms": 71428,
+        "minMs": 71428,
+        "maxMs": 71428
+      }
+    },
+    "미스트|basic|1": {
+      "count": 2,
+      "medianMs": 1169,
+      "p10Ms": 1169,
+      "p90Ms": 1169,
+      "minMs": 1169,
+      "maxMs": 1169
+    },
+    "미스트|reaction|2": {
       "count": 1,
       "medianMs": 1071,
       "p10Ms": 1071,
@@ -261,16 +621,208 @@
       "minMs": 1071,
       "maxMs": 1071
     },
-    "린|skill|3": {
-      "count": 2,
+    "미스트|reaction|4": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "미스트|skill|2": {
+      "count": 1,
+      "medianMs": 2142,
+      "p10Ms": 2142,
+      "p90Ms": 2142,
+      "minMs": 2142,
+      "maxMs": 2142,
+      "cooldown": {
+        "count": 1,
+        "medianMs": 53434,
+        "p10Ms": 53434,
+        "p90Ms": 53434,
+        "minMs": 53434,
+        "maxMs": 53434
+      }
+    },
+    "미스트|skill|3": {
+      "count": 1,
       "medianMs": 2857,
       "p10Ms": 2857,
       "p90Ms": 2857,
       "minMs": 2857,
-      "maxMs": 2857
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 1,
+        "medianMs": 60766,
+        "p10Ms": 60766,
+        "p90Ms": 60766,
+        "minMs": 60766,
+        "maxMs": 60766
+      }
+    },
+    "밀리아|basic|1": {
+      "count": 41,
+      "medianMs": 1216,
+      "p10Ms": 1216,
+      "p90Ms": 1216,
+      "minMs": 1216,
+      "maxMs": 1216
+    },
+    "밀리아|reaction|2": {
+      "count": 2,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "밀리아|reaction|4": {
+      "count": 12,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "밀리아|skill|2": {
+      "count": 14,
+      "medianMs": 2259,
+      "p10Ms": 1071,
+      "p90Ms": 2259,
+      "minMs": 1071,
+      "maxMs": 2259,
+      "cooldown": {
+        "count": 9,
+        "medianMs": 75342,
+        "p10Ms": 74241,
+        "p90Ms": 75676,
+        "minMs": 74241,
+        "maxMs": 75836
+      }
+    },
+    "밀리아|skill|3": {
+      "count": 8,
+      "medianMs": 3087,
+      "p10Ms": 3087,
+      "p90Ms": 3087,
+      "minMs": 3087,
+      "maxMs": 3087,
+      "cooldown": {
+        "count": 8,
+        "medianMs": 78499,
+        "p10Ms": 76922,
+        "p90Ms": 78664,
+        "minMs": 76922,
+        "maxMs": 79158
+      }
+    },
+    "바네사|basic|1": {
+      "count": 4,
+      "medianMs": 1035,
+      "p10Ms": 1035,
+      "p90Ms": 1035,
+      "minMs": 1035,
+      "maxMs": 1035
+    },
+    "바네사|reaction|1": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "바네사|reaction|2": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "바네사|skill|2": {
+      "count": 2,
+      "medianMs": 2142,
+      "p10Ms": 2142,
+      "p90Ms": 2142,
+      "minMs": 2142,
+      "maxMs": 2142,
+      "cooldown": {
+        "count": 2,
+        "medianMs": 62142,
+        "p10Ms": 62142,
+        "p90Ms": 62142,
+        "minMs": 62142,
+        "maxMs": 65951
+      }
+    },
+    "바네사|skill|3": {
+      "count": 1,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 1,
+        "medianMs": 73392,
+        "p10Ms": 73392,
+        "p90Ms": 73392,
+        "minMs": 73392,
+        "maxMs": 73392
+      }
+    },
+    "발리스타|basic|1": {
+      "count": 8,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
+    "발리스타|reaction|4": {
+      "count": 2,
+      "medianMs": 1013,
+      "p10Ms": 1013,
+      "p90Ms": 1013,
+      "minMs": 1013,
+      "maxMs": 1013
+    },
+    "발리스타|skill|2": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "발리스타|skill|3": {
+      "count": 5,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 3,
+        "medianMs": 46673,
+        "p10Ms": 46177,
+        "p90Ms": 46673,
+        "minMs": 46177,
+        "maxMs": 47881
+      }
+    },
+    "브란즈&브란셀|assist|1": {
+      "count": 1,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
     },
     "브란즈&브란셀|basic|1": {
-      "count": 11,
+      "count": 7,
       "medianMs": 1000,
       "p10Ms": 1000,
       "p90Ms": 1000,
@@ -278,12 +830,20 @@
       "maxMs": 1071
     },
     "브란즈&브란셀|skill|2": {
-      "count": 4,
+      "count": 2,
       "medianMs": 1071,
       "p10Ms": 1071,
-      "p90Ms": 2491,
+      "p90Ms": 1071,
       "minMs": 1071,
-      "maxMs": 2491
+      "maxMs": 2491,
+      "cooldown": {
+        "count": 1,
+        "medianMs": 80123,
+        "p10Ms": 80123,
+        "p90Ms": 80123,
+        "minMs": 80123,
+        "maxMs": 80123
+      }
     },
     "브란즈&브란셀|skill|3": {
       "count": 1,
@@ -291,10 +851,18 @@
       "p10Ms": 2857,
       "p90Ms": 2857,
       "minMs": 2857,
-      "maxMs": 2857
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 1,
+        "medianMs": 71428,
+        "p10Ms": 71428,
+        "p90Ms": 71428,
+        "minMs": 71428,
+        "maxMs": 71428
+      }
     },
     "선란|assist|1": {
-      "count": 10,
+      "count": 54,
       "medianMs": 1035,
       "p10Ms": 1035,
       "p90Ms": 1035,
@@ -302,7 +870,7 @@
       "maxMs": 1035
     },
     "선란|basic|1": {
-      "count": 35,
+      "count": 373,
       "medianMs": 1035,
       "p10Ms": 1035,
       "p90Ms": 1035,
@@ -310,7 +878,7 @@
       "maxMs": 1035
     },
     "선란|reaction|2": {
-      "count": 2,
+      "count": 6,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -318,7 +886,7 @@
       "maxMs": 1071
     },
     "선란|reaction|4": {
-      "count": 7,
+      "count": 63,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 3169,
@@ -326,23 +894,39 @@
       "maxMs": 3169
     },
     "선란|skill|2": {
-      "count": 8,
+      "count": 72,
       "medianMs": 2152,
       "p10Ms": 2152,
       "p90Ms": 2152,
-      "minMs": 2152,
-      "maxMs": 2152
+      "minMs": 1071,
+      "maxMs": 2152,
+      "cooldown": {
+        "count": 66,
+        "medianMs": 68374,
+        "p10Ms": 67367,
+        "p90Ms": 70888,
+        "minMs": 66753,
+        "maxMs": 72165
+      }
     },
     "선란|skill|3": {
-      "count": 9,
+      "count": 89,
       "medianMs": 3169,
       "p10Ms": 3169,
       "p90Ms": 3169,
       "minMs": 3169,
-      "maxMs": 3169
+      "maxMs": 3169,
+      "cooldown": {
+        "count": 89,
+        "medianMs": 73873,
+        "p10Ms": 72857,
+        "p90Ms": 77297,
+        "minMs": 72426,
+        "maxMs": 79447
+      }
     },
     "선란|skill|7": {
-      "count": 5,
+      "count": 44,
       "medianMs": 5238,
       "p10Ms": 5238,
       "p90Ms": 5238,
@@ -350,63 +934,183 @@
       "maxMs": 5238
     },
     "손오공|basic|1": {
-      "count": 9,
+      "count": 28,
       "medianMs": 1000,
       "p10Ms": 1000,
-      "p90Ms": 1000,
+      "p90Ms": 1071,
       "minMs": 1000,
-      "maxMs": 1000
+      "maxMs": 1071
+    },
+    "손오공|reaction|1": {
+      "count": 5,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "손오공|reaction|2": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
     },
     "손오공|skill|2": {
-      "count": 2,
+      "count": 16,
       "medianMs": 2385,
-      "p10Ms": 2385,
+      "p10Ms": 1071,
       "p90Ms": 2385,
-      "minMs": 2385,
-      "maxMs": 2385
+      "minMs": 1071,
+      "maxMs": 2385,
+      "cooldown": {
+        "count": 14,
+        "medianMs": 65402,
+        "p10Ms": 63124,
+        "p90Ms": 67587,
+        "minMs": 63072,
+        "maxMs": 68458
+      }
     },
     "손오공|skill|3": {
-      "count": 2,
+      "count": 21,
       "medianMs": 2857,
       "p10Ms": 2857,
       "p90Ms": 2857,
       "minMs": 2857,
-      "maxMs": 2857
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 21,
+        "medianMs": 70796,
+        "p10Ms": 68039,
+        "p90Ms": 73623,
+        "minMs": 67857,
+        "maxMs": 74550
+      }
     },
     "손오공|skill|7": {
-      "count": 1,
+      "count": 11,
       "medianMs": 2857,
       "p10Ms": 2857,
       "p90Ms": 2857,
       "minMs": 2857,
       "maxMs": 2857
     },
+    "스쿨드|basic|1": {
+      "count": 43,
+      "medianMs": 1097,
+      "p10Ms": 1097,
+      "p90Ms": 1097,
+      "minMs": 1071,
+      "maxMs": 1097
+    },
+    "스쿨드|reaction|1": {
+      "count": 2,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "스쿨드|reaction|2": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "스쿨드|skill|2": {
+      "count": 16,
+      "medianMs": 2142,
+      "p10Ms": 1071,
+      "p90Ms": 2142,
+      "minMs": 1071,
+      "maxMs": 2142,
+      "cooldown": {
+        "count": 10,
+        "medianMs": 77942,
+        "p10Ms": 77021,
+        "p90Ms": 78517,
+        "minMs": 77021,
+        "maxMs": 79432
+      }
+    },
+    "스쿨드|skill|3": {
+      "count": 15,
+      "medianMs": 3307,
+      "p10Ms": 3307,
+      "p90Ms": 3307,
+      "minMs": 3307,
+      "maxMs": 3307,
+      "cooldown": {
+        "count": 15,
+        "medianMs": 71428,
+        "p10Ms": 71428,
+        "p90Ms": 71896,
+        "minMs": 71428,
+        "maxMs": 74781
+      }
+    },
+    "스쿨드|skill|7": {
+      "count": 1,
+      "medianMs": 5000,
+      "p10Ms": 5000,
+      "p90Ms": 5000,
+      "minMs": 5000,
+      "maxMs": 5000
+    },
     "스파이크|basic|1": {
-      "count": 9,
+      "count": 83,
       "medianMs": 1000,
       "p10Ms": 1000,
       "p90Ms": 1000,
       "minMs": 1000,
-      "maxMs": 1000
+      "maxMs": 1071
+    },
+    "스파이크|reaction|1": {
+      "count": 5,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
     },
     "스파이크|skill|2": {
-      "count": 4,
-      "medianMs": 714,
+      "count": 29,
+      "medianMs": 1071,
       "p10Ms": 714,
       "p90Ms": 2142,
       "minMs": 714,
-      "maxMs": 2142
+      "maxMs": 2142,
+      "cooldown": {
+        "count": 14,
+        "medianMs": 56088,
+        "p10Ms": 54986,
+        "p90Ms": 58729,
+        "minMs": 54850,
+        "maxMs": 59434
+      }
     },
     "스파이크|skill|3": {
-      "count": 2,
+      "count": 15,
       "medianMs": 2928,
       "p10Ms": 2928,
       "p90Ms": 2928,
       "minMs": 2928,
-      "maxMs": 2928
+      "maxMs": 2928,
+      "cooldown": {
+        "count": 15,
+        "medianMs": 62842,
+        "p10Ms": 61766,
+        "p90Ms": 64394,
+        "minMs": 61009,
+        "maxMs": 65693
+      }
     },
     "시노부|basic|1": {
-      "count": 19,
+      "count": 243,
       "medianMs": 1097,
       "p10Ms": 1097,
       "p90Ms": 1097,
@@ -414,7 +1118,7 @@
       "maxMs": 1097
     },
     "시노부|reaction|2": {
-      "count": 3,
+      "count": 10,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -422,7 +1126,7 @@
       "maxMs": 1071
     },
     "시노부|reaction|4": {
-      "count": 5,
+      "count": 38,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -430,23 +1134,39 @@
       "maxMs": 1071
     },
     "시노부|skill|2": {
-      "count": 6,
+      "count": 76,
       "medianMs": 2142,
       "p10Ms": 1071,
       "p90Ms": 2142,
       "minMs": 1071,
-      "maxMs": 2142
+      "maxMs": 2142,
+      "cooldown": {
+        "count": 55,
+        "medianMs": 68125,
+        "p10Ms": 66863,
+        "p90Ms": 70480,
+        "minMs": 66427,
+        "maxMs": 72413
+      }
     },
     "시노부|skill|3": {
-      "count": 6,
+      "count": 79,
       "medianMs": 2857,
       "p10Ms": 2857,
       "p90Ms": 2857,
       "minMs": 2857,
-      "maxMs": 2857
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 79,
+        "medianMs": 67354,
+        "p10Ms": 66921,
+        "p90Ms": 70964,
+        "minMs": 66531,
+        "maxMs": 72468
+      }
     },
     "시노부|skill|7": {
-      "count": 5,
+      "count": 34,
       "medianMs": 5537,
       "p10Ms": 5537,
       "p90Ms": 5537,
@@ -454,7 +1174,7 @@
       "maxMs": 5537
     },
     "실베스타|basic|1": {
-      "count": 8,
+      "count": 23,
       "medianMs": 1000,
       "p10Ms": 1000,
       "p90Ms": 1000,
@@ -462,7 +1182,7 @@
       "maxMs": 1000
     },
     "실베스타|reaction|1": {
-      "count": 1,
+      "count": 5,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -470,23 +1190,39 @@
       "maxMs": 1071
     },
     "실베스타|skill|2": {
-      "count": 4,
+      "count": 14,
       "medianMs": 2168,
       "p10Ms": 1071,
       "p90Ms": 2168,
       "minMs": 1071,
-      "maxMs": 2168
+      "maxMs": 2168,
+      "cooldown": {
+        "count": 9,
+        "medianMs": 71908,
+        "p10Ms": 71154,
+        "p90Ms": 73594,
+        "minMs": 71154,
+        "maxMs": 74275
+      }
     },
     "실베스타|skill|3": {
-      "count": 2,
+      "count": 8,
       "medianMs": 2890,
       "p10Ms": 2890,
       "p90Ms": 2890,
       "minMs": 2890,
-      "maxMs": 2890
+      "maxMs": 2890,
+      "cooldown": {
+        "count": 8,
+        "medianMs": 78180,
+        "p10Ms": 77538,
+        "p90Ms": 79839,
+        "minMs": 77538,
+        "maxMs": 81030
+      }
     },
     "실베스타|skill|7": {
-      "count": 1,
+      "count": 4,
       "medianMs": 5535,
       "p10Ms": 5535,
       "p90Ms": 5535,
@@ -494,15 +1230,23 @@
       "maxMs": 5535
     },
     "아리스|basic|1": {
-      "count": 16,
+      "count": 152,
       "medianMs": 1150,
       "p10Ms": 1150,
       "p90Ms": 1150,
       "minMs": 1150,
       "maxMs": 1150
     },
+    "아리스|reaction|2": {
+      "count": 4,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
     "아리스|reaction|4": {
-      "count": 2,
+      "count": 25,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -510,7 +1254,7 @@
       "maxMs": 1071
     },
     "아리스|reaction|7": {
-      "count": 5,
+      "count": 46,
       "medianMs": 767,
       "p10Ms": 767,
       "p90Ms": 767,
@@ -518,103 +1262,239 @@
       "maxMs": 767
     },
     "아리스|skill|2": {
-      "count": 5,
+      "count": 59,
       "medianMs": 2309,
       "p10Ms": 1071,
       "p90Ms": 2309,
       "minMs": 1071,
-      "maxMs": 2309
+      "maxMs": 2309,
+      "cooldown": {
+        "count": 44,
+        "medianMs": 60804,
+        "p10Ms": 58915,
+        "p90Ms": 63358,
+        "minMs": 58437,
+        "maxMs": 64865
+      }
     },
     "아리스|skill|3": {
-      "count": 5,
+      "count": 39,
       "medianMs": 3095,
       "p10Ms": 3095,
       "p90Ms": 3095,
       "minMs": 3095,
-      "maxMs": 3095
+      "maxMs": 3095,
+      "cooldown": {
+        "count": 39,
+        "medianMs": 76622,
+        "p10Ms": 74609,
+        "p90Ms": 79010,
+        "minMs": 74329,
+        "maxMs": 80520
+      }
     },
     "아리스|skill|7": {
-      "count": 10,
+      "count": 75,
       "medianMs": 767,
       "p10Ms": 767,
       "p90Ms": 767,
       "minMs": 767,
       "maxMs": 767
     },
-    "아일린|basic|1": {
-      "count": 17,
+    "아일린|assist|1": {
+      "count": 10,
       "medianMs": 1000,
       "p10Ms": 1000,
       "p90Ms": 1000,
       "minMs": 1000,
       "maxMs": 1000
     },
+    "아일린|basic|1": {
+      "count": 376,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
+    "아일린|reaction|2": {
+      "count": 8,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
     "아일린|reaction|4": {
-      "count": 15,
-      "medianMs": 2975,
+      "count": 195,
+      "medianMs": 2857,
       "p10Ms": 1071,
       "p90Ms": 2975,
       "minMs": 1071,
       "maxMs": 2975
     },
     "아일린|skill|2": {
-      "count": 12,
+      "count": 142,
       "medianMs": 2177,
       "p10Ms": 1071,
       "p90Ms": 2177,
       "minMs": 1071,
-      "maxMs": 2177
+      "maxMs": 2177,
+      "cooldown": {
+        "count": 100,
+        "medianMs": 53617,
+        "p10Ms": 52177,
+        "p90Ms": 56619,
+        "minMs": 51696,
+        "maxMs": 58204
+      }
     },
     "아일린|skill|3": {
-      "count": 2,
+      "count": 65,
       "medianMs": 2975,
-      "p10Ms": 2975,
+      "p10Ms": 2857,
       "p90Ms": 2975,
-      "minMs": 2975,
-      "maxMs": 2975
+      "minMs": 2857,
+      "maxMs": 2975,
+      "cooldown": {
+        "count": 65,
+        "medianMs": 61898,
+        "p10Ms": 60552,
+        "p90Ms": 64727,
+        "minMs": 59999,
+        "maxMs": 66393
+      }
     },
     "아일린|skill|7": {
-      "count": 1,
+      "count": 40,
       "medianMs": 5137,
       "p10Ms": 5137,
       "p90Ms": 5137,
       "minMs": 5137,
       "maxMs": 5137
     },
-    "여포|basic|1": {
-      "count": 8,
-      "medianMs": 1000,
+    "여포|assist|1": {
+      "count": 17,
+      "medianMs": 1026,
       "p10Ms": 1000,
-      "p90Ms": 1000,
+      "p90Ms": 1026,
       "minMs": 1000,
-      "maxMs": 1000
+      "maxMs": 1026
+    },
+    "여포|basic|1": {
+      "count": 113,
+      "medianMs": 1026,
+      "p10Ms": 1000,
+      "p90Ms": 1026,
+      "minMs": 1000,
+      "maxMs": 1026
+    },
+    "여포|reaction|1": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "여포|reaction|2": {
+      "count": 6,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
     },
     "여포|reaction|4": {
-      "count": 8,
+      "count": 127,
       "medianMs": 767,
       "p10Ms": 767,
-      "p90Ms": 767,
+      "p90Ms": 1071,
       "minMs": 767,
       "maxMs": 1071
     },
     "여포|skill|2": {
-      "count": 3,
+      "count": 40,
       "medianMs": 2142,
       "p10Ms": 1071,
       "p90Ms": 2142,
       "minMs": 1071,
-      "maxMs": 2142
+      "maxMs": 2142,
+      "cooldown": {
+        "count": 31,
+        "medianMs": 72408,
+        "p10Ms": 70713,
+        "p90Ms": 75666,
+        "minMs": 70674,
+        "maxMs": 78305
+      }
     },
     "여포|skill|3": {
-      "count": 3,
+      "count": 26,
       "medianMs": 2857,
       "p10Ms": 2857,
       "p90Ms": 2857,
       "minMs": 2857,
-      "maxMs": 2857
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 23,
+        "medianMs": 84369,
+        "p10Ms": 83379,
+        "p90Ms": 87096,
+        "minMs": 82588,
+        "maxMs": 89748
+      }
+    },
+    "연희|basic|1": {
+      "count": 37,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1076,
+      "minMs": 1000,
+      "maxMs": 1076
+    },
+    "연희|reaction|2": {
+      "count": 3,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "연희|skill|2": {
+      "count": 8,
+      "medianMs": 2142,
+      "p10Ms": 1071,
+      "p90Ms": 2275,
+      "minMs": 1071,
+      "maxMs": 2275,
+      "cooldown": {
+        "count": 5,
+        "medianMs": 68855,
+        "p10Ms": 68736,
+        "p90Ms": 68884,
+        "minMs": 68736,
+        "maxMs": 69331
+      }
+    },
+    "연희|skill|3": {
+      "count": 8,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 8,
+        "medianMs": 88362,
+        "p10Ms": 87681,
+        "p90Ms": 88571,
+        "minMs": 87681,
+        "maxMs": 89096
+      }
     },
     "오르카|basic|1": {
-      "count": 23,
+      "count": 11,
       "medianMs": 1171,
       "p10Ms": 1171,
       "p90Ms": 1171,
@@ -622,7 +1502,7 @@
       "maxMs": 1171
     },
     "오르카|reaction|1": {
-      "count": 1,
+      "count": 2,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -630,7 +1510,7 @@
       "maxMs": 1071
     },
     "오르카|reaction|4": {
-      "count": 2,
+      "count": 3,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -638,39 +1518,127 @@
       "maxMs": 1071
     },
     "오르카|skill|2": {
-      "count": 4,
+      "count": 2,
       "medianMs": 2484,
       "p10Ms": 2484,
       "p90Ms": 2484,
       "minMs": 2484,
-      "maxMs": 2484
+      "maxMs": 2484,
+      "cooldown": {
+        "count": 2,
+        "medianMs": 78751,
+        "p10Ms": 78751,
+        "p90Ms": 78751,
+        "minMs": 78751,
+        "maxMs": 79430
+      }
     },
     "오르카|skill|3": {
-      "count": 3,
+      "count": 2,
       "medianMs": 3038,
       "p10Ms": 3038,
       "p90Ms": 3038,
       "minMs": 3038,
-      "maxMs": 3038
+      "maxMs": 3038,
+      "cooldown": {
+        "count": 2,
+        "medianMs": 83162,
+        "p10Ms": 83162,
+        "p90Ms": 83162,
+        "minMs": 83162,
+        "maxMs": 85022
+      }
     },
-    "오르카|skill|7": {
-      "count": 2,
-      "medianMs": 5000,
-      "p10Ms": 5000,
-      "p90Ms": 5000,
-      "minMs": 5000,
-      "maxMs": 5000
+    "오목|assist|1": {
+      "count": 9,
+      "medianMs": 1147,
+      "p10Ms": 1147,
+      "p90Ms": 1147,
+      "minMs": 1147,
+      "maxMs": 1147
     },
-    "윤건|basic|1": {
-      "count": 14,
+    "오목|basic|1": {
+      "count": 106,
+      "medianMs": 1147,
+      "p10Ms": 1147,
+      "p90Ms": 1147,
+      "minMs": 1071,
+      "maxMs": 1147
+    },
+    "오목|reaction|1": {
+      "count": 10,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "오목|reaction|2": {
+      "count": 6,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "오목|skill|2": {
+      "count": 44,
+      "medianMs": 2594,
+      "p10Ms": 1071,
+      "p90Ms": 2594,
+      "minMs": 1071,
+      "maxMs": 2594,
+      "cooldown": {
+        "count": 33,
+        "medianMs": 72649,
+        "p10Ms": 72404,
+        "p90Ms": 75943,
+        "minMs": 72060,
+        "maxMs": 79310
+      }
+    },
+    "오목|skill|3": {
+      "count": 19,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 19,
+        "medianMs": 102092,
+        "p10Ms": 100257,
+        "p90Ms": 104023,
+        "minMs": 99838,
+        "maxMs": 105506
+      }
+    },
+    "윤건|assist|1": {
+      "count": 3,
       "medianMs": 1027,
       "p10Ms": 1027,
-      "p90Ms": 1071,
+      "p90Ms": 1027,
+      "minMs": 1027,
+      "maxMs": 1027
+    },
+    "윤건|basic|1": {
+      "count": 270,
+      "medianMs": 1027,
+      "p10Ms": 1027,
+      "p90Ms": 1027,
       "minMs": 1027,
       "maxMs": 1071
     },
     "윤건|reaction|1": {
-      "count": 2,
+      "count": 35,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "윤건|reaction|2": {
+      "count": 1,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -678,7 +1646,7 @@
       "maxMs": 1071
     },
     "윤건|reaction|4": {
-      "count": 8,
+      "count": 200,
       "medianMs": 1178,
       "p10Ms": 1178,
       "p90Ms": 1178,
@@ -686,23 +1654,39 @@
       "maxMs": 1178
     },
     "윤건|skill|2": {
-      "count": 5,
+      "count": 98,
       "medianMs": 2142,
       "p10Ms": 2142,
       "p90Ms": 3397,
-      "minMs": 2142,
-      "maxMs": 3397
+      "minMs": 1071,
+      "maxMs": 3397,
+      "cooldown": {
+        "count": 66,
+        "medianMs": 76839,
+        "p10Ms": 76304,
+        "p90Ms": 78197,
+        "minMs": 76115,
+        "maxMs": 82409
+      }
     },
     "윤건|skill|3": {
-      "count": 6,
+      "count": 82,
       "medianMs": 3397,
-      "p10Ms": 2142,
+      "p10Ms": 3397,
       "p90Ms": 3397,
       "minMs": 2142,
-      "maxMs": 3397
+      "maxMs": 3397,
+      "cooldown": {
+        "count": 76,
+        "medianMs": 82982,
+        "p10Ms": 82857,
+        "p90Ms": 85657,
+        "minMs": 82438,
+        "maxMs": 87321
+      }
     },
     "윤건|skill|7": {
-      "count": 1,
+      "count": 43,
       "medianMs": 5000,
       "p10Ms": 5000,
       "p90Ms": 5000,
@@ -710,7 +1694,7 @@
       "maxMs": 5000
     },
     "젠이츠|basic|1": {
-      "count": 17,
+      "count": 389,
       "medianMs": 1000,
       "p10Ms": 1000,
       "p90Ms": 1000,
@@ -718,7 +1702,15 @@
       "maxMs": 1071
     },
     "젠이츠|reaction|1": {
-      "count": 2,
+      "count": 25,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "젠이츠|reaction|2": {
+      "count": 6,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -726,31 +1718,175 @@
       "maxMs": 1071
     },
     "젠이츠|skill|2": {
-      "count": 4,
+      "count": 116,
       "medianMs": 2166,
       "p10Ms": 2166,
       "p90Ms": 2166,
-      "minMs": 2166,
-      "maxMs": 2166
+      "minMs": 1071,
+      "maxMs": 2166,
+      "cooldown": {
+        "count": 80,
+        "medianMs": 76057,
+        "p10Ms": 75023,
+        "p90Ms": 78761,
+        "minMs": 74542,
+        "maxMs": 80464
+      }
     },
     "젠이츠|skill|3": {
-      "count": 3,
+      "count": 83,
       "medianMs": 2917,
       "p10Ms": 2917,
       "p90Ms": 2917,
       "minMs": 2917,
-      "maxMs": 2917
+      "maxMs": 2917,
+      "cooldown": {
+        "count": 83,
+        "medianMs": 86115,
+        "p10Ms": 85711,
+        "p90Ms": 88970,
+        "minMs": 85295,
+        "maxMs": 90773
+      }
     },
     "젠이츠|skill|7": {
-      "count": 1,
+      "count": 37,
       "medianMs": 5000,
       "p10Ms": 5000,
       "p90Ms": 5000,
       "minMs": 5000,
       "maxMs": 5000
     },
+    "쥬리|assist|1": {
+      "count": 1,
+      "medianMs": 1015,
+      "p10Ms": 1015,
+      "p90Ms": 1015,
+      "minMs": 1015,
+      "maxMs": 1015
+    },
+    "쥬리|basic|1": {
+      "count": 42,
+      "medianMs": 1015,
+      "p10Ms": 1015,
+      "p90Ms": 1015,
+      "minMs": 1015,
+      "maxMs": 1015
+    },
+    "쥬리|reaction|1": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "쥬리|reaction|2": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "쥬리|reaction|4": {
+      "count": 31,
+      "medianMs": 1150,
+      "p10Ms": 1071,
+      "p90Ms": 1150,
+      "minMs": 1071,
+      "maxMs": 1150
+    },
+    "쥬리|skill|2": {
+      "count": 8,
+      "medianMs": 2318,
+      "p10Ms": 2318,
+      "p90Ms": 2318,
+      "minMs": 2318,
+      "maxMs": 2318,
+      "cooldown": {
+        "count": 8,
+        "medianMs": 63471,
+        "p10Ms": 62806,
+        "p90Ms": 63738,
+        "minMs": 62806,
+        "maxMs": 65252
+      }
+    },
+    "쥬리|skill|3": {
+      "count": 10,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 10,
+        "medianMs": 71534,
+        "p10Ms": 71364,
+        "p90Ms": 74154,
+        "minMs": 71364,
+        "maxMs": 74994
+      }
+    },
+    "초선|basic|1": {
+      "count": 55,
+      "medianMs": 1060,
+      "p10Ms": 1060,
+      "p90Ms": 1060,
+      "minMs": 1060,
+      "maxMs": 1071
+    },
+    "초선|reaction|1": {
+      "count": 8,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "초선|reaction|2": {
+      "count": 6,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "초선|skill|2": {
+      "count": 15,
+      "medianMs": 2142,
+      "p10Ms": 1071,
+      "p90Ms": 2142,
+      "minMs": 1071,
+      "maxMs": 2142,
+      "cooldown": {
+        "count": 12,
+        "medianMs": 64517,
+        "p10Ms": 64088,
+        "p90Ms": 65528,
+        "minMs": 63921,
+        "maxMs": 66835
+      }
+    },
+    "초선|skill|3": {
+      "count": 15,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 15,
+        "medianMs": 62857,
+        "p10Ms": 62857,
+        "p90Ms": 63058,
+        "minMs": 62857,
+        "maxMs": 67493
+      }
+    },
     "칼 헤론|basic|1": {
-      "count": 11,
+      "count": 109,
       "medianMs": 1002,
       "p10Ms": 1002,
       "p90Ms": 1002,
@@ -758,7 +1894,7 @@
       "maxMs": 1002
     },
     "칼 헤론|reaction|2": {
-      "count": 1,
+      "count": 4,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -766,7 +1902,7 @@
       "maxMs": 1071
     },
     "칼 헤론|reaction|4": {
-      "count": 2,
+      "count": 15,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -774,23 +1910,95 @@
       "maxMs": 1071
     },
     "칼 헤론|skill|2": {
-      "count": 2,
-      "medianMs": 1071,
+      "count": 32,
+      "medianMs": 2425,
       "p10Ms": 1071,
-      "p90Ms": 1071,
+      "p90Ms": 2425,
       "minMs": 1071,
-      "maxMs": 2425
+      "maxMs": 2425,
+      "cooldown": {
+        "count": 26,
+        "medianMs": 65540,
+        "p10Ms": 63768,
+        "p90Ms": 68783,
+        "minMs": 62425,
+        "maxMs": 69013
+      }
     },
     "칼 헤론|skill|3": {
-      "count": 1,
+      "count": 21,
       "medianMs": 2832,
       "p10Ms": 2832,
       "p90Ms": 2832,
       "minMs": 2832,
-      "maxMs": 2832
+      "maxMs": 2832,
+      "cooldown": {
+        "count": 21,
+        "medianMs": 79438,
+        "p10Ms": 78434,
+        "p90Ms": 82580,
+        "minMs": 77901,
+        "maxMs": 83412
+      }
+    },
+    "크리스|basic|1": {
+      "count": 25,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
+    "크리스|reaction|1": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "크리스|reaction|4": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "크리스|skill|2": {
+      "count": 7,
+      "medianMs": 2142,
+      "p10Ms": 2142,
+      "p90Ms": 2142,
+      "minMs": 2142,
+      "maxMs": 2142,
+      "cooldown": {
+        "count": 7,
+        "medianMs": 47766,
+        "p10Ms": 44999,
+        "p90Ms": 50019,
+        "minMs": 44999,
+        "maxMs": 50047
+      }
+    },
+    "크리스|skill|3": {
+      "count": 6,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 6,
+        "medianMs": 64232,
+        "p10Ms": 61318,
+        "p90Ms": 65523,
+        "minMs": 61318,
+        "maxMs": 65629
+      }
     },
     "클레미스|basic|1": {
-      "count": 21,
+      "count": 284,
       "medianMs": 1000,
       "p10Ms": 1000,
       "p90Ms": 1000,
@@ -806,7 +2014,7 @@
       "maxMs": 1071
     },
     "클레미스|reaction|4": {
-      "count": 3,
+      "count": 31,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -814,23 +2022,39 @@
       "maxMs": 1071
     },
     "클레미스|skill|2": {
-      "count": 4,
+      "count": 93,
       "medianMs": 2367,
-      "p10Ms": 2367,
+      "p10Ms": 1071,
       "p90Ms": 2367,
-      "minMs": 2367,
-      "maxMs": 2367
+      "minMs": 1071,
+      "maxMs": 2367,
+      "cooldown": {
+        "count": 76,
+        "medianMs": 73060,
+        "p10Ms": 70984,
+        "p90Ms": 76618,
+        "minMs": 70688,
+        "maxMs": 78074
+      }
     },
     "클레미스|skill|3": {
-      "count": 5,
+      "count": 65,
       "medianMs": 2857,
       "p10Ms": 2857,
       "p90Ms": 2857,
       "minMs": 2857,
-      "maxMs": 2857
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 65,
+        "medianMs": 74009,
+        "p10Ms": 72298,
+        "p90Ms": 76717,
+        "minMs": 71428,
+        "maxMs": 77982
+      }
     },
     "클레미스|skill|7": {
-      "count": 1,
+      "count": 17,
       "medianMs": 5000,
       "p10Ms": 5000,
       "p90Ms": 5000,
@@ -838,7 +2062,7 @@
       "maxMs": 5000
     },
     "탄지로|assist|1": {
-      "count": 2,
+      "count": 60,
       "medianMs": 1000,
       "p10Ms": 1000,
       "p90Ms": 1000,
@@ -846,15 +2070,23 @@
       "maxMs": 1000
     },
     "탄지로|basic|1": {
-      "count": 21,
+      "count": 374,
       "medianMs": 1000,
       "p10Ms": 1000,
       "p90Ms": 1000,
       "minMs": 1000,
       "maxMs": 1000
     },
+    "탄지로|reaction|1": {
+      "count": 3,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
     "탄지로|reaction|2": {
-      "count": 2,
+      "count": 34,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -862,7 +2094,7 @@
       "maxMs": 1071
     },
     "탄지로|reaction|4": {
-      "count": 4,
+      "count": 54,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -870,31 +2102,247 @@
       "maxMs": 1071
     },
     "탄지로|skill|2": {
-      "count": 6,
+      "count": 97,
       "medianMs": 2142,
       "p10Ms": 1071,
       "p90Ms": 2142,
       "minMs": 1071,
-      "maxMs": 2142
+      "maxMs": 2142,
+      "cooldown": {
+        "count": 72,
+        "medianMs": 63659,
+        "p10Ms": 62379,
+        "p90Ms": 66283,
+        "minMs": 61998,
+        "maxMs": 67877
+      }
     },
     "탄지로|skill|3": {
-      "count": 6,
+      "count": 78,
       "medianMs": 2857,
       "p10Ms": 2857,
       "p90Ms": 2857,
       "minMs": 2857,
-      "maxMs": 2857
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 78,
+        "medianMs": 78993,
+        "p10Ms": 77185,
+        "p90Ms": 80793,
+        "minMs": 76820,
+        "maxMs": 82380
+      }
     },
     "탄지로|skill|7": {
-      "count": 7,
+      "count": 67,
       "medianMs": 5120,
       "p10Ms": 5120,
       "p90Ms": 5120,
       "minMs": 5120,
       "maxMs": 5120
     },
+    "트루드|basic|1": {
+      "count": 46,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
+    "트루드|reaction|4": {
+      "count": 7,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "트루드|skill|2": {
+      "count": 10,
+      "medianMs": 2023,
+      "p10Ms": 2023,
+      "p90Ms": 2440,
+      "minMs": 2023,
+      "maxMs": 2440,
+      "cooldown": {
+        "count": 10,
+        "medianMs": 66632,
+        "p10Ms": 65443,
+        "p90Ms": 71002,
+        "minMs": 65443,
+        "maxMs": 71371
+      }
+    },
+    "트루드|skill|3": {
+      "count": 13,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 13,
+        "medianMs": 59286,
+        "p10Ms": 58271,
+        "p90Ms": 63085,
+        "minMs": 57373,
+        "maxMs": 64509
+      }
+    },
+    "파이|basic|1": {
+      "count": 1,
+      "medianMs": 1024,
+      "p10Ms": 1024,
+      "p90Ms": 1024,
+      "minMs": 1024,
+      "maxMs": 1024
+    },
+    "파이|reaction|2": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "파이|reaction|4": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "파이|skill|2": {
+      "count": 1,
+      "medianMs": 2294,
+      "p10Ms": 2294,
+      "p90Ms": 2294,
+      "minMs": 2294,
+      "maxMs": 2294,
+      "cooldown": {
+        "count": 1,
+        "medianMs": 77523,
+        "p10Ms": 77523,
+        "p90Ms": 77523,
+        "minMs": 77523,
+        "maxMs": 77523
+      }
+    },
+    "파이|skill|3": {
+      "count": 2,
+      "medianMs": 767,
+      "p10Ms": 767,
+      "p90Ms": 767,
+      "minMs": 767,
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 1,
+        "medianMs": 67672,
+        "p10Ms": 67672,
+        "p90Ms": 67672,
+        "minMs": 67672,
+        "maxMs": 67672
+      }
+    },
+    "프레이야|assist|1": {
+      "count": 3,
+      "medianMs": 1083,
+      "p10Ms": 1083,
+      "p90Ms": 1083,
+      "minMs": 1083,
+      "maxMs": 1083
+    },
+    "프레이야|basic|1": {
+      "count": 7,
+      "medianMs": 1083,
+      "p10Ms": 1083,
+      "p90Ms": 1083,
+      "minMs": 1083,
+      "maxMs": 1083
+    },
+    "프레이야|skill|2": {
+      "count": 3,
+      "medianMs": 2231,
+      "p10Ms": 1071,
+      "p90Ms": 2231,
+      "minMs": 1071,
+      "maxMs": 2231,
+      "cooldown": {
+        "count": 1,
+        "medianMs": 82870,
+        "p10Ms": 82870,
+        "p90Ms": 82870,
+        "minMs": 82870,
+        "maxMs": 82870
+      }
+    },
+    "프레이야|skill|3": {
+      "count": 1,
+      "medianMs": 3410,
+      "p10Ms": 3410,
+      "p90Ms": 3410,
+      "minMs": 3410,
+      "maxMs": 3410,
+      "cooldown": {
+        "count": 1,
+        "medianMs": 90345,
+        "p10Ms": 90345,
+        "p90Ms": 90345,
+        "minMs": 90345,
+        "maxMs": 90345
+      }
+    },
+    "플라튼|basic|1": {
+      "count": 8,
+      "medianMs": 1000,
+      "p10Ms": 1000,
+      "p90Ms": 1000,
+      "minMs": 1000,
+      "maxMs": 1000
+    },
+    "플라튼|reaction|4": {
+      "count": 5,
+      "medianMs": 767,
+      "p10Ms": 767,
+      "p90Ms": 767,
+      "minMs": 767,
+      "maxMs": 767
+    },
+    "플라튼|skill|2": {
+      "count": 1,
+      "medianMs": 2142,
+      "p10Ms": 2142,
+      "p90Ms": 2142,
+      "minMs": 2142,
+      "maxMs": 2142,
+      "cooldown": {
+        "count": 1,
+        "medianMs": 73991,
+        "p10Ms": 73991,
+        "p90Ms": 73991,
+        "minMs": 73991,
+        "maxMs": 73991
+      }
+    },
+    "플라튼|skill|3": {
+      "count": 2,
+      "medianMs": 2857,
+      "p10Ms": 2857,
+      "p90Ms": 2857,
+      "minMs": 2857,
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 2,
+        "medianMs": 70285,
+        "p10Ms": 70285,
+        "p90Ms": 70285,
+        "minMs": 70285,
+        "maxMs": 74179
+      }
+    },
     "하연|basic|1": {
-      "count": 25,
+      "count": 478,
       "medianMs": 1125,
       "p10Ms": 1125,
       "p90Ms": 1125,
@@ -902,7 +2350,15 @@
       "maxMs": 1125
     },
     "하연|reaction|1": {
-      "count": 2,
+      "count": 36,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "하연|reaction|2": {
+      "count": 11,
       "medianMs": 1071,
       "p10Ms": 1071,
       "p90Ms": 1071,
@@ -910,23 +2366,103 @@
       "maxMs": 1071
     },
     "하연|skill|2": {
-      "count": 9,
+      "count": 134,
       "medianMs": 2387,
-      "p10Ms": 1071,
+      "p10Ms": 2387,
       "p90Ms": 2387,
       "minMs": 1071,
-      "maxMs": 2387
+      "maxMs": 2387,
+      "cooldown": {
+        "count": 121,
+        "medianMs": 67284,
+        "p10Ms": 65244,
+        "p90Ms": 69806,
+        "minMs": 64813,
+        "maxMs": 71388
+      }
     },
     "하연|skill|3": {
-      "count": 5,
+      "count": 96,
       "medianMs": 2857,
       "p10Ms": 2857,
       "p90Ms": 2857,
       "minMs": 2857,
-      "maxMs": 2857
+      "maxMs": 2857,
+      "cooldown": {
+        "count": 96,
+        "medianMs": 67796,
+        "p10Ms": 65823,
+        "p90Ms": 70483,
+        "minMs": 65283,
+        "maxMs": 71847
+      }
     },
     "하연|skill|7": {
+      "count": 62,
+      "medianMs": 5000,
+      "p10Ms": 5000,
+      "p90Ms": 5000,
+      "minMs": 5000,
+      "maxMs": 5000
+    },
+    "헬레니아|assist|1": {
+      "count": 4,
+      "medianMs": 1082,
+      "p10Ms": 1082,
+      "p90Ms": 1082,
+      "minMs": 1082,
+      "maxMs": 1082
+    },
+    "헬레니아|basic|1": {
+      "count": 7,
+      "medianMs": 1082,
+      "p10Ms": 1082,
+      "p90Ms": 1082,
+      "minMs": 1082,
+      "maxMs": 1082
+    },
+    "헬레니아|reaction|1": {
+      "count": 1,
+      "medianMs": 1071,
+      "p10Ms": 1071,
+      "p90Ms": 1071,
+      "minMs": 1071,
+      "maxMs": 1071
+    },
+    "헬레니아|skill|2": {
+      "count": 3,
+      "medianMs": 2142,
+      "p10Ms": 1071,
+      "p90Ms": 2142,
+      "minMs": 1071,
+      "maxMs": 2142,
+      "cooldown": {
+        "count": 2,
+        "medianMs": 52189,
+        "p10Ms": 52189,
+        "p90Ms": 52189,
+        "minMs": 52189,
+        "maxMs": 54608
+      }
+    },
+    "헬레니아|skill|3": {
       "count": 2,
+      "medianMs": 3146,
+      "p10Ms": 3146,
+      "p90Ms": 3146,
+      "minMs": 3146,
+      "maxMs": 3146,
+      "cooldown": {
+        "count": 2,
+        "medianMs": 50188,
+        "p10Ms": 50188,
+        "p90Ms": 50188,
+        "minMs": 50188,
+        "maxMs": 53954
+      }
+    },
+    "헬레니아|skill|7": {
+      "count": 1,
       "medianMs": 5000,
       "p10Ms": 5000,
       "p90Ms": 5000,

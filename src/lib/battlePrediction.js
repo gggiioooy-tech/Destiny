@@ -1,7 +1,8 @@
 import {createBattle,advanceBattle,prepareHeroes} from './experimentalBattle.js';
 import {canonicalHero} from './simulationSkills.js';
+import {calculatePrebattle,defaultPrebattleSettings,PETS,FORMATIONS} from './prebattleStats.js';
 
-export const ENGINE_VERSION='2026-10-22.6';
+export const ENGINE_VERSION='2026-10-23.1';
 // Frequencies describe this model, not its accuracy against the game.
 export function summarizePrediction(counts){
   const {attacker=0,defender=0,unresolved=0}=counts,total=attacker+defender+unresolved;
@@ -38,13 +39,23 @@ export function setupFromRecord(record){
       if(!row||!['hp','defence','attackSpeed'].every(k=>Number.isFinite(row.stats[k]))||!['physicalAttack','magicalAttack'].some(k=>Number.isFinite(row.stats[k])))throw Error('시작 스탯 누락');
       heroes.push({side,name:canonicalHero(team.heroes[i]),stats:Object.fromEntries(Object.entries(statIds).filter(([k])=>Number.isFinite(row.stats[k])).map(([k,id])=>[id,row.stats[k]]))});
     }
-    if(team.skills?.length!==3)throw Error('초기 예약 스킬 3개가 필요합니다.');
+    if(!Array.isArray(team.skills)||team.skills.length>3)throw Error('초기 예약 스킬 확인 필요');
     plans[side]=team.skills.slice().sort((a,b)=>a.order-b.order).map(s=>{
       const slot=team.heroIds.indexOf(s.heroId);if(slot<0||![2,3].includes(s.skillType))throw Error('초기 예약 스킬 확인 필요');
       return {id:slot+(side==='defender'?3:0),code:s.skillType};
     });
   }
-  const draft=prepareHeroes({heroes});createBattle(draft,{plans});return {draft,plans};
+  const raw=prepareHeroes({heroes}),settings=defaultPrebattleSettings();
+  for(const side of ['attacker','defender']){
+    const context=p.initialContext?.[side],team=p[side];
+    if(PETS.some(v=>v.name===team.pet))settings[side].pet=team.pet;
+    const initial=team.heroIds.map(id=>context?.heroes?.find(h=>h.heroId===id));
+    const formationMap={13200:'basic',12300:'balance',14100:'attack',11400:'protection'},formation=FORMATIONS.find(f=>f.id===formationMap[initial[0]?.formationGroup]);
+    if(formation&&initial.every(h=>Number.isInteger(h?.seat)&&h.seat>=1&&h.seat<=5)&&new Set(initial.map(h=>h.seat)).size===3){
+      settings[side].formation=formation.id;settings[side].seats=initial.map(h=>h.seat);settings[side].positions=initial.map(h=>h.seat<=formation.front?'front':'back');
+    }
+  }
+  const draft=calculatePrebattle(raw,settings,{basis:'battle'}).heroes;createBattle(draft,{plans});return {draft,plans};
 }
 
 export function wilsonInterval(success,total){

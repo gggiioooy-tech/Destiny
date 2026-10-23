@@ -1,14 +1,15 @@
 import {roleCount} from './passiveRules.js';
-import {rollEffect} from './combatDamage.js';
+import {rollEffect,casterEffect,calculateHit} from './combatDamage.js';
+import {syncDebuffs} from './statusEffects.js';
 
 // Full-skill, six-transcendence rules. Simultaneous trigger/cleanse order is
 // experimental; these secondary hits never recursively count as direct hits.
-const succeeds=(source,target,chance,rng)=>rollEffect({baseChance:chance,accuracy:source.accuracy,resistance:target.resist},rng);
+const succeeds=(source,target,chance,rng)=>rollEffect(casterEffect(source,target,chance),rng);
 export function addReflux(source,target,turns,chance,rng){
   if(target.hp<=0||!succeeds(source,target,chance,rng))return false;
   target.reflux??=[];if(target.reflux.length>=7)return false;
   target.debuffSerial=(target.debuffSerial||0)+1;
-  target.reflux.push({id:target.debuffSerial,source:source.id,attack:source.attack,remaining:turns,duration:turns});return true;
+  target.reflux.push({id:target.debuffSerial,source:source.id,attack:source.attack,remaining:turns,duration:turns});syncDebuffs(target);return true;
 }
 export function spreadReflux(host,entries,units,rng,events){
   for(const entry of entries){
@@ -26,6 +27,7 @@ export function specialHitEffects(source,target,code,units,rng,{each=false}={}){
     if(succeeds(source,target,code===1?35:code===2?65:45,rng)){
       target.crystals??=[];target.debuffSerial=(target.debuffSerial||0)+1;
       target.crystals.push({id:target.debuffSerial,source:source.id,hits:code===3?4:5});
+      syncDebuffs(target);
     }
   }
 }
@@ -33,7 +35,7 @@ export function directDebuffHits(target,snapshot,units,rng,deal,events,elapsedMs
   for(const entry of snapshot.reflux||[]){
     if(target.hp<=0)break;
     const source=units[entry.source];
-    if(source){const amount=Math.min(target.maxHp*.15,entry.attack*.9)*Math.max(0,1+(source.damageIncrease||0)/100);deal(target,amount,source.id,'reflux');}
+    if(source){const amount=calculateHit({base:Math.min(target.maxHp*.15,entry.attack*.9),defense:target.defense,defenseDecrease:target.defDown||0,damageIncrease:source.refluxDamageIncrease||0,damageReduction:target.damageReduction||0});deal(target,amount,source.id,'reflux');}
   }
   const ids=new Set((snapshot.crystals||[]).map(c=>c.id));
   for(const crystal of target.crystals||[])if(ids.has(crystal.id))crystal.hits--;

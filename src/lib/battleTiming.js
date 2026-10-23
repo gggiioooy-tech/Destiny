@@ -2,6 +2,10 @@ import catalog from './battleTimingCatalog.json' with {type:'json'};
 import {canonicalHero} from './simulationSkills.js';
 export const BATTLE_LIMIT_MS=210000;
 export const TIMING_CATALOG=catalog;
+export function skillCooldownMs(name,code,publishedSeconds=0){
+  const observed=catalog.entries[canonicalHero(name)+'|skill|'+code]?.cooldown;
+  return observed?.count>=5?observed.medianMs:publishedSeconds*1000;
+}
 export function actionTiming(name,code,kind='skill'){
   const key=canonicalHero(name)+'|'+kind+'|'+code,profile=catalog.entries[key];
   if(profile)return {...profile,estimated:false,source:'observed_stage_interval'};

@@ -1,6 +1,7 @@
 import {createBattle} from './experimentalBattle.js';
 import {canonicalHero,coverageIssues} from './simulationSkills.js';
 import {normalizePrebattleSettings,calculatePrebattle} from './prebattleStats.js';
+import {EQUIPMENT_SETS} from './equipmentEffects.js';
 
 export const STAT_FIELDS=[['attack','공격력'],['defense','방어력'],['maxHp','생명력'],['speed','속공'],['crit','치명타 확률 %'],['critDamage','치명타 피해 %'],['weakPoint','약점 공격 확률 %'],['block','막기 확률 %'],['accuracy','효과 적중 %'],['resist','효과 저항 %'],['shred','파쇄 %'],['elasticity','탄성 %'],['damageReduction','받는 피해 감소 %'],['amplification','피해 증폭 %'],['regeneration','재생 %'],['damageIncrease','별도 피해 증가 %'],['vulnerability','받는 피해 취약 %'],['weakBonus','별도 약점 피해 증가 %'],['missChance','빗나감 확률 %'],['blockBuff','추가 막기 버프 %'],['blockDebuff','막기 디버프 %'],['blockReduction','막기 피해감소 %']];
 const aliases={공격력:'attack',물리공격력:'attack',마법공격력:'attack',방어력:'defense',생명력:'maxHp',속공:'speed',치명타확률:'crit',치명타피해:'critDamage',약점공격확률:'weakPoint',막기확률:'block',효과적중:'accuracy',효과저항:'resist',파쇄:'shred',탄성:'elasticity',재생:'regeneration',받는피해감소:'damageReduction',피해증폭:'amplification',피해량증가:'damageIncrease'};
@@ -46,7 +47,8 @@ export function validateSetupDocument(value){
   const draft=value.draft.map((h,id)=>{
     const example=h?.exampleStats===true||typeof h?.origin==='string'&&h.origin.includes('테스트 기본값');
     if(!['none','daebul','daegwon','gwonbul'].includes(h.ring||'none'))throw Error('반지 종류를 확인해 주세요.');
-    const unit={ring:h.ring||'none',id,side:id<3?'attacker':'defender',name:canonicalHero(h?.name),origin:example?'테스트 기본값 · 저장한 조합':'불러온 조합 · 직접 저장한 수치',exampleStats:example};
+    if(!EQUIPMENT_SETS.some(v=>v.id===(h.equipmentSet||'none')))throw Error('장비 세트 종류를 확인해 주세요.');
+    const unit={ring:h.ring||'none',equipmentSet:h.equipmentSet||'none',id,side:id<3?'attacker':'defender',name:canonicalHero(h?.name),origin:example?'테스트 기본값 · 저장한 조합':'불러온 조합 · 직접 저장한 수치',exampleStats:example};
     for(const [key]of STAT_FIELDS){const n=h?.[key];if(!Number.isFinite(n))throw Error('조합 스탯이 올바르지 않습니다.');unit[key]=n;}
     return unit;
   });
