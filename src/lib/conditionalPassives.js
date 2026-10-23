@@ -39,7 +39,7 @@ export function afterHitPassive(unit,units,events,{attackToken}={}){
   if(unit.hp<=0)return;
   unit.passiveHits=(unit.passiveHits||0)+1;
   const giyu=units.find(u=>u.side===unit.side&&u.hp>0&&u.name==='기유');
-  if(giyu&&giyu.id===unit.id&&unit.passiveHits%4===0)for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0)){cleanseOne(ally);ally.awakenGauge=Math.min(ally.awakenMax||0,(ally.awakenGauge||0)+10);}
+  if(giyu&&unit.passiveHits%4===0){cleanseOne(unit);unit.awakenGauge=Math.min(unit.awakenMax||0,(unit.awakenGauge||0)+10);}
   if(unit.passiveHits%3===0&&unit.battleRow==='front'&&units.some(u=>u.side===unit.side&&u.hp>0&&u.name==='루디')){unit.reductionHits=2;unit.hitReduction=23;}
   if(unit.name==='헬레니아'&&unit.passiveHits%3===0)heal(unit,unit.defense*.4);
   const rad=units.find(u=>u.side===unit.side&&u.hp>0&&u.name==='라드그리드');

@@ -69,9 +69,10 @@ test('Skuld receives one fate thread for an attack including its chained hits',(
   for(let i=0;i<8;i++)afterHitPassive(u,units,[],{attackToken:1});assert.equal(u.fateThreads,1);
   afterHitPassive(u,units,[],{attackToken:2});afterHitPassive(u,units,[],{attackToken:3});assert.equal(u.fateThreads,0);assert.equal(u.nullify,4);
 });
-test('Giyu four hits cleanse one debuff per ally and increase awakening gauge',()=>{
+test('Giyu grants each ally a separate four-hit cleanse and gauge trigger',()=>{
   const u=unit(0,'기유'),ally=unit(1,'루디');for(const a of [u,ally]){a.control=2;a.sleep=2;a.awakenMax=120;a.awakenGauge=5;}
-  for(let i=0;i<4;i++)afterHitPassive(u,[u,ally],[]);assert.equal(ally.control,0);assert.equal(ally.sleep,2);assert.equal(ally.awakenGauge,15);
+  for(let i=0;i<4;i++)afterHitPassive(u,[u,ally],[]);assert.equal(u.control,0);assert.equal(u.sleep,2);assert.equal(u.awakenGauge,15);assert.equal(ally.control,2);assert.equal(ally.awakenGauge,5);
+  for(let i=0;i<4;i++)afterHitPassive(ally,[u,ally],[]);assert.equal(ally.control,0);assert.equal(ally.sleep,2);assert.equal(ally.awakenGauge,15);
 });
 test('hit-count reduction expires and damage nullification does not consume it',()=>{
   const u={...unit(0,'루디'),reductionHits:2,hitReduction:23,nullify:1};let out=receiveDamage(u,1000);assert.equal(out.target.reductionHits,2);

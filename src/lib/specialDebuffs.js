@@ -46,7 +46,7 @@ export function detonateCrystals(target,units,rng,deal,events,elapsedMs){
   for(const crystal of burst){
     if(target.hp<=0)break;deal(target,2435,crystal.source,'crystal');
     const source=units[crystal.source];
-    if(target.hp>0&&source&&!target.cooldownImmune&&succeeds(source,target,100,rng))for(const key of [2,3])target.readyAt[key]=Math.max(target.readyAt[key]||0,elapsedMs)+14000;
+    if(target.hp>0&&source&&!target.cooldownImmune&&succeeds(source,target,100,rng)){for(const key of [2,3])target.readyAt[key]=Math.max(target.readyAt[key]||0,elapsedMs)+14000;target.cancelReservations=true;}
     events.push(target.name+' · 수정 결정 폭발');
   }
 }

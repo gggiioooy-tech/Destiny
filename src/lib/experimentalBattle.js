@@ -100,6 +100,7 @@ function scheduled(s){
     const usable=(unit,code,isReserved=false)=>{
       const spec=combatSkill(unit,code);if(!spec)return false;
       if((unit.readyAt?.[code]||0)>(s.elapsedMs||0))return false;
+      if(unit.name==='클레미스'&&code===7&&s.units.some(u=>u.side===side&&u.hp===0&&!u.annihilation))return true;
       if(spec.hits||!spec.effects.length)return true;
       if(code===7&&unit.name==='델론즈')return true;
       const healing=spec.effects.some(e=>e.type==='heal'),revival=spec.effects.some(e=>e.type==='revive');
@@ -125,6 +126,7 @@ function scheduled(s){
   s.phase=(s.phase+1)%3;s.turn++;return {actor,code:1,kind:'basic'};
 }
 function finishStep(s,events,meta={}){
+  for(const u of s.units)if(u.cancelReservations){s.plans[u.side]=s.plans[u.side].filter(p=>p.id!==u.id);delete u.cancelReservations;}
   const counts=s.units.map(u=>(u.revivalCount||0)+(u.hp<=0?1:0));
   for(const unit of s.units.filter(u=>u.name==='델론즈'&&u.hp>0)){
     for(const dead of s.units){const count=Math.max(0,counts[dead.id]-(s.deathCounts?.[dead.id]||0));if(!count||dead.id===unit.id)continue;
@@ -198,7 +200,7 @@ export function advanceBattle(previous){
     return {...outcome,target:{...target}};
   }
   function secondaryDamage(target,amount,sourceId,kind){
-    const out=applyDamage(target,amount,{direct:false,creditId:sourceId});
+    const out=applyDamage(target,amount,{direct:false,creditId:sourceId,fixed:kind==='crystal'});
     const source=s.units[sourceId];if(source)source.damageDealt+=out.damage+out.absorbed;
     s.impacts.push({target:target.id,source:sourceId,damage:out.damage,absorbed:out.absorbed,kind});
   }
@@ -269,6 +271,16 @@ export function advanceBattle(previous){
       if(code===3)for(const t of targets){const hp=convertedHealth({hp:t.hp,maxHp:t.maxHp,percent:39,immortal:t.immortal>0});events.push(`${t.name} 생명력 전환 ${t.hp} → ${hp}`);t.hp=hp;}
       for(const t of targets)for(let i=0;i<(code===1?1:3);i++)hit(t,actor.attack*(code===3?.58:code===2?.5:1.45)*(code===3?1+.5*t.hp/t.maxHp:1),{ignore:code!==1?.4:0,pierce:code===3});
       actor.nullify=Math.min(6,actor.nullify+(code===1?1:2));
+    } else if(actor.name==='클레미스'&&code===7){
+      skill='구원의 힘';
+      for(const target of s.units.filter(u=>u.side===actor.side&&u.id!==actor.id&&u.hp===0&&!u.annihilation).slice(0,2)){
+        cleanseDebuffs(target);target.dots=[];target.reflux=[];target.crystals=[];target.pendingControlBursts=[];
+        const offensive=[1,2].includes(heroProfile(target.name)?.role);
+        target.hp=offensive?1:Math.max(1,Math.round(target.maxHp*.65));target.immortal=offensive?3:0;target.controlImmune=Math.max(target.controlImmune||0,offensive?3:2);
+        target.revivalCount=(target.revivalCount||0)+1;onRevivalRules(target,s.units,events);queuePassiveAttacks('revive',target,s.units,reactions);
+        events.push(`${target.name} · 클레미스 ${offensive?'불사 3턴':'생명력 65%'} 부활`);s.impacts.push({target:target.id,heal:target.hp});
+      }
+      for(const ally of alive(actor.side)){const amount=restoreHp(ally,actor.maxHp*.26);actor.healingDone+=amount;if(amount)s.impacts.push({target:ally.id,heal:amount});}
     } else {
       const spec=combatSkill(actor,code);
       skill=spec?.name||`${code===1?'기본 공격':(code-1)+'스킬'} · 자료 없음`;

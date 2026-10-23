@@ -5,7 +5,7 @@ import {startingShieldRules,passiveShieldRules} from './passiveShields.js';
 
 const profiles=new Map(roster.heroes.map(h=>[h.name,h]));
 export const passiveText=name=>{const p=profiles.get(name)?.skills.find(s=>s.code===4);return [p?.text,p?.enhanced,p?.upgrades].filter(Boolean).join('\n');};
-export function roleCount(units,side,role){const team=units.filter(u=>u.side===side),count=team.filter(u=>profiles.get(u.name)?.role===role).length;return count+(count>=2&&team.some(u=>['하연','클레미스'].includes(u.name))?1:0);}
+export function roleCount(units,side,role){const team=units.filter(u=>u.side===side),count=team.filter(u=>profiles.get(u.name)?.role===role).length,minimum=team.length>3?3:2;return count+(count>=minimum&&team.some(u=>['하연','클레미스'].includes(u.name))?1:0);}
 export function initializePassives(units){
   for(const unit of units){
     const text=passiveText(unit.name);
@@ -18,6 +18,8 @@ export function initializePassives(units){
     if(unit.name==='카일'&&roleCount(units,unit.side,1)>=3)unit.nullify=Math.max(unit.nullify,4);
     if(['프레이야','멜키르','실베스타'].includes(unit.name))unit.blessing=25;
     if(unit.name==='기유')unit.cooldownImmune=3;
+    if(unit.name==='밀리아')unit.controlImmune=roleCount(units,unit.side,2)>=4?3:0;
+    if(unit.name==='선란')unit.seonStacks??=3;
     if(units.some(u=>u.side===unit.side&&u.name==='카르마')){unit.reductionHits=3;unit.hitReduction=20;}
     if(profiles.get(unit.name)?.role===2&&units.some(u=>u.side===unit.side&&u.name==='동영'&&u.battleRow===unit.battleRow))unit.immunity=Math.max(unit.immunity,1);
     if(text.includes('고통 감내'))unit.endurePain=true;
@@ -80,6 +82,7 @@ export function onHealthThreshold(unit,units,events){
   }
 }
 export function onAttackStacks(unit,units,events){
+  if(profiles.get(unit.name)?.role===2)for(const caster of units.filter(u=>u.side===unit.side&&u.hp>0&&u.name==='밀리아'&&roleCount(units,u.side,2)>=5))grantShield(unit,caster.defense*.45,2);
   if(unit.name==='초선'&&unit.lastAttackBasic)for(const ally of units.filter(u=>u.side===unit.side&&u.id!==unit.id&&u.hp>0&&[1,2].includes(profiles.get(u.name)?.role))){grantShield(ally,unit.maxHp*.22,2);if(!ally.buffBlock)ally.controlImmune=Math.max(ally.controlImmune||0,2);}
   if(unit.lastAttackBasic)for(const {text:line,group} of passiveSections(unit.name)){const immunity=line.match(/자신의 기본 공격 1회 발동 시 (기절|마비|빙결|석화|감전|수면|침묵|화상|중독) 면역\s*\[(\d+)턴/);if(immunity)for(const target of group==='team'?units.filter(u=>u.side===unit.side):[unit]){target.statusImmunities??={};target.statusImmunities[immunity[1]]=Number(immunity[2]);}}
   unit.passiveAttackCount=(unit.passiveAttackCount||0)+1;
@@ -153,6 +156,7 @@ export function onGutsRules(unit,units,events,rng){
 }
 export function onDeathRules(dead,units,events){
   if(dead.name==='루디'){dead.defense-=(dead.stackBases?.rudyStance||0)*.15*(dead.rudyStance||0);dead.rudyStance=0;}
+  if(dead.name==='선란'){const count=dead.seonStacks??3,base=dead.stackBases?.seonStacks??dead.panelStackBase?.attack??dead.attack/(1+count*.07);dead.attack-=base*.07*count;dead.critDamage-=10*count;dead.seonStacks=0;}
   for(const unit of units.filter(u=>u.hp>0&&u.id!==dead.id)){
     const ally=unit.side===dead.side,text=passiveText(unit.name);
     if(unit.name==='하연')unit.awakenGauge=Math.min(unit.awakenMax,unit.awakenGauge+11);
