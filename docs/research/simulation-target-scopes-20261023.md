@@ -1,0 +1,26 @@
+# Target scopes and refreshed passives — 2026-10-23.11
+
+Sources: [Choseon](https://www.namu.moe/w/초선(세븐나이츠%20리버스)), [Gwanwoo](https://www.namu.moe/w/관우(세븐나이츠%20리버스)), [Ballista](https://www.namu.moe/w/발리스타(세븐나이츠%20리버스)). NamuWiki contributors, CC BY-NC-SA 2.0 KR where applicable. Numeric mechanics are paraphrased into reviewed data, preserving actual client skill codes.
+
+- Effect targeting now filters role, row and exclusion before limiting target count. Explicit lowest-current-HP ally selection differs from default lowest-HP-ratio selection.
+- Choseon: restored single-other-ally basic recovery, offensive-other-ally cooldown resets, separate friendly damage buffs and enemy recovery reduction, and the defensive/support recovery aura. Basic shielding remains conditional on eligible offensive allies; it is not incorrectly granted at start to everyone.
+- Gwanwoo: restored complete skill and passive descriptions, cleanse-count regeneration, full-enhancement strike, rear buffs and periodic refresh. Refresh reuses the originating buff entry instead of adding a second copy.
+- Same-duration buffs and status immunity refreshed during a basic action retain their newly refreshed duration rather than losing a turn immediately.
+- Ballista: added own assist chance bonus, separate assist reaction, every-third-attack fixed passive and every-second-attack nullification. The fixed passive does not recursively count itself in the current common passive-attack model. The source text lacks an explicit maximum recast count whereas the imported database explicitly specifies one; that bound remains conservative pending direct replay confirmation and is not declared certified.
+- Default roster imports preserve reviewed Korean snapshots (including corrected awakened roles and hand-reviewed descriptions); explicit refresh is available for deliberate source regeneration. Two Python regressions verify preservation and explicit refresh.
+
+No new hero stats or outcomes are imputed from winners. Version 2026-10-23.10's previously-unused 60-record archive evaluation remains separately labelled with its frozen engine version; it is not presented as an independently certified accuracy of this new version.
+
+Tests cover target exclusion, current-HP healing, role-specific resets, enemy/friendly effect separation, nonstacking refresh, refreshed immunity, assist-triggered fixed damage and nullification. Exact simultaneous-server priority and remaining source-specific conditions are still not all certified.
+
+Miho: restored full-strength basic/actives and weak-triggered extra damage, native guts recovery, and the two-skill party vampirism grant. Vampirism currently recovers from direct main/component/reaction damage (including absorbed shield damage); DOT and other indirect sources are not silently treated as certified leech sources. Recovery block/immortality rules reuse the common recovery handler.
+
+Ring lifecycle: HP-revival rings and native HP revival consume a shared same-effect life; immortality rings and native immortality consume a shared same-effect life using the longer duration. Different full-HP and immortal revival stages remain separate. Native/ring guts still share one survival activation and select the stronger shield. The six-star ring shield lasts four personal turns, receives regeneration scaling, resists ordinary buff dispel, and remains susceptible to duration reduction. Ordinary replacement shields carry their own removable provenance; all shield grants use one integer-valued helper. Exact simultaneous overlap of differently sourced shields remains a model convention rather than a server-proof claim.
+
+Ring sources: [equipment table](https://www.namu.moe/w/세븐나이츠%20리버스/장비) explicitly states same-type native effects do not stack and that the ring shield cannot be dispelled; [original player guide](https://gall.dcinside.com/mgallery/board/view/?id=sevennightsrebirth&no=1140224) reports duration reduction shortening a guts shield. [Miho skill table](https://www.namu.moe/w/미호(세븐나이츠%20리버스)) provides her recovery and vampire mechanics. No source is treated as proof of all interactions beyond those described.
+
+Current regression count: 413 JavaScript tests plus two Python importer tests. Old archive benchmark: 154 eligible, 149 decided, 96 correct, 5 abstentions (64.43% among decided), still below the 66.23% majority-class baseline and not 90% validated. Version .10 frozen previously-unused 60-record result stays separate (47/60); its outcomes were not inspected to fit the current new handlers.
+
+Execution lifecycle source: [system rules](https://www.namu.moe/w/세븐나이츠%20리버스/시스템) states instant-death/execution spends guts even though guts does not save the target. Execution now spends the activation without triggering its shield/recovery/exchange hooks. A subsequent revival cannot restore an unused extra guts life.
+
+Additional verification: 414 JavaScript regressions and two importer tests pass. The mixed-ring distinct-pair sweep covered all 30,800 pair placements and 1,267,973 actions with no invariant failures. After the final execution-consumption repair, a further 1,000 mixed-ring placements (42,014 actions) plus the full regression suite pass; the original broad sweep is not misrepresented as exhaustive verification of every possible six-hero/ring-state combination.

@@ -1,6 +1,7 @@
+import {applyShield} from './shieldEffects.js';
 import {addStack,roleCount} from './passiveRules.js';
 import {heroSkills,heroProfile} from './simulationSkills.js';
-import {calculateRecovery,calculateShield} from './combatDamage.js';
+import {calculateRecovery} from './combatDamage.js';
 import {cleanseDebuffs} from './statusEffects.js';
 
 function heal(unit,base){
@@ -8,7 +9,7 @@ function heal(unit,base){
   const amount=Math.min(unit.maxHp-unit.hp,calculateRecovery({base,regeneration:unit.regeneration||0,increase:unit.healingIncrease||0,decrease:unit.healingReduction||0}));
   unit.hp+=amount;return amount;
 }
-function shield(unit,base,turns){if(unit.buffBlock||unit.hp<=0)return;unit.barrier=Math.max(unit.barrier||0,calculateShield({base,regeneration:unit.regeneration||0})*(1-(unit.shieldReduction||0)/100));unit.barrierTurns=Math.max(unit.barrierTurns||0,turns);}
+function shield(unit,base,turns){return applyShield(unit,base,turns);}
 export function afterControl(unit,events,units=[]){
   if(!unit.hp)return;
   const sources=[unit,...units.filter(u=>u.id!==unit.id&&u.side===unit.side&&u.hp>0&&u.name==='란드그리드')];

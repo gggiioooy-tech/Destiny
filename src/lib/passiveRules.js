@@ -1,6 +1,7 @@
+import {applyShield} from './shieldEffects.js';
 import roster from './simulationRoster.json' with {type:'json'};
-import {calculateRecovery,calculateShield,rollEffect,casterEffect} from './combatDamage.js';
-import {setTimedDebuff} from './timedEffects.js';
+import {calculateRecovery,rollEffect,casterEffect} from './combatDamage.js';
+import {setTimedBuff,setTimedDebuff} from './timedEffects.js';
 import {startingShieldRules,passiveShieldRules} from './passiveShields.js';
 
 const profiles=new Map(roster.heroes.map(h=>[h.name,h]));
@@ -10,7 +11,7 @@ export function initializePassives(units){
   for(const unit of units){
     const text=passiveText(unit.name);
     // Reset the legacy regex result: a conditional guts shield is never initial.
-    unit.barrier=0;unit.barrierTurns=0;
+    unit.barrier=0;unit.barrierTurns=0;unit.barrierProtected=false;
     for(const rule of startingShieldRules(unit.name))grantShield(unit,unit[rule.scale]*rule.value,rule.turns);
     for(const rule of passiveShieldRules(unit.name).filter(r=>r.trigger==='guts'&&r.group==='self'&&r.scale==='attack'&&!r.conditional))unit.gutsShieldPercent=Math.max(unit.gutsShieldPercent||0,rule.value*100);
     const stealth=passiveSections(unit.name).find(r=>r.group==='self'&&r.text.includes('위장')&&!/부활|발동|경우/.test(r.text));if(stealth)unit.stealth=Number(stealth.text.match(/(\d+)턴/)?.[1]||2);
@@ -50,11 +51,7 @@ export function restoreHp(unit,base){
   if(unit.hp<=0||unit.healBlock||unit.indomitableHits>0||unit.immortal>0)return 0;
   const amount=Math.min(unit.maxHp-unit.hp,calculateRecovery({base,regeneration:unit.regeneration||0,increase:unit.healingIncrease||0,decrease:unit.healingReduction||0}));unit.hp+=amount;return amount;
 }
-export function grantShield(unit,base,turns){
-  if(unit.hp<=0||unit.buffBlock)return;
-  const amount=calculateShield({base,regeneration:unit.regeneration||0})*(1-(unit.shieldReduction||0)/100);
-  if(amount>=unit.barrier){unit.barrier=amount;unit.barrierTurns=turns;}
-}
+export function grantShield(unit,base,turns){return applyShield(unit,base,turns);}
 export function addStack(unit,key,stat,step,max,initial=0){
   const previous=unit[key]??initial,next=Math.min(max,previous+1);
   unit.stackBases??={};unit.stackBases[key]??=unit.panelStackBase?.[stat]??(unit[stat]/(1+initial*step/100));
@@ -85,8 +82,10 @@ export function onAttackStacks(unit,units,events){
   if(unit.name==='윤건'&&unit.lastAttackBasic&&roleCount(units,unit.side,2)>=3)unit.nullify=Math.min(6,(unit.nullify||0)+1);
   if(profiles.get(unit.name)?.role===2)for(const caster of units.filter(u=>u.side===unit.side&&u.hp>0&&u.name==='밀리아'&&roleCount(units,u.side,2)>=5))grantShield(unit,caster.defense*.45,2);
   if(unit.name==='초선'&&unit.lastAttackBasic)for(const ally of units.filter(u=>u.side===unit.side&&u.id!==unit.id&&u.hp>0&&[1,2].includes(profiles.get(u.name)?.role))){grantShield(ally,unit.maxHp*.22,2);if(!ally.buffBlock)ally.controlImmune=Math.max(ally.controlImmune||0,2);}
-  if(unit.lastAttackBasic)for(const {text:line,group} of passiveSections(unit.name)){const immunity=line.match(/자신의 기본 공격 1회 발동 시 (기절|마비|빙결|석화|감전|수면|침묵|화상|중독) 면역\s*\[(\d+)턴/);if(immunity)for(const target of group==='team'?units.filter(u=>u.side===unit.side):[unit]){target.statusImmunities??={};target.statusImmunities[immunity[1]]=Number(immunity[2]);}}
+  if(unit.lastAttackBasic)for(const {text:line,group} of passiveSections(unit.name)){const immunity=line.match(/자신의 기본 공격 1회 발동 시 (기절|마비|빙결|석화|감전|수면|침묵|화상|중독) 면역\s*\[(\d+)턴/);if(immunity)for(const target of group==='team'?units.filter(u=>u.side===unit.side):[unit]){target.statusImmunities??={};target.statusImmunities[immunity[1]]=Number(immunity[2]);target.statusImmunityEpochs??={};target.statusImmunityEpochs[immunity[1]]=(target.statusImmunityEpochs[immunity[1]]||0)+1;}}
   unit.passiveAttackCount=(unit.passiveAttackCount||0)+1;
+  if(unit.name==='발리스타'&&unit.passiveAttackCount%2===0&&!unit.buffBlock)unit.nullify=Math.min(6,(unit.nullify||0)+1);
+  if(unit.name==='관우'&&unit.passiveAttackCount%2===0)for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0&&u.battleRow==='back')){if(profiles.get(ally.name)?.skills.find(s=>s.code===1)?.text.includes('물리 공격력'))setTimedBuff(ally,'damageIncrease',20,3,{source:'관우'});setTimedBuff(ally,'critDamage',40,3,{source:'관우'});}
   if(unit.name==='성진우'){unit.jinwooBasics=(unit.jinwooBasics||0)+(unit.lastAttackBasic?1:0);if(!unit.lastAttackBasic||unit.jinwooBasics%2===0)addStack(unit,'jinwooLevels','attack',3,40);}
   if(unit.name==='카르마'&&unit.passiveAttackCount%2===0)for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0)){ally.reductionHits=3;ally.hitReduction=20;}
   if(unit.name==='시노부'&&unit.lastAttackBasic)addStack(unit,'poisonStacks','attack',5,6,3);
@@ -106,6 +105,7 @@ export function beforeSkillRules(unit,units,events,rng=()=>0){
 export function onSkillRules(unit,units,events,rng=()=>0,{includeBefore=true}={}){
   if(includeBefore)beforeSkillRules(unit,units,events,rng);
   const text=passiveText(unit.name);
+  if(unit.name==='미호'&&unit.skillActions%2===0)for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0))setTimedBuff(ally,'vampirism',20,2,{source:'미호'});
   if(unit.name==='나타')for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0))grantShield(ally,unit.attack*.55,2);
   if(unit.name==='오를리')for(const ally of units.filter(u=>u.side===unit.side&&u.hp>0&&(u.id===unit.id||profiles.get(u.name)?.role===2)))if(!ally.buffBlock)ally.nullify=Math.min(6,(ally.nullify||0)+1);
   const debuff={'스쿨드':['shieldReduction',60,3],'카구라':['physicalVulnerability',24,2]}[unit.name];
@@ -154,6 +154,7 @@ export function onRevivalRules(unit,units,events){
   }events.push(unit.name+' · 부활 패시브');
 }
 export function onGutsRules(unit,units,events,rng){
+  if(unit.name==='미호')restoreHp(unit,unit.maxHp*.3);
   if(unit.name==='스파이크')restoreHp(unit,unit.maxHp*.6);
   if(unit.name==='브란즈&브란셀')unit.immunity=Math.max(unit.immunity,2);
   if(!['하연','팔라누스'].includes(unit.name))return;

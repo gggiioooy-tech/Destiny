@@ -51,17 +51,18 @@ export function compileSkill(raw){
   skill.hpBoost=ratioBoost?{kind:ratioBoost[1]==='잃은'?'lost':'current',value:Number(ratioBoost[2])/100}:null;
   // Effect lines are read only before explanatory definitions. Conditional mechanics
   // need dedicated handlers and are surfaced in the battle report rather than guessed.
-  let group=raw.targetType===1?'self':[2,3].includes(raw.targetType)?'team':'enemy',details=false,roles=null,row=null;
+  let group=raw.targetType===1?'self':[2,3].includes(raw.targetType)?'team':'enemy',details=false,roles=null,row=null,excludeSelf=false,targetCount=null,targetPreference=null;
   for(const sourceLine of lines){
-    let line=sourceLine,targetCondition=null;
+    let line=sourceLine,targetCondition=null,effectRoles=null;
+    if(line.startsWith('- 대상이 공격형, 마법형일 경우 ')){effectRoles=[1,2];line='- '+line.slice('- 대상이 공격형, 마법형일 경우 '.length);}
     const conditional=line.match(/^- 대상이 \[마법 취약\] 상태일 경우 (.+)$/);
     if(conditional){targetCondition={stat:'magicVulnerability',above:0};line='- '+conditional[1];}
     if(/부가효과 상세|\[ 펼치기/.test(line))details=true;
     if(details)continue;
     const label=line.replace(/^[\[(]\s*/,'');
-    if(/^(?:모든 |단일 )?아군/.test(label)){group='team';roles=[['공격형',1],['마법형',2],['방어형',3],['지원형',4],['만능형',5]].filter(([name])=>label.includes(name)).map(([,id])=>id);row=label.includes('전열')?'front':label.includes('후열')&&!label.includes('우선')?'back':null;}
-    else if(/^자신/.test(label)){group='self';roles=null;row=null;}
-    else if(/^(?:모든 |단일 )?적군/.test(label)){group='enemy';roles=null;row=null;}
+    if(/^(?:현재 생명력이 가장 낮은 )?(?:모든 |단일 )?아군/.test(label)){group='team';excludeSelf=label.includes('자신 제외');targetCount=Number(label.match(/아군\s*(\d+)명/)?.[1]||0)||(/현재 생명력이 가장 낮은|단일/.test(label)?1:null);targetPreference=label.includes('현재 생명력이 가장 낮은')?'lowestHp':null;roles=[['공격형',1],['마법형',2],['방어형',3],['지원형',4],['만능형',5]].filter(([name])=>label.includes(name)).map(([,id])=>id);row=label.includes('전열')?'front':label.includes('후열')&&!label.includes('우선')?'back':null;}
+    else if(/^자신/.test(label)){group='self';roles=null;row=null;excludeSelf=false;targetCount=null;targetPreference=null;}
+    else if(/^(?:모든 |단일 )?적군/.test(label)){group='enemy';roles=null;row=null;excludeSelf=false;targetCount=null;targetPreference=null;}
     if(!line.startsWith('-'))continue;
     if(/해제 가능한 (?:버프|디버프)가 있어야 사용 가능/.test(line))continue;
     if(/(?:피해량|회복량|보호막|효과|확률|턴) 상승\s*[:：]|대상 수 변경/.test(line))continue;
@@ -87,7 +88,7 @@ export function compileSkill(raw){
     const duration=Number(line.match(/(\d+)\s*턴/)?.[1]||(/중첩/.test(line)?999:1));
     const chance=Number(line.match(/([\d.]+)%\s*확률/)?.[1]||100);
     const each=/각 공격마다/.test(line);
-    const add=(type,extra={})=>skill.effects.push({type,group,targetCondition,roles:roles?.length?roles:null,row,duration,chance,each,before:!each&&Boolean(damage)&&lines.indexOf(sourceLine)<lines.indexOf(damage),...extra});
+    const add=(type,extra={})=>skill.effects.push({type,group,targetCondition,roles:effectRoles|| (roles?.length?roles:null),row,excludeSelf,targetCount,targetPreference,duration,chance,each,before:!each&&Boolean(damage)&&lines.indexOf(sourceLine)<lines.indexOf(damage),...extra});
     const dot=line.match(/(?:^[- ]*|각 공격마다\s*|해제한 버프 개수만큼\s*)(화상|극독|중독|출혈)\s*\[/);
     if(dot){
       const rule=definitions[dot[1]]?.join(' ')||'',ratio=rule.match(/(?:공격력|최대 생명력)의?\s*([\d.]+)%/),cap=rule.match(/공격력의\s*([\d.]+)%.*(?:넘|초과)/);
@@ -104,7 +105,7 @@ export function compileSkill(raw){
     if(/위장\s*\[/.test(line)){add('stealth');continue;}
     if(/도발\s*\[/.test(line)){add('taunt');continue;}
     if(/분신\s*\[/.test(line)){add('clone');continue;}
-    const modifiers=[['물리 취약','physicalVulnerability'],['마법 취약','magicVulnerability'],['물리 감쇄','physicalReduction'],['마법 감쇄','magicReduction'],['받는 회복량 감소','healingReduction'],['받는 회복량 증가','healingIncrease'],['받는 보호막 감소','shieldReduction'],['빗나감 확률 증가','missChance'],['치명타 피해 증가','critDamage'],['치명타 확률 증가','crit'],['약점 공격 확률 증가','weakPoint'],['효과 적중 증가','accuracy'],['효과 저항 증가','resist'],['막기 확률 증가','block'],['감쇄','damageReduction'],['물리 피해량 증가','damageIncrease'],['마법 피해량 증가','damageIncrease'],['피해량 증가','damageIncrease'],['물리 공격력 증가','attack'],['마법 공격력 증가','attack'],['모든 공격력 증가','attack'],['방어력 증가','defense']];
+    const modifiers=[['협공 확률 증가','assistChanceBonus'],['물리 취약','physicalVulnerability'],['마법 취약','magicVulnerability'],['물리 감쇄','physicalReduction'],['마법 감쇄','magicReduction'],['받는 회복량 감소','healingReduction'],['받는 회복량 증가','healingIncrease'],['받는 보호막 감소','shieldReduction'],['빗나감 확률 증가','missChance'],['치명타 피해 증가','critDamage'],['치명타 확률 증가','crit'],['약점 공격 확률 증가','weakPoint'],['효과 적중 증가','accuracy'],['효과 저항 증가','resist'],['막기 확률 증가','block'],['감쇄','damageReduction'],['물리 피해량 증가','damageIncrease'],['마법 피해량 증가','damageIncrease'],['피해량 증가','damageIncrease'],['물리 공격력 증가','attack'],['마법 공격력 증가','attack'],['모든 공격력 증가','attack'],['방어력 증가','defense']];
     const modifier=modifiers.find(([label])=>line.includes(label));
     if(modifier){const [label,stat]=modifier,value=Number(line.match(new RegExp(label+'\\s*([\\d.]+)%'))?.[1]||definedValue(label));if(value){add('statTimed',{stat,value,ratio:['attack','defense'].includes(stat),family:/^물리/.test(label)?'physical':/^마법/.test(label)?'magic':'all',debuff:group==='enemy'});continue;}}
     const decreases=[['모든 공격력 감소','attack'],['물리 공격력 감소','attack'],['마법 공격력 감소','attack'],['치명타 확률 감소','crit'],['효과 저항 감소','resist'],['약점 공격 확률 감소','weakPoint'],['피해량 감소','damageIncrease'],['효과 적용 확률 감소','effectChanceBonus']];

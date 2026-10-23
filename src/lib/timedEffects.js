@@ -12,13 +12,13 @@ export function setTimedDebuff(target,stat,value,remaining){
   else target.panelTimedBuffs.push({stat,delta:desired-base,value,remaining,source,debuff:true});
   syncDebuffs(target);
 }
-export function setTimedBuff(target,stat,value,remaining,{ratio=false}={}){
+export function setTimedBuff(target,stat,value,remaining,{ratio=false,source:sourceName=null}={}){
   if(target.buffBlock)return;
   syncBuffs(target);
-  const source='일반 버프 · '+stat;target.panelTimedBuffs??=[];
+  const source=sourceName||'일반 버프 · '+stat;target.panelTimedBuffs??=[];
   const existing=target.panelTimedBuffs.find(b=>b.source===source),base=target.panelStackBase?.[stat]??((target[stat]||0)-(existing?.delta||0));
   const delta=ratio?base*value/100:value;
-  if(existing){if(delta>existing.delta){target[stat]+=delta-existing.delta;existing.delta=delta;}existing.remaining=Math.max(existing.remaining,remaining);}
+  if(existing){if(remaining>=existing.remaining)existing.refreshEpoch=(existing.refreshEpoch||0)+1;if(delta>existing.delta){target[stat]+=delta-existing.delta;existing.delta=delta;}existing.remaining=Math.max(existing.remaining,remaining);}
   else{target[stat]=(target[stat]||0)+delta;target.panelTimedBuffs.push({stat,delta,remaining,source});}syncBuffs(target);
 }
 export function setTimedDecrease(target,stat,value,remaining,{ratio=false}={}){

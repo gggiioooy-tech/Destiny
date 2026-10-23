@@ -57,8 +57,8 @@ test('daebul revives at full HP then with immortality exactly once each',()=>{
  const second=receiveDamage(first,5000).target;assert.equal(second.hp,1);assert.equal(second.immortal,3);assert.equal(second.ringImmortalUsed,true);
  let expired=second;for(let i=0;i<3;i++)expired=tickPersonalTurn(expired,expired).target;assert.equal(expired.hp,0);
 });
-test('daegwon saves lethal HP, creates an attack based shield, then revives at 100 percent',()=>{
- const first=receiveDamage(unit({ring:'daegwon',hp:500,regeneration:100}),1000).target;assert.equal(first.hp,1);assert.equal(first.barrier,1500);assert.equal(first.gutsUsed,true);
+test('daegwon saves lethal HP, creates a regeneration-scaled shield, then revives at 100 percent',()=>{
+ const first=receiveDamage(unit({ring:'daegwon',hp:500,regeneration:100}),1000).target;assert.equal(first.hp,1);assert.equal(first.barrier,3000);assert.equal(first.gutsUsed,true);
  const second=receiveDamage(first,5000).target;assert.equal(second.hp,1000);assert.equal(second.ringReviveUsed,true);
  assert.equal(receiveDamage(second,5000).target.hp,0);
 });
@@ -72,3 +72,13 @@ test('execution bypasses immortality but permits available ring revival',()=>{
  const first=receiveDamage(unit({hp:200,immortal:2,ring:'daebul'}),200,{execute:true});assert.equal(first.target.hp,1000);assert.equal(first.target.immortal,0);
  const second=receiveDamage(unit({hp:200,immortal:2,annihilation:1}),200,{execute:true});assert.equal(second.target.hp,0);assert.equal(second.damage,200);
 });
+test('native HP revival and HP-revival ring share one life, then distinct ring immortality remains',()=>{
+ let u=unit({ring:'daebul',revivePercent:100,revived:false});u=receiveDamage(u,10000).target;assert.equal(u.hp,1000);assert.equal(u.revived,true);u=receiveDamage(u,10000).target;assert.equal(u.hp,1);assert.equal(u.immortal,3);u.immortal=0;u=receiveDamage(u,10000).target;assert.equal(u.hp,0);assert.equal(u.revivalCount,2);
+});
+test('native immortality and immortality ring do not create two immortal revivals',()=>{
+ let u=unit({ring:'daebul',reviveImmortalTurns:3,revived:false});u=receiveDamage(u,10000).target;assert.equal(u.hp,1000);assert.equal(u.revived,false);u=receiveDamage(u,10000).target;assert.equal(u.immortal,3);assert.equal(u.revived,true);u.immortal=0;u=receiveDamage(u,10000).target;assert.equal(u.hp,0);assert.equal(u.revivalCount,2);
+});
+test('a longer native immortality wins over the ring without adding another revival charge',()=>{
+ let u=unit({ring:'gwonbul',gutsUsed:true,reviveImmortalTurns:5,revived:false});u=receiveDamage(u,10000).target;assert.equal(u.immortal,5);assert.equal(u.revived,true);u.immortal=0;u=receiveDamage(u,10000).target;assert.equal(u.hp,0);
+});
+test('execution consumes guts without its shield, so revival cannot grant a later extra guts life',()=>{let u=unit({guts:true,gutsShieldPercent:135,revivePercent:100,revived:false});const executed=receiveDamage(u,10000,{execute:true});u=executed.target;assert.equal(u.hp,1000);assert.equal(u.gutsUsed,true);assert.ok(!executed.events.includes('권능'));assert.equal(u.barrier,0);u=receiveDamage(u,10000).target;assert.equal(u.hp,0);});

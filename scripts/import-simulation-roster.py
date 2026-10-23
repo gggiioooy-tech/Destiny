@@ -1,6 +1,7 @@
 """Build a local simulation snapshot from public fan-database and wiki research.
 Never contacts game/replay servers. Cache is ignored; no player data is imported.
 """
+import argparse
 import concurrent.futures
 import json
 import re
@@ -109,7 +110,21 @@ def wiki_skills(hero):
                        'cooldown':int(cooldown[1]) if cooldown else 0, 'gauge':int(gauge[1]) if gauge else 0, 'variantsOmitted':section['variantsOmitted'], 'icon':''})
     return skills
 
+def preserve_reviewed(heroes, snapshot, refresh=False):
+    if refresh:
+        return heroes
+    for hero in snapshot.get('heroes', []):
+        if hero.get('reviewedAt') or hero.get('basis') == '사용자 지정 한국판 나무위키 기준':
+            heroes[hero['name']] = hero
+    return heroes
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--refresh-reviewed', action='store_true', help='Explicitly replace reviewed Korean snapshots with the research import; inspect the resulting diff before release.')
+    args = parser.parse_args()
+    snapshot_file = ROOT/'src/lib/simulationRoster.json'
+    snapshot = json.loads(snapshot_file.read_text(encoding='utf8')) if snapshot_file.exists() else {'heroes': []}
     index = get_json('index.json')
     representatives = {}
     for h in index:
@@ -144,6 +159,7 @@ def main():
             if h.get('basis') == '사용자 지정 한국판 나무위키 기준':
                 heroes[h['name']] = h
                 overrides += 1
+    heroes = preserve_reviewed(heroes, snapshot, args.refresh_reviewed)
     output = {'checkedAt':'2026-10-22', 'growth':'6초월·5강·풀스킬 강화',
               'sources':[BASE+'/heroes.html', '나무위키 각 문서 기여자 · CC BY-NC-SA 2.0 KR'],
               'heroes':sorted(heroes.values(), key=lambda h:h['name']), 'unavailable':errors}

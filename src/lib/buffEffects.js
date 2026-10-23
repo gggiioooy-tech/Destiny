@@ -1,7 +1,7 @@
 // Instrumented applications retain order. Initial simultaneous passives have
 // no server timestamp, so their tie order remains the initialization order.
 const fields=['barrierTurns','damageBuffTurns','controlImmune','superiority','immortal','stealth','linkTurns','cloneTurns','taunt','cooldownImmune','judgment'];
-function active(u,e){return e.key==='timed'?u.panelTimedBuffs?.some(b=>b.buffId===e.id&&!b.debuff&&b.remaining>0):e.key==='regen'?u.regenBuff?.remaining>0:u[e.key]>0&&(e.key!=='barrierTurns'||u.barrier>0)&&!(e.key==='controlImmune'&&u.transformed)&&!(e.key==='damageBuffTurns'&&u.panelComputed);}
+function active(u,e){return e.key==='timed'?u.panelTimedBuffs?.some(b=>b.buffId===e.id&&!b.debuff&&b.remaining>0):e.key==='regen'?u.regenBuff?.remaining>0:u[e.key]>0&&(e.key!=='barrierTurns'||u.barrier>0&&!u.barrierProtected)&&!(e.key==='controlImmune'&&u.transformed)&&!(e.key==='damageBuffTurns'&&u.panelComputed);}
 export function syncBuffs(u){
   u.buffOrder=(u.buffOrder||[]).filter(e=>active(u,e));
   const add=e=>{if(!u.buffOrder.some(v=>v.key===e.key&&v.id===e.id))u.buffOrder.push(e);};

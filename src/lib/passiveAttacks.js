@@ -9,6 +9,7 @@ export function queuePassiveAttacks(event,unit,units,queue){
     if(unit.name==='윤건'&&n>0&&n%2===0)push({name:'윤건 · 2회 공격',attack:.75,hp:.22,cap:3,hits:1,pierce:true});
     if(unit.name==='겔리두스'&&n>0&&n%2===0)push({name:'겔리두스 · 2회 공격',attack:.6,defense:.65,hits:1,control:'빙극',chance:75,turns:2});
     if(unit.name==='카일'&&n>0&&n%2===0)push({name:'카일 · 2회 공격',hp:.32,cap:1,hits:1,ignore:.4});
+    if(unit.name==='발리스타'&&n>0&&n%3===0)push({name:'발리스타 · 3회 공격',fixed:1485,hits:1,pierce:true});
     if(unit.name==='여포'){
       unit.lubuBasics=(unit.lubuBasics||0)+(unit.lastAttackBasic?1:0);
       if(!unit.lastAttackBasic||unit.lubuBasics%2===0)push({name:'여포 · 추가 공격',attack:.45,hits:1,mark:roleCount(units,unit.side,1)>=3});

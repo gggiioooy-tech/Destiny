@@ -1,4 +1,4 @@
-import {calculateShield} from './combatDamage.js';
+import {applyShield} from './shieldEffects.js';
 import {resetRevivalDebuffs} from './statusEffects.js';
 import {releaseControl} from './controlEffects.js';
 
@@ -26,13 +26,15 @@ export function receiveDamage(unit,amount,{pierce=false,execute=false,deferred=f
   if(!execute&&target.hp===0&&(target.guts||ringGuts)&&!target.gutsUsed){
     target.hp=1;target.gutsUsed=true;events.push('권능');
     if(target.name==='델론즈'){target.nullify=Math.max(target.nullify||0,4);target.awakenGauge=Math.min(target.awakenMax||85,(target.awakenGauge||0)+25);}
-    if(target.gutsShieldPercent)target.barrierTurns=Math.max(target.barrierTurns||0,3);
-    if(!target.buffBlock)target.barrier=Math.max(target.barrier,Math.max(ringGuts?Math.round(target.attack*1.5):0,calculateShield({base:target.attack*(target.gutsShieldPercent||0)/100,regeneration:target.regeneration||0}))*(1-(target.shieldReduction||0)/100));
+    const shieldPercent=Math.max(ringGuts?150:0,target.gutsShieldPercent||0),ringShield=ringGuts&&150>=(target.gutsShieldPercent||0);
+    if(shieldPercent)applyShield(target,target.attack*shieldPercent/100,ringShield?4:3,{unremovable:ringShield});
   }
-  if(execute){target.immortal=0;target.indomitableHits=0;target.barrier=0;events.push('처형');}
+  if(execute){if(target.guts||ringGuts)target.gutsUsed=true;target.immortal=0;target.indomitableHits=0;target.barrier=0;events.push('처형');}
+  if(target.revivePercent&&target.revived)target.ringReviveUsed=true;
+  if(target.reviveImmortalTurns&&target.revived)target.ringImmortalUsed=true;
   if(target.hp===0&&!target.annihilation){
-    if(['daebul','daegwon'].includes(target.ring)&&!target.ringReviveUsed){target.hp=target.maxHp;target.ringReviveUsed=true;events.push('반지 · 생명력 100% 부활');}
-    else if(['daebul','gwonbul'].includes(target.ring)&&!target.ringImmortalUsed){target.hp=1;target.immortal=3;target.controlImmune=Math.max(target.controlImmune||0,3);target.ringImmortalUsed=true;events.push('반지 · 불사 3턴 부활');}
+    if(['daebul','daegwon'].includes(target.ring)&&!target.ringReviveUsed){target.hp=target.maxHp;target.ringReviveUsed=true;if(target.revivePercent)target.revived=true;events.push('반지 · 생명력 100% 부활');}
+    else if(['daebul','gwonbul'].includes(target.ring)&&!target.ringImmortalUsed){target.hp=1;target.immortal=Math.max(3,target.reviveImmortalTurns||0);target.controlImmune=Math.max(target.controlImmune||0,target.immortal);target.ringImmortalUsed=true;if(target.reviveImmortalTurns)target.revived=true;events.push('반지 · 불사 '+target.immortal+'턴 부활');}
     if(events.some(e=>e.startsWith('반지 · '))){target.revivalCount=(target.revivalCount||0)+1;resetRevivalDebuffs(target);}
   }
   if(target.hp===0&&!target.annihilation&&!target.revived){
@@ -58,19 +60,19 @@ export function tickPersonalTurn(unit,before){
   // unrelated timed buff already existed at action start.
   if(unit.panelTimedBuffs){
     const previous=before.panelTimedBuffs||[];next.panelTimedBuffs=[];
-    for(const buff of unit.panelTimedBuffs){const old=previous.find(b=>b.source===buff.source&&b.stat===buff.stat&&b.delta===buff.delta);const remaining=old&&buff.remaining<=old.remaining?buff.remaining-1:buff.remaining;if(remaining>0)next.panelTimedBuffs.push({...buff,remaining});else next[buff.stat]-=buff.delta;}
+    for(const buff of unit.panelTimedBuffs){const old=previous.find(b=>b.source===buff.source&&b.stat===buff.stat&&b.delta===buff.delta);const remaining=old&&(buff.refreshEpoch||0)===(old.refreshEpoch||0)&&buff.remaining<=old.remaining?buff.remaining-1:buff.remaining;if(remaining>0)next.panelTimedBuffs.push({...buff,remaining});else next[buff.stat]-=buff.delta;}
   }
-  if(before.statusImmunities){next.statusImmunities={...next.statusImmunities};for(const [key,turns]of Object.entries(before.statusImmunities))if(next.statusImmunities[key]<=turns)next.statusImmunities[key]=Math.max(0,next.statusImmunities[key]-1);}
+  if(before.statusImmunities){next.statusImmunities={...next.statusImmunities};for(const [key,turns]of Object.entries(before.statusImmunities))if((next.statusImmunityEpochs?.[key]||0)===(before.statusImmunityEpochs?.[key]||0)&&next.statusImmunities[key]<=turns)next.statusImmunities[key]=Math.max(0,next.statusImmunities[key]-1);}
   if(before.fateThreadDurations?.length){next.fateThreadDurations=(next.fateThreadDurations||[]).map((v,i)=>i<before.fateThreadDurations.length?v-1:v).filter(v=>v>0);next.fateThreads=next.fateThreadDurations.length;}
   // Only durations that existed before this basic-attack turn are ticked.
   for(const key of ['sleep','control','silence','blind','healBlock','defTurns','immunity','physicalImmunity','magicImmunity','controlImmune','annihilation','barrierTurns','damageBuffTurns','superiority','superiorityMissTurns','blockDownTurns','stealth','judgment','buffBlock','cooldownImmune','linkTurns','cloneTurns','taunt']){
-    if(before[key]>0&&next[key]>0&&next[key]<=before[key])next[key]--;
+    if(before[key]>0&&next[key]>0&&next[key]<=before[key]&&(key!=='barrierTurns'||(next.barrierEpoch||0)===(before.barrierEpoch||0)))next[key]--;
   }
   if(!next.defTurns)next.defDown=0;
   if(before.control>0&&!next.control)releaseControl(next);
   if(!next.superiorityMissTurns)next.superiorityMiss=0;
   if(before.blockDownTurns>0&&!next.blockDownTurns)next.blockDebuff=0;
-  if(before.barrierTurns>0&&!next.barrierTurns)next.barrier=0;
+  if(before.barrierTurns>0&&!next.barrierTurns){next.barrier=0;next.barrierProtected=false;}
   if(before.immortal>0&&next.immortal>0&&next.immortal<=before.immortal){
     next.immortal--;
     if(!next.immortal){next.hp=0;next.barrier=0;events.push('불사 만료 · 사망');}
