@@ -9,6 +9,13 @@ import {combatSkill} from '../src/lib/heroTransformations.js';
 import {tickPersonalTurn} from '../src/lib/battleSurvival.js';
 import {calculatePrebattle,defaultPrebattleSettings} from '../src/lib/prebattleStats.js';
 function battle(names){let h=prepareHeroes();names.forEach((n,i)=>h=changeHero(h,i,n));return createBattle(h);}
+test('full-skill Choseon starts with 45% own shield and gives eligible allies 22% only after basic',()=>{
+  const b=battle(['초선','여포','루디']),caster=b.units[0],attacker=b.units[1],defender=b.units[2];
+  assert.equal(caster.barrier,Math.round(caster.maxHp*.45));assert.equal(attacker.barrier,0);
+  caster.lastAttackBasic=false;onAttackStacks(caster,b.units,[]);assert.equal(attacker.barrier,0);
+  caster.lastAttackBasic=true;onAttackStacks(caster,b.units,[]);
+  assert.equal(attacker.barrier,Math.round(caster.maxHp*.22));assert.equal(attacker.controlImmune,2);assert.equal(defender.barrier,0);
+});
 
 test('fully upgraded Sylvester starts with 25 percent blessing',()=>{
   const b=battle(['실베스타']);assert.equal(b.units[0].blessing,25);

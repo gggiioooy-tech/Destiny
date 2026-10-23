@@ -212,6 +212,7 @@ export function advanceBattle(previous){
   function markPalanus(target){palanusMark(actor,target,code,s.units,()=>random(s),(t,n)=>{if(reduceBuffDurations(t,n).died)onDeathRules(t,s.units,events);});}
   function hit(target,base,{ignore=0,pierce=false,beforeDamage=null}={}){
     if(target.hp<=0)return;
+    const conditionTarget={...target};
     s.targets.push(target.id);
     const paralysis=target.control>0&&target.controlName==='마비';
     const chances=hitProbabilities({crit:actor.crit+(combatSkill(actor,code)?.critBonus||0),block:paralysis?0:target.block,blockBuff:paralysis?0:target.blockBuff,blockDebuff:target.blockDebuff,shred:actor.shred});
@@ -242,7 +243,7 @@ export function advanceBattle(previous){
     if(target.name==='연희'&&!target.triggered&&target.hp>0&&target.hp<=target.maxHp*.7){target.nullify=4;target.triggered=true;events.push('연희 · 피해 무효화 4회');}
     if(!missed)afterOwnHit(actor);
     if(!missed&&target.hp>0)for(const extra of combatSkill(actor,code)?.extraDamage||[]){
-      const key=target.id+'|'+extra.key;if(!extra.each&&extraUsed.has(key)||!extraCondition(extra.condition,actor,target,{critical,weak:hitWeak}))continue;
+      const key=target.id+'|'+extra.key;if(!extra.each&&extraUsed.has(key)||!extraCondition(extra.condition,actor,conditionTarget,{critical,weak:hitWeak}))continue;
       extraUsed.add(key);const base=actor.attack*extra.coefficient;
       const value=extra.fixed?Math.round(base):calculateHit({base,defense:target.defense,defenseDecrease:target.defDown,ignore:Math.min(1,extra.ignore+(actor.defenseIgnore||0)),critDamage:actor.critDamage,elasticity:target.elasticity,critical,blocked:isBlock,weak:hitWeak,weakBonus:actor.weakBonus,damageIncrease:actor.damageIncrease,amplification:actor.amplification,...incomingModifiers(actor,target)});
       const out=applyDamage(target,value,{direct:false,pierce:extra.pierce,fixed:extra.fixed,creditId:actor.id});actor.damageDealt+=out.damage+out.absorbed;s.impacts.push({target:target.id,source:actor.id,damage:out.damage,absorbed:out.absorbed,kind:'conditional_extra'});
@@ -314,7 +315,7 @@ export function advanceBattle(previous){
             if(!typed||heroDamageType(target.name)===e.family){if(e.debuff)setTimedDebuff(target,e.stat,e.value,e.duration);else setTimedBuff(target,e.stat,e.value,e.duration,{ratio:e.ratio});}
           }
           else if(e.type==='statDecrease')setTimedDecrease(target,e.stat,e.value,e.duration,{ratio:e.ratio});
-          else if(e.type==='cooldownUp'&&!target.cooldownImmune)for(const key of [2,3])target.readyAt[key]=Math.max(target.readyAt[key]||0,s.elapsedMs)+e.value*1000;
+          else if(e.type==='cooldownUp'&&!target.cooldownImmune){for(const key of [2,3])target.readyAt[key]=Math.max(target.readyAt[key]||0,s.elapsedMs)+e.value*1000;s.plans[target.side]=s.plans[target.side].filter(p=>p.id!==target.id);}
           else if(e.type==='cooldownDown')for(const key of Object.keys(target.readyAt))target.readyAt[key]=Math.max(0,target.readyAt[key]-e.value*1000);
           else if(e.type==='extendBuff'){for(const key of ['immunity','controlImmune','immortal','barrierTurns','damageBuffTurns','superiority'])if(target[key]>0&&Number.isFinite(target[key]))target[key]=Math.min(target.buffMaxTurns?.[key]||3,target[key]+e.value);}
           else if(e.type==='extendDebuff')extendDebuffs(target,e.value);

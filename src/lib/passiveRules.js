@@ -8,6 +8,7 @@ export function roleCount(units,side,role){const team=units.filter(u=>u.side===s
 export function initializePassives(units){
   for(const unit of units){
     const text=passiveText(unit.name);
+    if(unit.name==='초선')grantShield(unit,unit.maxHp*.45,3);
     const stealth=passiveSections(unit.name).find(r=>r.group==='self'&&r.text.includes('위장')&&!/부활|발동|경우/.test(r.text));if(stealth)unit.stealth=Number(stealth.text.match(/(\d+)턴/)?.[1]||2);
     if(unit.name==='여포')unit.blessing=roleCount(units,unit.side,1)>=3?25:0;
     if(unit.name==='카일'&&roleCount(units,unit.side,1)>=3)unit.nullify=Math.max(unit.nullify,4);
@@ -75,6 +76,7 @@ export function onHealthThreshold(unit,units,events){
   }
 }
 export function onAttackStacks(unit,units,events){
+  if(unit.name==='초선'&&unit.lastAttackBasic)for(const ally of units.filter(u=>u.side===unit.side&&u.id!==unit.id&&u.hp>0&&[1,2].includes(profiles.get(u.name)?.role))){grantShield(ally,unit.maxHp*.22,2);if(!ally.buffBlock)ally.controlImmune=Math.max(ally.controlImmune||0,2);}
   if(unit.lastAttackBasic)for(const {text:line,group} of passiveSections(unit.name)){const immunity=line.match(/자신의 기본 공격 1회 발동 시 (기절|마비|빙결|석화|감전|수면|침묵|화상|중독) 면역\s*\[(\d+)턴/);if(immunity)for(const target of group==='team'?units.filter(u=>u.side===unit.side):[unit]){target.statusImmunities??={};target.statusImmunities[immunity[1]]=Number(immunity[2]);}}
   unit.passiveAttackCount=(unit.passiveAttackCount||0)+1;
   if(unit.name==='성진우'){unit.jinwooBasics=(unit.jinwooBasics||0)+(unit.lastAttackBasic?1:0);if(!unit.lastAttackBasic||unit.jinwooBasics%2===0)addStack(unit,'jinwooLevels','attack',3,40);}
