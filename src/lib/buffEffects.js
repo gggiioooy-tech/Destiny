@@ -1,4 +1,5 @@
 import {setTimedBuff} from './timedEffects.js';
+import {grantNullification} from './nullificationEffects.js';
 // Instrumented applications retain order. Initial simultaneous passives have
 // no server timestamp, so their tie order remains the initialization order.
 const fields=['barrierTurns','damageBuffTurns','controlImmune','superiority','immortal','stealth','linkTurns','cloneTurns','taunt','cooldownImmune','judgment','delayedTan'];
@@ -35,7 +36,7 @@ export function grantDelayedBuff(u,turns=2){
 }
 export function expireDelayedBuff(u){
   if(u.hp<=0||u.buffBlock)return;
-  u.nullify=Math.max(u.nullify||0,3);
+  grantNullification(u,3);
   setTimedBuff(u,'attack',25,2,{ratio:true,source:'지연 버프'});
 }
 export function dispelBuffs(u,count){

@@ -1,4 +1,5 @@
 import {applyShield} from './shieldEffects.js';
+import {grantNullification} from './nullificationEffects.js';
 import {addStack,roleCount,addArisRage} from './passiveRules.js';
 import {heroSkills,heroProfile} from './simulationSkills.js';
 import {calculateRecovery} from './combatDamage.js';
@@ -20,7 +21,7 @@ export function afterControl(unit,events,units=[]){
   });if(!source)return;
   unit.controlCleanseUses={...unit.controlCleanseUses,[source.name]:true};
   cleanseDebuffs(unit,Infinity,{controlOnly:source.name!=='윤건'});
-  unit.controlImmune=Math.max(unit.controlImmune||0,['윤건','란드그리드'].includes(source.name)?2:1);events.push(unit.name+' · 행동 제어 해제');
+  if(!unit.buffBlock)unit.controlImmune=Math.max(unit.controlImmune||0,['윤건','란드그리드'].includes(source.name)?2:1);events.push(unit.name+' · 행동 제어 해제');
   if(source.name==='젠이츠'){
     unit.awakenGauge=Math.min(unit.awakenMax,unit.awakenGauge+25);
     for(const key of Object.keys(unit.readyAt||{}))unit.readyAt[key]=Math.max(0,unit.readyAt[key]-26000);
@@ -52,7 +53,7 @@ export function afterHitPassive(unit,units,events,{attackToken}={}){
     if(roleCount(units,unit.side,2)>=3&&(attackToken===undefined||unit.fateAttackToken!==attackToken)){
       unit.fateAttackToken=attackToken;
       unit.fateThreadDurations=[...(unit.fateThreadDurations||[]),3];unit.fateThreads=unit.fateThreadDurations.length;
-      if(unit.fateThreads>=3){unit.fateThreadDurations=[];unit.fateThreads=0;unit.nullify=Math.max(unit.nullify,4);for(let i=0;i<3;i++)cleanseOne(unit);events.push('스쿨드 · 운명의 실 3개 소모');}
+      if(unit.fateThreads>=3){unit.fateThreadDurations=[];unit.fateThreads=0;grantNullification(unit,4);for(let i=0;i<3;i++)cleanseOne(unit);events.push('스쿨드 · 운명의 실 3개 소모');}
     }
 
   }

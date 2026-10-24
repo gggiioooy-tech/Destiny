@@ -1,4 +1,5 @@
 import {skillFor} from './simulationSkills.js';
+import {grantNullification} from './nullificationEffects.js';
 
 // Numeric rules checked against the awakened Dellons skill tables, 2026-10-22.
 export const TRANSFORMATION_SOURCE='https://www.namu.moe/w/델론즈(세븐나이츠%20리버스)/각성';
@@ -29,7 +30,7 @@ export function addDellonsStacks(unit,count){
 export function transformDellons(actor,units){
   actor.transformed=true;actor.controlImmune=Infinity;
   for(const key of ['control','sleep','silence'])actor[key]=0;
-  actor.nullify=Math.min(6,actor.nullify+4);
-  for(const ally of units.filter(u=>u.side===actor.side&&u.id!==actor.id&&u.hp>0))ally.nullify=Math.min(6,ally.nullify+2);
+  grantNullification(actor,4,{add:true,cap:6});
+  for(const ally of units.filter(u=>u.side===actor.side&&u.id!==actor.id&&u.hp>0))grantNullification(ally,2,{add:true,cap:6});
   addDellonsStacks(actor,3);
 }

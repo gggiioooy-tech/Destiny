@@ -1,4 +1,5 @@
 import {applyShield} from './shieldEffects.js';
+import {grantNullification} from './nullificationEffects.js';
 import {resetRevivalDebuffs} from './statusEffects.js';
 import {releaseControl} from './controlEffects.js';
 
@@ -25,7 +26,7 @@ export function receiveDamage(unit,amount,{pierce=false,execute=false,deferred=f
   const ringGuts=['daegwon','gwonbul'].includes(target.ring);
   if(!execute&&target.hp===0&&(target.guts||ringGuts)&&!target.gutsUsed){
     target.hp=1;target.gutsUsed=true;events.push('권능');
-    if(target.name==='델론즈'){target.nullify=Math.max(target.nullify||0,4);target.awakenGauge=Math.min(target.awakenMax||85,(target.awakenGauge||0)+25);}
+    if(target.name==='델론즈'){grantNullification(target,4);target.awakenGauge=Math.min(target.awakenMax||85,(target.awakenGauge||0)+25);}
     const shieldPercent=Math.max(ringGuts?150:0,target.gutsShieldPercent||0),ringShield=ringGuts&&150>=(target.gutsShieldPercent||0);
     if(shieldPercent)applyShield(target,target.attack*shieldPercent/100,ringShield?4:3,{unremovable:ringShield});
   }

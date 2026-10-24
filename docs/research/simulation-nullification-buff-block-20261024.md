@@ -1,0 +1,11 @@
+# New defensive grants under buff block — 2026-10-24.11
+
+Three failing-before regressions reproduced Yoongeon basic/skill nullification, Lin skill nullification, and Zenitsu's post-cleanse control immunity being acquired while buff block remained active. Generic skill grants, transformation grants, threshold grants, death reactions and allied revival grants also had inconsistent direct assignments.
+
+New nullification grants now share `grantNullification`: living recipients under buff block gain no hits; existing hits remain; additive grants honor their cap without stripping a stronger existing pool. Native spawn assignments remain unchanged. Zenitsu's control-only cleanse still removes control, raises awakening gauge, and reduces cooldown, but does not grant new control immunity or shield while buff block survives the cleanse. Yoongeon's all-debuff cleanse can remove buff block before its new immunity is granted. Calheron's allied revival damage buff uses the ordinary timed-buff helper so blocked recipients cannot acquire it.
+
+References: [official October 15 update](https://forum.netmarble.com/sena_rebirth/view/10/2134), [official lounge copy](https://game.naver.com/lounge/sena_rebirth/board/detail/8325112), whose indexed definition states that buff block prevents acquiring buffs. This is distinct from dispelling an existing effect; nullification is not made removable by this change. Intrinsic transformation states, every non-nullification passive buff, and exact simultaneous cleanse/grant order are not declared fully verified.
+
+478 JavaScript tests pass, including failing-before cases, generic Taka grants, retained existing pools, caps, dead recipients and per-recipient transformation handling. SSR keeps the tier-four guard. Retrospective evaluation is unchanged at 94/150 decided (62.67%), four abstentions, six exclusions, 97.40% coverage of 154 eligible records; Wilson 95% [54.70%, 70.00%], majority baseline 66.23%. No new holdout was consumed. The 90% goal remains unmet.
+
+Full mixed-ring/starting-shield pair sweep: 30,800 placements and 1,311,546 actions with zero invariant failures. Production build passes with the existing large-chunk warning. Production audit is clean; six existing moderate development-tool findings remain.

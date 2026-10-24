@@ -5,6 +5,7 @@ import {syncDebuffs,cleanseDebuffs,extendDebuffs} from './statusEffects.js';
 import {resetRevivalDebuffs} from './statusEffects.js';
 import {releaseControl,blindForcesMiss} from './controlEffects.js';
 import {applyEquipment} from './equipmentEffects.js';
+import {grantNullification} from './nullificationEffects.js';
 import {addDot,dotBase} from './damageOverTime.js';
 import {chooseAutoSkill,AUTO_HEAL_THRESHOLD} from './autoSkill.js';
 import {syncBuffs,dispelBuffs,reduceBuffDurations,extendBuffDurations,grantDelayedBuff,expireDelayedBuff} from './buffEffects.js';
@@ -134,8 +135,8 @@ function finishStep(s,events,meta={}){
   const counts=s.units.map(u=>(u.revivalCount||0)+(u.hp<=0?1:0));
   for(const unit of s.units.filter(u=>u.name==='델론즈'&&u.hp>0)){
     for(const dead of s.units){const count=Math.max(0,counts[dead.id]-(s.deathCounts?.[dead.id]||0));if(!count||dead.id===unit.id)continue;
-      if(dead.side===unit.side){unit.awakenGauge=Math.min(unit.awakenMax,unit.awakenGauge+15*count);unit.nullify=Math.min(6,unit.nullify+count);addDellonsStacks(unit,count);events.push('델론즈 · 아군 사망 패시브');}
-      else {const old=unit.enemyDeaths||0;unit.enemyDeaths=old+count;if(unit.transformed)unit.nullify=Math.min(6,unit.nullify+Math.floor(unit.enemyDeaths/2)-Math.floor(old/2));}
+      if(dead.side===unit.side){unit.awakenGauge=Math.min(unit.awakenMax,unit.awakenGauge+15*count);grantNullification(unit,count,{add:true,cap:6});addDellonsStacks(unit,count);events.push('델론즈 · 아군 사망 패시브');}
+      else {const old=unit.enemyDeaths||0;unit.enemyDeaths=old+count;if(unit.transformed)grantNullification(unit,Math.floor(unit.enemyDeaths/2)-Math.floor(old/2),{add:true,cap:6});}
     }
   }s.deathCounts=counts;
   s.targets=[...new Set(s.targets)];
@@ -261,7 +262,7 @@ export function advanceBattle(previous){
       events.push(`${target.name} · 분리 피해 ${extra.damage}${extra.absorbed?' · 보호막 '+extra.absorbed:''}`);
     }
     if(target.sleep&&outcome.damage>=target.maxHp*(target.sleepBreak||.3))target.sleep=0;
-    if(target.name==='연희'&&!target.triggered&&target.hp>0&&target.hp<=target.maxHp*.7){target.nullify=4;target.triggered=true;events.push('연희 · 피해 무효화 4회');}
+    if(target.name==='연희'&&!target.triggered&&target.hp>0&&target.hp<=target.maxHp*.7){const gained=grantNullification(target,4);target.triggered=true;events.push(gained?'연희 · 피해 무효화 4회':'연희 · 체력 조건 발동 · 무효화 추가 없음');}
     if(!missed)afterOwnHit(actor);
     if(!missed&&target.hp>0)for(const extra of combatSkill(actor,code)?.extraDamage||[]){
       const key=target.id+'|'+extra.key;if(!extra.each&&extraUsed.has(key)||!extraCondition(extra.condition,actor,conditionTarget,{critical,weak:hitWeak}))continue;
@@ -385,7 +386,7 @@ export function advanceBattle(previous){
           else if(e.type==='shield')grantShield(target,actor[e.scale]*e.value,e.duration);
           else if(e.type==='heal'){const amount=restoreHp(target,actor[e.scale]*e.value);actor.healingDone+=amount;s.impacts.push({target:target.id,heal:amount});}
           else if(e.type==='revive'&&target.hp===0&&!target.annihilation){resetRevivalDebuffs(target);target.hp=Math.max(1,Math.round(target.maxHp*e.value/100));target.revivalCount=(target.revivalCount||0)+1;onRevivalRules(target,s.units,events);queuePassiveAttacks('revive',target,s.units,reactions);s.impacts.push({target:target.id,heal:target.hp});}
-          else if(e.type==='nullify')target.nullify=Math.max(target.nullify,e.value);
+          else if(e.type==='nullify')grantNullification(target,e.value);
           else if(['immunity','physicalImmunity','magicImmunity','controlImmune','healBlock'].includes(e.type)){target[e.type]=Math.max(target[e.type],e.duration);target.buffMaxTurns??={};target.buffMaxTurns[e.type]=Math.max(target.buffMaxTurns[e.type]||0,e.duration);}
           else if(e.type==='cleanse')removedDebuffs.set(target.id,cleanseDebuffs(target,e.value??Infinity,{controlOnly:e.controlOnly}));
           else if(e.type==='dispel'){
