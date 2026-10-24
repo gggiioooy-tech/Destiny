@@ -268,7 +268,7 @@ export function advanceBattle(previous){
       const key=target.id+'|'+extra.key;if(!extra.each&&extraUsed.has(key)||!extraCondition(extra.condition,actor,conditionTarget,{critical,weak:hitWeak}))continue;
       extraUsed.add(key);const base=actor.attack*extra.coefficient;
       const value=extra.fixed?Math.round(base):calculateHit({base,defense:target.defense,defenseDecrease:target.defDown,ignore:Math.min(1,awakeningIgnore(actor,extra.ignore)+(actor.defenseIgnore||0)),critDamage:actor.critDamage,elasticity:target.elasticity,critical,blocked:isBlock,weak:hitWeak,weakBonus:actor.weakBonus,damageIncrease:actor.damageIncrease,amplification:actor.amplification,...incomingModifiers(actor,target)});
-      const out=applyDamage(target,value,{direct:false,pierce:extra.pierce,fixed:extra.fixed,creditId:actor.id});actor.damageDealt+=out.damage+out.absorbed;s.impacts.push({target:target.id,source:actor.id,damage:out.damage,absorbed:out.absorbed,kind:'conditional_extra'});
+      const out=applyDamage(target,value,{direct:false,pierce:extra.pierce,fixed:extra.fixed,creditId:actor.id});if(out.primaryLethal&&!extra.fixed)directKillCount++;actor.damageDealt+=out.damage+out.absorbed;s.impacts.push({target:target.id,source:actor.id,damage:out.damage,absorbed:out.absorbed,kind:'conditional_extra'});
     }
     return {missed};
   }
@@ -448,6 +448,7 @@ export function advanceBattle(previous){
           return killed;
         };
         let killed=cast();
+        if(killed&&spec.resetOwnCooldownOnDirectKill){actor.readyAt[code]=s.elapsedMs;events.push(actor.name+' · 직접 처치 · 해당 스킬 쿨타임 초기화');}
         for(let repeat=0;spec.repeatOnKill&&killed&&repeat<(spec.repeatLimit||3)&&actor.hp>0;repeat++){
           const followTiming=followupTiming(actor.name,code),spacing=followTiming.spacingMs;
           targets=targetsFor(spec.targets);if(!targets.length||s.elapsedMs+followTiming.medianMs+spacing>s.timeLimitMs)break;

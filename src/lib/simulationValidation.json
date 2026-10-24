@@ -1,11 +1,11 @@
 {
-  "engineVersion": "2026-10-24.16",
+  "engineVersion": "2026-10-24.17",
   "checkedAt": "2026-10-24",
   "mode": "retrospective_baseline_not_independent_holdout",
   "downloadedRecords": 160,
   "eligibleRecords": 154,
   "excludedRecords": 6,
-  "correct": 94,
+  "correct": 96,
   "samplesPerBattle": 32,
   "independentHoldout": false,
   "target90Validated": false,
