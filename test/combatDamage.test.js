@@ -43,7 +43,15 @@ test('probability outcomes stay mutually exclusive and within bounds',()=>{
     for(const k of ['critical','blocked','normal'])assert.ok(p[k]>=0&&p[k]<=1);
     assert.ok(Math.abs(p.critical+p.blocked+p.normal-1)<1e-10);
   }
-  assert.equal(hitProbabilities({crit:20,block:80}).blocked,.6);
+  assert.ok(Math.abs(hitProbabilities({crit:20,block:80}).blocked-.64)<1e-12);
+});
+
+test('independent critical and block procs cancel only when both occur',()=>{
+ assert.deepEqual(hitProbabilities({crit:50,block:50}),{cappedBlock:50,effectiveBlock:50,critical:.25,blocked:.25,normal:.5});
+ // Initial replay flags contain criticals below the block rate and blocks
+ // above it. A percentage-difference model assigns these zero probability.
+ const low=hitProbabilities({crit:13,block:28});assert.ok(low.critical>0);assert.ok(low.blocked>0);
+ const high=hitProbabilities({crit:80,block:100,shred:48});assert.ok(Math.abs(high.critical-.384)<1e-12);assert.ok(Math.abs(high.blocked-.104)<1e-12);
 });
 
 test('active paralysis suppresses both block sources and expires without changing stored stats',()=>{

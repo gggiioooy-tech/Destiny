@@ -1,0 +1,13 @@
+# Critical/block joint outcomes — 2026-10-24.10
+
+The former `max(critical - effectiveBlock, 0)` rule assigns zero probability to critical hits whenever the block rate is higher, and zero probability to blocks in the reverse case. An offline audit of the first positive-damage result per target in each eligible initial active skill finds 301 observations, including two critical flags and six block flags that this rule declares impossible. These are reused development records, not a new validation set. Observed flags are diagnostic targets and never prediction inputs.
+
+The [public system outcome table](https://www.namu.moe/w/세븐나이츠%20리버스/시스템) distinguishes separate critical and block procs and their cancellation when both occur. The model now uses independent opportunities followed by cancellation: `critical = c*(1-b)`, `blocked = (1-c)*b`, `normal = c*b+(1-c)*(1-b)`. It samples the equivalent categorical distribution with one draw. The existing cap/debuff/shred ordering is unchanged. The user's 100 critical / 80 block / 30 shred example still yields 50% critical; 50/50 with no shred now yields 25% critical, 25% blocked, 50% normal.
+
+All eight previously impossible observed outcomes have positive model probability. This does not independently prove the exact joint probability law: first positive results are a conditional selection, some skill components have special rules, and aggregate observed rates are not treated as an unbiased calibration sample. No claim of reconstructed game RNG or exact seed equivalence is made. `initial-hit-probability-evidence-20261024.json` contains aggregate counts only.
+
+472 JavaScript tests pass, including the equal-rate distribution, asymmetric observed configurations, cap ordering and the user's example. The full mixed-ring/starting-shield pair sweep and production build are recorded after completion below.
+
+The 160-record retrospective evaluation gives 94/150 decided (62.67%), four abstentions and six exclusions; eligible coverage 97.40%, Wilson 95% [54.70%, 70.00%], majority baseline 102/154 (66.23%). This is lower than .9, so no outcome-accuracy gain is claimed. The change is retained for its rule/flag evidence rather than selecting whichever formula scores higher on reused outcomes. No new holdout was consumed; the frozen .10 archive result remains attributed to 2026-10-23.10. The 90% goal remains unmet.
+
+Completed mixed survival-ring/starting-shield sweep: 30,800 placements, 1,311,556 actions, zero invariant failures. Production build and tier-four SSR check pass. Production audit is clean; six previously recorded moderate development-tool findings remain.

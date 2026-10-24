@@ -1,0 +1,13 @@
+{
+  "engineVersion": "2026-10-24.10",
+  "checked": 301,
+  "impossibleUnderPercentageDifference": {
+    "critical": 2,
+    "blocked": 6
+  },
+  "impossibleUnderCurrentModel": 0,
+  "skipped": {
+    "초기 예약 스킬 확인 필요": 6
+  },
+  "scope": "First positive-damage result per target in the initial active skill; reused development records. Flags are comparison targets only. This conditional selection is not an unbiased proc-rate sample and does not establish the exact probability law by itself."
+}

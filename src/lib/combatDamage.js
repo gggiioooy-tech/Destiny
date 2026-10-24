@@ -21,8 +21,12 @@ export function hitProbabilities({crit,block=0,blockBuff=0,blockDebuff=0,shred=0
   // Cap positive block sources BEFORE subtracting debuffs and shred.
   const cappedBlock=clamp(block+blockBuff,0,100);
   const effectiveBlock=clamp(cappedBlock-blockDebuff-shred,0,100);
-  const critical=clamp(crit-effectiveBlock,0,100)/100;
-  const blocked=clamp(effectiveBlock-crit,0,100)/100;
+  // Resolve independent proc opportunities, then cancel simultaneous procs.
+  // Subtracting the two percentages incorrectly makes one outcome impossible
+  // whenever its raw rate is lower; archived initial-hit flags contradict that.
+  const criticalRate=clamp(crit,0,100)/100,blockRate=effectiveBlock/100;
+  const critical=criticalRate*(1-blockRate);
+  const blocked=(1-criticalRate)*blockRate;
   return {cappedBlock,effectiveBlock,critical,blocked,normal:1-critical-blocked};
 }
 // Ordinary hits and separate reactions must apply the same target control
