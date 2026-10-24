@@ -441,10 +441,12 @@ export function advanceBattle(previous){
         const cast=()=>{
           landed.clear();removedBuffs.clear();removedDebuffs.clear();
           const killsBefore=directKillCount;
+          const enemyDeathsBefore=s.units.filter(u=>u.side!==actor.side).map(u=>({id:u.id,deaths:(u.revivalCount||0)+(u.hp<=0?1:0)}));
           applyEffects(spec.effects.filter(e=>e.before));
           for(const t of targets)strike(t);
           const killed=directKillCount>killsBefore;
           applyEffects(spec.effects.filter(e=>!e.each&&!e.before),true);
+          if(spec.resetOwnCooldownOnEnemyDeath&&enemyDeathsBefore.some(before=>{const u=s.units[before.id];return (u.revivalCount||0)+(u.hp<=0?1:0)>before.deaths;})){actor.readyAt[code]=s.elapsedMs;events.push(actor.name+' · 적군 사망 · 해당 스킬 쿨타임 초기화');}
           return killed;
         };
         let killed=cast();

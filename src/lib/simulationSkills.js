@@ -83,6 +83,7 @@ export function compileSkill(raw){
       else if(!/경우|상태|발동/.test(line))condition={type:'always'};
       if(coefficient&&condition){const upgraded=lines.find(l=>l.includes('피해량 상승')&&l.includes(condition.type==='weak'?'약점':condition.type==='critical'?'치명타':'미사용표식'));skill.extraDamage.push({condition,coefficient:Number(upgraded?.match(/공격력의\s*([\d.]+)%/)?.[1]||coefficient[1])/100,each:/각 공격마다/.test(line),fixed:/고정 피해/.test(line),ignore:/방어 무시/.test(line)?skill.ignore||.4:0,pierce:/관통/.test(line),key:line});continue;}
     }
+    if(group==='self'&&/^[- ]*적군 사망 시 스킬 쿨타임 초기화$/.test(line)){skill.resetOwnCooldownOnEnemyDeath=true;continue;}
     if(line.includes('해당 스킬의 직접 피해로 적군 처치 시')&&line.includes('['+raw.name+'] 쿨타임 초기화')){skill.resetOwnCooldownOnDirectKill=true;continue;}
     if(/(?:경우|발동 시|사망 시|이하|이상|마다.*기본 공격|연속|해당 스킬|횟수)/.test(line)){
       if(!/피해량 상승/.test(line))skill.unsupported.push(line);continue;

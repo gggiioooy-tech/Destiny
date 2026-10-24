@@ -24,6 +24,9 @@ def result_metadata(result):
     """Preserve attribution hints without declaring a direct/routed hit."""
     return {
         'appliedModuleIds': list(result.AppliedModuleIds),
+        'changedCooldowns': [{'skillGroupId': row.SkillGroupId if row.HasField('SkillGroupId') else None,
+                              'coolTime': row.CoolTime if row.HasField('CoolTime') else None}
+                             for row in result.ChangedCoolTime],
         'calcDamageScore': result.CalcDamageScore if result.HasField('CalcDamageScore') else None,
         'totalBattleScore': result.TotalBattleScore if result.HasField('TotalBattleScore') else None,
     }

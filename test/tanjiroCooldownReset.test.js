@@ -1,0 +1,11 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {skillFor} from '../src/lib/simulationSkills.js';
+import {prepareHeroes,changeHero,createBattle,advanceBattle} from '../src/lib/experimentalBattle.js';
+function fixture(){let h=prepareHeroes();['탄지로','메이','카린','메이','벨라','아리엘'].forEach((n,i)=>h=changeHero(h,i,n));const b=createBattle(h,{plans:{attacker:[{id:0,code:3}],defender:[]},seed:1});b.skillSide='attacker';for(const u of b.units)Object.assign(u,{hp:1000000,maxHp:1000000,attack:1000,defense:0,crit:0,weakPoint:0,barrier:0,nullify:0,immunity:0,linkTurns:0,superiority:0,stealth:0,control:0,sleep:0,guts:false,revivePercent:0,ring:'none',reviveImmortalTurns:0,reviveIndomitableHits:0});b.units[0].readyAt[2]=999999;return b;}
+test('Tanjiro enemy-death reset belongs only to awakened skill 2',()=>{assert.equal(skillFor('탄지로',3).resetOwnCooldownOnEnemyDeath,true);assert.ok(!skillFor('탄지로',2).resetOwnCooldownOnEnemyDeath);assert.ok(!skillFor('탄지로',3).unsupported.some(v=>v.includes('쿨타임 초기화')));});
+test('Tanjiro enemy death resets only the active skill cooldown',()=>{const b=fixture();b.units[3].hp=1;const n=advanceBattle(b);assert.equal(n.units[3].hp,0);assert.ok(n.units[0].readyAt[3]<=n.elapsedMs);assert.equal(n.units[0].readyAt[2],999999);});
+test('no enemy death leaves Tanjiro cooldown running',()=>{const n=advanceBattle(fixture());assert.ok(n.units[0].readyAt[3]>n.elapsedMs);});
+test('an existing dead enemy cannot satisfy the new death condition',()=>{const b=fixture();b.units[3].hp=0;const n=advanceBattle(b);assert.ok(n.units[0].readyAt[3]>n.elapsedMs);});
+test('enemy revival counts as a death even if it ends the cast alive',()=>{const b=fixture();Object.assign(b.units[3],{hp:1,ring:'daegwon',gutsUsed:true});const n=advanceBattle(b);assert.ok(n.units[3].hp>0);assert.equal(n.units[3].revivalCount,1);assert.ok(n.units[0].readyAt[3]<=n.elapsedMs);});
+test('secondary shock death also counts for enemy death rather than direct-kill wording',()=>{const b=fixture();b.units[0].attack=1;Object.assign(b.units[3],{control:2,controlName:'감전',shockSource:{id:1,attack:100000000}});const n=advanceBattle(b);assert.equal(n.units[3].hp,0);assert.ok(n.units[0].readyAt[3]<=n.elapsedMs);});
