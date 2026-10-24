@@ -98,7 +98,9 @@ export function compileSkill(raw){
     const cc=line.match(/(?:^[- ]*|각 공격마다\s*)(감전|오라|기절|마비|수면|깊은 수면|빙결|빙극|석화|침묵|공포|실명)(?:\s*\d+턴 지속)?\s*\[/);
     if(cc){const upgraded=lines.find(l=>l.includes('확률 상승')&&l.includes(cc[1]));add('control',{status:cc[1],chance:Number(upgraded?.match(/([\d.]+)%/)?.[1]||chance)});continue;}
     if(/절멸\s*\[/.test(line)){add('annihilation');continue;}
-    if(/즉사\s*\[/.test(line)){add('instantDeath',{status:'즉사'});continue;}
+    const instantDown=line.match(/즉사 턴 감소\s*(\d+)턴/);
+    if(instantDown){const upgraded=lines.find(l=>l.includes('확률 상승')&&l.includes('즉사 턴 감소'));add('instantDeathDown',{status:'즉사 턴 감소',value:Number(instantDown[1]),chance:Number(upgraded?.match(/([\d.]+)%/)?.[1]||chance)});continue;}
+    if(/즉사\s*\[/.test(line)){const upgraded=lines.find(l=>l.includes('확률 상승')&&l.includes('즉사')&&!l.includes('턴 감소'));const applies=upgraded&&lines.indexOf(sourceLine)<lines.indexOf(upgraded);add('instantDeath',{status:'즉사',chance:Number(applies?upgraded.match(/([\d.]+)%/)?.[1]||chance:chance)});continue;}
     if(/버프 차단\s*\[/.test(line)){add('buffBlock');continue;}
     if(/각성 게이지 감소/.test(line)){const upgraded=lines.find(v=>v.includes('효과 상승')&&v.includes('각성 게이지 감소'));add('gaugeDown',{value:Number((upgraded||line).match(/게이지 감소\s*(\d+)/)?.[1]||0)});continue;}
     if(/링크\s*\[/.test(line)){const upgraded=lines.find(v=>v.includes('턴 상승')&&v.includes('링크'));add('link',{duration:Number((upgraded||line).match(/(\d+)턴/)?.[1]||duration)});continue;}

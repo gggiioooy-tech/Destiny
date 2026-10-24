@@ -338,6 +338,7 @@ export function advanceBattle(previous){
           syncBuffs(target);
           if(e.group==='enemy'&&target.stealth>0)return;
           if(e.targetCondition&&!(target[e.targetCondition.stat]>e.targetCondition.above))return;
+          if(e.type==='instantDeathDown'&&!(target.instantDeathTurns>0))return;
           if((target.hp<=0&&e.type!=='revive')||(e.group==='enemy'?!effect(target,e.chance,e.status):random(s)>=e.chance/100))return;
           if(['shield','nullify','immunity','physicalImmunity','magicImmunity','controlImmune'].includes(e.type)&&target.buffBlock)return;
           if(e.status&&target.statusImmunities?.[e.status])return;
@@ -353,7 +354,11 @@ export function advanceBattle(previous){
             if(e.status!=='실명')s.plans[target.side]=s.plans[target.side].filter(p=>p.id!==target.id);
           } else if(e.type==='instantDeath'){
             target.instantDeathStacks=(target.instantDeathStacks||0)+1;target.instantDeathTurns=e.duration;
-            if(target.instantDeathStacks>=2){const fatal=applyDamage(target,target.hp,{execute:true,direct:false});target.instantDeathStacks=0;Object.assign(target,fatal.target);}
+            if(target.instantDeathStacks>=2){const fatal=applyDamage(target,target.hp,{execute:true,direct:false});Object.assign(target,fatal.target);target.instantDeathStacks=0;target.instantDeathTurns=0;}
+          }
+          else if(e.type==='instantDeathDown'&&target.instantDeathTurns>0){
+            target.instantDeathTurns=Math.max(0,target.instantDeathTurns-e.value);
+            if(!target.instantDeathTurns){const fatal=applyDamage(target,target.hp,{execute:true,direct:false});Object.assign(target,fatal.target);target.instantDeathStacks=0;target.instantDeathTurns=0;s.impacts.push({target:target.id,damage:fatal.damage,kind:'instant_death',events:fatal.events});}
           }
           else if(e.type==='buffBlock')target.buffBlock=Math.max(target.buffBlock||0,e.duration);
           else if(e.type==='link'&&!target.buffBlock)target.linkTurns=Math.max(target.linkTurns||0,e.duration);

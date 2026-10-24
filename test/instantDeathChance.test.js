@@ -17,5 +17,5 @@ test('scoped bonus adds to ordinary proc bonus only for instant death, then resi
  const source={accuracy:20,effectChanceBonus:10,instantDeathChanceBonus:25},target={resist:40};
  const instant=casterEffect(source,target,50,'즉사');assert.equal(instant.chanceBonus,35);
  assert.ok(Math.abs(effectProbability(instant).applied-.54)<1e-12);
- for(const status of ['감전','중독',undefined])assert.equal(casterEffect(source,target,50,status).chanceBonus,10);
+ for(const status of ['감전','중독','즉사 턴 감소',undefined])assert.equal(casterEffect(source,target,50,status).chanceBonus,10);
 });
