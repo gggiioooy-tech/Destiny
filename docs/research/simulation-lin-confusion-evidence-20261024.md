@@ -18,3 +18,5 @@ The counter cannot be decremented once for every recipient/result component: a t
 However, a Zenitsu result container has both a weak-point flag and a slip flag. Result flags can mix component and routing provenance, so they do not by themselves establish whether weak-point bypass is decided per cast, target or hit. The single record also does not settle count exhaustion halfway through a longer action, misses against protection, or all assist/counter scopes. Do not enable a guessed implementation or claim full Lin support from these observations.
 
 Source for the published effects: [Lin skill descriptions](https://namu.moe/w/린(세븐나이츠%20리버스)). Detailed packet traces remain private under the ignored local analysis folder. Publicly retained information here is restricted to effect identifiers and aggregate transitions.
+
+Implementation follow-up: `simulation-confusion-hit-count-20261024.md` adds the hit-count/cast-latch model after checking the developer's rollback note. It explicitly retains weak-point ordering and pre-attack effect ordering as unverified assumptions; the single replay still does not certify those details.

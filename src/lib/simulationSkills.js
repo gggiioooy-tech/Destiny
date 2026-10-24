@@ -98,6 +98,7 @@ export function compileSkill(raw){
       const fallback={화상:{value:.8,scale:'attack'},중독:{value:.06,scale:'targetHp',cap:1.5},출혈:{value:.6,scale:'attack',pierce:true}}[dot[1]];
       if(ratio||fallback){add('dot',{status:dot[1],value:ratio?Number(ratio[1])/100:fallback.value,scale:rule.includes('최대 생명력')?'targetHp':fallback?.scale||'attack',cap:cap?Number(cap[1])/100:fallback?.cap||null,pierce:dot[1]==='출혈',perDispel:line.includes('해제한 버프'),...(line.includes('해제한 버프')?{chance:100,instanceChance:chance}:{})});continue;}
     }
+    const confusion=line.match(/혼란\s*\[/);if(confusion){const upgraded=lines.find(l=>l.includes('확률 상승')&&l.includes('혼란'));add('confusion',{status:'혼란',value:Number(line.match(/타격\s*(\d+)회/)?.[1]||1),duration:0,chance:Number(upgraded?.match(/([\d.]+)%/)?.[1]||chance)});continue;}
     const cc=line.match(/(?:^[- ]*|각 공격마다\s*)(감전|오라|기절|마비|수면|깊은 수면|빙결|빙극|석화|침묵|공포|실명)(?:\s*\d+턴 지속)?\s*\[/);
     if(cc){const upgraded=lines.find(l=>l.includes('확률 상승')&&l.includes(cc[1]));add('control',{status:cc[1],chance:Number(upgraded?.match(/([\d.]+)%/)?.[1]||chance)});continue;}
     if(/절멸\s*\[/.test(line)){add('annihilation');continue;}

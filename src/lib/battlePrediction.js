@@ -2,7 +2,7 @@ import {createBattle,advanceBattle,prepareHeroes} from './experimentalBattle.js'
 import {canonicalHero} from './simulationSkills.js';
 import {calculatePrebattle,defaultPrebattleSettings,PETS,FORMATIONS,canonicalPet} from './prebattleStats.js';
 
-export const ENGINE_VERSION='2026-10-24.19';
+export const ENGINE_VERSION='2026-10-24.20';
 // Frequencies describe this model, not its accuracy against the game.
 export function summarizePrediction(counts){
   const {attacker=0,defender=0,unresolved=0}=counts,total=attacker+defender+unresolved;

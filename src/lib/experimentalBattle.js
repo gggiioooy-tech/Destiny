@@ -1,3 +1,4 @@
+import {beginConfusionAttack} from './confusionEffects.js';
 import {queuePassiveAttacks} from './passiveAttacks.js';
 import {setTimedDebuff,setTimedBuff,setTimedDecrease} from './timedEffects.js';
 import {conditionalDamage,afterOwnSkill,beforeOwnSkill,afterOwnHit,extraCondition,palanusMark,buffCount} from './skillRules.js';
@@ -22,7 +23,7 @@ import {actionTiming,followupTiming,skillCooldownMs,BATTLE_LIMIT_MS,TIMING_CATAL
 import {incomingModifiers,heroDamageType} from './prebattleStats.js';
 // Experimental community model; action scheduling is still a prototype.
 export const SIM_HEROES=SIM_ROSTER.map(h=>h.name);
-export const MODEL_LIMITS='6초월·5강·풀스킬 강화 기준입니다. 영웅별 리플레이 관측 시간과 210초 제한을 사용하며 미확보 시간은 추정입니다. 확인된 스킬 쿨타임과 각성 게이지를 계산합니다. 시간 초과는 팀 최대 HP 대비 잔여 HP 비율과 불사·불굴 조건으로 판정합니다. 고유 패시브·각성기 부가 효과·반격·협공·쿨타임 변경·전체 펫/장비 효과와 서버 지연은 완전 구현되지 않아 승패는 참고용입니다. 영웅 정보창 수치는 펫·진형·상시 패시브를 자동 계산하며, 실전 시작 수치를 불러온 경우에는 중복 가산하지 않습니다.';
+export const MODEL_LIMITS='6초월·5강·풀스킬 강화 기준입니다. 혼란의 약점 공격 우회·공격 전 효과 순서는 검증 중입니다. 영웅별 리플레이 관측 시간과 210초 제한을 사용하며 미확보 시간은 추정입니다. 확인된 스킬 쿨타임과 각성 게이지를 계산합니다. 시간 초과는 팀 최대 HP 대비 잔여 HP 비율과 불사·불굴 조건으로 판정합니다. 고유 패시브·각성기 부가 효과·반격·협공·쿨타임 변경·전체 펫/장비 효과와 서버 지연은 완전 구현되지 않아 승패는 참고용입니다. 영웅 정보창 수치는 펫·진형·상시 패시브를 자동 계산하며, 실전 시작 수치를 불러온 경우에는 중복 가산하지 않습니다.';
 export function prepareHeroes(report){
   return Array.from({length:6},(_,i)=>{
     const side=i<3?'attacker':'defender',candidate=canonicalHero(report?.heroes.filter(h=>h.side===side)[i%3]?.name);
@@ -173,7 +174,9 @@ export function advanceBattle(previous){
   };
   const singleTarget=actor.name==='윤건'&&code!==7?code===1:actor.name==='연희'||actor.name==='쥬리'?false:combatSkill(actor,code)?.targets===1;
   const landed=new Set(),reactions=[],counterCandidates=new Set(),extraUsed=new Set();
-  let attackToken=s.step,directKillCount=0;
+  let attackToken=s.step,directKillCount=0,confusionAttack=beginConfusionAttack(actor);
+  let confusionHitCounts=new Map();
+  function startConfusionCast(){confusionAttack=beginConfusionAttack(actor);confusionHitCounts=new Map();}
   function countRadHits(target){
     for(const rad of s.units.filter(u=>u.side===target.side&&u.name==='라드그리드'&&u.hp>0)){
       rad.alliedHits=(rad.alliedHits||0)+1;
@@ -233,12 +236,13 @@ export function advanceBattle(previous){
   function markPalanus(target){palanusMark(actor,target,code,s.units,()=>random(s),(t,n)=>{if(reduceBuffDurations(t,n).died)onDeathRules(t,s.units,events);});}
   function hit(target,base,{ignore=0,pierce=false,beforeDamage=null,components=[]}={}){
     if(target.hp<=0)return;
+    const hitIndex=confusionHitCounts.get(target.id)||0;confusionHitCounts.set(target.id,hitIndex+1);confusionAttack.hit(hitIndex);
     const conditionTarget={...target};
     s.targets.push(target.id);
     const chances=hitProbabilitiesFor(actor,target,{critBonus:combatSkill(actor,code)?.critBonus||0});
-    const hitWeak=singleTarget?weak:random(s)<Math.min(1,(actor.weakPoint+(combatSkill(actor,code)?.weakBonus||0))/100);
+    const hitWeak=singleTarget||confusionAttack.active?weak:random(s)<Math.min(1,(actor.weakPoint+(combatSkill(actor,code)?.weakBonus||0))/100);
     const superiority=target.superiority>0&&target.attack>actor.attack;
-    const missed=target.stealth>0||superiority||blindForcesMiss(actor,kind)||(!hitWeak&&random(s)<Math.min(1,(actor.missChance+(actor.superiorityMiss||0))/100)),roll=random(s),critical=!missed&&(target.sleep>0||roll<chances.critical),isBlock=!missed&&!critical&&roll<chances.critical+chances.blocked;
+    const missed=target.stealth>0||superiority||blindForcesMiss(actor,kind)||confusionAttack.active&&!hitWeak||(!hitWeak&&random(s)<Math.min(1,(actor.missChance+(actor.superiorityMiss||0))/100)),roll=random(s),critical=!missed&&(target.sleep>0||roll<chances.critical),isBlock=!missed&&!critical&&roll<chances.critical+chances.blocked;
     if(!missed)beforeDamage?.();
     const damage=calculateHit({base,defense:target.defense,defenseDecrease:target.defDown,ignore:Math.min(1,awakeningIgnore(actor,actor.judgment>0?Math.max(.4,ignore):ignore)+(actor.defenseIgnore||0)),critDamage:actor.critDamage,elasticity:target.elasticity,critical,blocked:isBlock,blockReduction:target.blockReduction,weak:hitWeak,weakBonus:actor.weakBonus,damageIncrease:actor.damageIncrease+(actor.name==='연희'&&actor.damageBuffTurns>0&&!actor.panelComputed?35:0),amplification:actor.amplification,...incomingModifiers(actor,target),missed});
     const previousRevived=target.revived,previousRevivalCount=target.revivalCount||0;
@@ -291,6 +295,7 @@ export function advanceBattle(previous){
     } else if(actor.name==='윤건'&&code!==7) {
       skill=code===3?'신속연사':code===2?'십연자포':'기본 공격';
       const fireYoon=(fireCode,power=1)=>{
+      startConfusionCast();
       landed.clear();
       const targets=targetsFor(fireCode===1?1:3);
       if(fireCode===3){
@@ -343,7 +348,8 @@ export function advanceBattle(previous){
           if(['shield','nullify','immunity','physicalImmunity','magicImmunity','controlImmune'].includes(e.type)&&target.buffBlock)return;
           if(e.status&&target.statusImmunities?.[e.status])return;
           if(e.type==='control'&&target.controlImmune||e.type==='heal'&&(target.healBlock||target.indomitableHits>0)||e.type==='revive'&&(target.hp>0||target.annihilation))return;
-          if(e.type==='control'&&!target.controlImmune&&!target.statusImmunities?.[e.status]){
+          if(e.type==='confusion'){target.confusionHits=Math.max(target.confusionHits||0,e.value);}
+          else if(e.type==='control'&&!target.controlImmune&&!target.statusImmunities?.[e.status]){
             if(e.status==='수면'||e.status==='깊은 수면'){target.sleep=Math.max(target.sleep,e.duration);target.sleepBreak=e.status==='깊은 수면'?.3:.07;}
             else if(e.status==='침묵')target.silence=Math.max(target.silence,e.duration);
             else if(e.status==='실명')target.blind=Math.max(target.blind||0,e.duration);
@@ -439,6 +445,7 @@ export function advanceBattle(previous){
           if(spec.executeRatio&&landed.has(t.id)&&t.hp>0&&t.hp/t.maxHp<=spec.executeRatio&&t.hp<=actor.attack*spec.executeCap){const out=applyDamage(t,t.hp,{execute:true,direct:false});Object.assign(t,out.target);if(out.primaryLethal)directKillCount++;actor.damageDealt+=out.damage;events.push(t.name+' · 처형');s.impacts.push({target:t.id,damage:out.damage,kind:'execute',events:out.events});}
         };
         const cast=()=>{
+          startConfusionCast();
           landed.clear();removedBuffs.clear();removedDebuffs.clear();
           const killsBefore=directKillCount;
           const enemyDeathsBefore=s.units.filter(u=>u.side!==actor.side).map(u=>({id:u.id,deaths:(u.revivalCount||0)+(u.hp<=0?1:0)}));
@@ -493,9 +500,11 @@ export function advanceBattle(previous){
     if(start+timing.medianMs>s.timeLimitMs){s.elapsedMs=s.timeLimitMs;break;}
     s.elapsedMs=start+timing.medianMs;if(timing.estimated)s.timingEstimates++;else s.timingObserved++;
     const entry={source:source.id,name:reaction.spec?reaction.spec.name:reaction.kind==='rad_passive'?'라드 패시브 · 아군 피격 5회':reaction.kind==='counter'?source.name+' 반격':source.name==='쥬리'?'쥬리 협공':'하연 엄호 · '+source.name+' 협공',kind:reaction.kind,startMs:start,endMs:s.elapsedMs,estimated:timing.estimated,targets:[]};
-    const spec=combatSkill(source,1),basicAssist=reaction.kind==='assist';
+    const spec=combatSkill(source,1),basicAssist=reaction.kind==='assist',reactionConfusion=beginConfusionAttack(source);
+    const confusionWeak=reactionConfusion.active?random(s)<Math.max(0,Math.min(1,(source.weakPoint+(basicAssist?spec?.weakBonus||0:0))/100)):false;
     for(const target of targets)for(let hitIndex=0;hitIndex<(reaction.spec?.hits||(basicAssist?spec?.hits:1)||1)&&target.hp>0;hitIndex++){
-      const fixed=reaction.kind==='rad_passive'||Boolean(reaction.spec?.fixed),weak=random(s)<Math.max(0,Math.min(1,(source.weakPoint+(basicAssist?spec?.weakBonus||0:0))/100)),superiority=target.superiority>0&&target.attack>source.attack,missed=!fixed&&(target.stealth>0||superiority||blindForcesMiss(source,reaction.kind)||!weak&&random(s)<((source.missChance||0)+(source.superiorityMiss||0))/100);
+      const fixed=reaction.kind==='rad_passive'||Boolean(reaction.spec?.fixed);if(!fixed)reactionConfusion.hit(hitIndex);
+      const weak=reactionConfusion.active?confusionWeak:random(s)<Math.max(0,Math.min(1,(source.weakPoint+(basicAssist?spec?.weakBonus||0:0))/100)),superiority=target.superiority>0&&target.attack>source.attack,missed=!fixed&&(target.stealth>0||superiority||blindForcesMiss(source,reaction.kind)||reactionConfusion.active&&!weak||!weak&&random(s)<((source.missChance||0)+(source.superiorityMiss||0))/100);
       const chances=hitProbabilitiesFor(source,target,{critBonus:basicAssist?spec?.critBonus||0:0}),roll=random(s),critical=!fixed&&!missed&&(target.sleep>0||roll<chances.critical),blocked=!fixed&&!missed&&!critical&&roll<chances.critical+chances.blocked;
       const base=reaction.kind==='counter'?source.attack*.5+(source.name==='루디'?source.defense*.6:0):reaction.kind==='juri_assist'?(source.attack*.5+Math.min(target.maxHp*.1,source.attack*3))*(1+.5*target.hp/target.maxHp):source[spec?.scale||'attack']*((spec?.coefficient||0)+(spec?.missingTargetCoefficient||0)*Math.max(0,(spec?.targets||1)-targets.length))+source.defense*(spec?.defenseCoefficient||0)+source.maxHp*(spec?.selfHpCoefficient||0)+(spec?.hpRatio?Math.min(target.maxHp*spec.hpRatio,source.attack*(spec.hpCap||Infinity)):0);
       const passive=reaction.spec;const passiveBase=passive?source.attack*(passive.attack||0)+source.defense*(passive.defense||0)+target.defense*(passive.targetDefense||0)+(passive.hp?Math.min(target.maxHp*passive.hp,source.attack*passive.cap):0):base;
@@ -509,6 +518,7 @@ export function advanceBattle(previous){
       if(!missed&&outcome.kind!=='immune')countRadHits(target);
       if(basicAssist&&!missed&&target.hp>0)for(const e of spec?.effects||[]){
         if(e.group!=='enemy'||!e.each&&hitIndex!==(spec.hits||1)-1||target.stealth||!rollEffect(casterEffect(source,target,e.chance,e.status),()=>random(s)))continue;
+        if(e.type==='confusion'&&!target.statusImmunities?.['혼란'])target.confusionHits=Math.max(target.confusionHits||0,e.value);
         if(e.type==='dot')addDot(target,{name:e.status,source:source.id,attack:source.attack,remaining:e.duration,value:e.value,scale:e.scale,cap:e.cap,pierce:e.pierce});
         if(e.type==='control'&&!target.controlImmune&&!target.statusImmunities?.[e.status]){
           if(e.status==='수면')target.sleep=Math.max(target.sleep,e.duration);

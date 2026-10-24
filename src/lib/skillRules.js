@@ -13,7 +13,7 @@ export function buffCount(unit){
   return keys.size;
 }
 export function debuffCount(unit){
-  const count=['control','sleep','silence','blind','healBlock','buffBlock','defTurns','annihilation','instantDeathTurns','blockDownTurns','superiorityMissTurns'].filter(k=>unit[k]>0).length;
+  const count=['control','sleep','silence','blind','confusionHits','healBlock','buffBlock','defTurns','annihilation','instantDeathTurns','blockDownTurns','superiorityMissTurns'].filter(k=>unit[k]>0).length;
   return count+(unit.dots||[]).length+(unit.reflux||[]).length+(unit.crystals||[]).length+(unit.panelTimedBuffs||[]).filter(b=>b.debuff).length;
 }
 export function conditionalDamage(source,target,code){

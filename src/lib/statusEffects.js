@@ -1,5 +1,5 @@
 import {releaseControl} from './controlEffects.js';
-const scalars=[['control',['controlName','shockSource','controlSource']],['sleep',[]],['silence',[]],['blind',[]],['healBlock',[]],['buffBlock',[]],['defTurns',['defDown']],['annihilation',[]],['instantDeathTurns',['instantDeathStacks']],['blockDownTurns',['blockDebuff']],['superiorityMissTurns',['superiorityMiss']]];
+const scalars=[['control',['controlName','shockSource','controlSource']],['sleep',[]],['silence',[]],['blind',[]],['confusionHits',[]],['healBlock',[]],['buffBlock',[]],['defTurns',['defDown']],['annihilation',[]],['instantDeathTurns',['instantDeathStacks']],['blockDownTurns',['blockDebuff']],['superiorityMissTurns',['superiorityMiss']]];
 export function rememberDebuff(unit,key,ref=null){
   unit.debuffOrder??=[];
   if(!unit.debuffOrder.some(e=>e.key===key&&e.ref===ref))unit.debuffOrder.push({key,ref});
@@ -34,7 +34,7 @@ export function cleanseDebuffs(unit,count=Infinity,{controlOnly=false}={}){
 }
 export function clearDebuffs(unit){return cleanseDebuffs(unit,Infinity);}
 export function extendDebuffs(unit,turns){
-  for(const [key]of scalars)if(unit[key]>0&&unit.debuffMaxTurns?.[key])unit[key]=Math.min(unit.debuffMaxTurns[key],unit[key]+turns);
+  for(const [key]of scalars)if(key!=='confusionHits'&&unit[key]>0&&unit.debuffMaxTurns?.[key])unit[key]=Math.min(unit.debuffMaxTurns[key],unit[key]+turns);
   for(const key of ['dots','panelTimedBuffs'])for(const effect of unit[key]||[])if((key==='dots'||effect.debuff)&&effect.maxTurns)effect.remaining=Math.min(effect.maxTurns,effect.remaining+turns);
 }
 
