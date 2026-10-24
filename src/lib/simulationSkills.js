@@ -35,7 +35,7 @@ export function compileSkill(raw){
     selfHpCoefficient:match?.[1]?.includes('공격력')?Number((stronger?strength:damage)?.match(/시전자 최대 생명력의\s*([\d.]+)%/)?.[1]||0)/100:0,
     pierce:/관통/.test(compact),ignore:/방어 무시/.test(compact)?.4:0,
     hpRatio:hp?Number(hp[1])/100:0,hpCap:cap?Number(cap[1])/100:0,
-    cooldown:raw.cooldown||0,effects:[],extraDamage:[],unsupported:[],raw};
+    cooldown:Number(text.match(/쿨타임 감소\s*[:：]\s*스킬 쿨타임\s*(\d+)초/)?.[1]||raw.cooldown||0),effects:[],extraDamage:[],unsupported:[],raw};
   skill.requiresTargetBuff=/대상에게 해제 가능한 버프가 있어야 사용 가능/.test(text);
   skill.requiresAllyDebuff=/아군에게 해제 가능한 디버프가 있어야 사용 가능/.test(text);
   skill.allyTargets=Number(text.match(/대상 수 변경\s*[:：]\s*아군\s*(\d+)명/)?.[1]||raw.targets||3);
@@ -115,6 +115,7 @@ export function compileSkill(raw){
     if(modifier){const [label,stat]=modifier,value=Number(line.match(new RegExp(label+'\\s*([\\d.]+)%'))?.[1]||definedValue(label));if(value){add('statTimed',{stat,value,ratio:['attack','defense'].includes(stat),family:/^물리/.test(label)?'physical':/^마법/.test(label)?'magic':'all',debuff:group==='enemy'});continue;}}
     const decreases=[['모든 공격력 감소','attack'],['물리 공격력 감소','attack'],['마법 공격력 감소','attack'],['치명타 확률 감소','crit'],['효과 저항 감소','resist'],['약점 공격 확률 감소','weakPoint'],['피해량 감소','damageIncrease'],['효과 적용 확률 감소','effectChanceBonus']];
     const decrease=decreases.find(([label])=>line.includes(label));if(decrease){const [label,stat]=decrease,value=Number(line.match(new RegExp(label+'\\s*([\\d.]+)%'))?.[1]||definedValue(label));if(value){add('statDecrease',{stat,value,ratio:stat==='attack'});continue;}}
+    const namedReset=line.match(/^[- ]*\[([^\]]+)\] 쿨타임 초기화$/);if(namedReset){add('cooldownReset',{skillName:namedReset[1]});continue;}
     if(/^(?:- )?(?:모든 )?스킬 쿨타임 초기화$/.test(line)){add('cooldownReset');continue;}
     const cooldown=line.match(/스킬 쿨타임 (증가|감소)(?: 효과)?\s*(\d+)초/);
     if(cooldown){const upgraded=lines.find(l=>l.includes('확률 상승')&&l.includes('스킬 쿨타임 '+cooldown[1]));add(cooldown[1]==='증가'?'cooldownUp':'cooldownDown',{value:Number(cooldown[2]),chance:Number(upgraded?.match(/([\d.]+)%/)?.[1]||chance)});continue;}
@@ -132,7 +133,7 @@ export function compileSkill(raw){
     const heal=line.match(/(?:공격력|방어력|최대 생명력)의\s*([\d.]+)%.*(?:회복|생명력 회복)/);
     if(heal){const upgraded=lines.find(l=>/회복량 상승/.test(l));add('heal',{value:Number(upgraded?.match(/(?:공격력|방어력|최대 생명력)의\s*([\d.]+)%/)?.[1]||heal[1])/100,scale:line.includes('최대 생명력')?'maxHp':line.includes('방어력')?'defense':'attack'});continue;}
     const nullify=line.match(/모든 피해 무효화\s*\[피격\s*(\d+)회/);
-    if(nullify){add('nullify',{value:Number(nullify[1])});continue;}
+    if(nullify){const upgraded=lines.find(l=>l.includes('횟수 상승')&&l.includes('모든 피해 무효화'));add('nullify',{value:Number(upgraded?.match(/횟수\s*(\d+)회/)?.[1]||nullify[1])});continue;}
     if(/물리 피해 면역\s*\[/.test(line)){add('physicalImmunity');continue;}
     if(/마법 피해 면역\s*\[/.test(line)){add('magicImmunity');continue;}
     if(/모든 피해 면역\s*\[/.test(line)){add('immunity');continue;}

@@ -374,7 +374,7 @@ export function advanceBattle(previous){
           }
           else if(e.type==='statDecrease')setTimedDecrease(target,e.stat,e.value,e.duration,{ratio:e.ratio});
           else if(e.type==='cooldownUp'&&!target.cooldownImmune){for(const key of [2,3])target.readyAt[key]=Math.max(target.readyAt[key]||0,s.elapsedMs)+e.value*1000;s.plans[target.side]=s.plans[target.side].filter(p=>p.id!==target.id);}
-          else if(e.type==='cooldownReset')target.readyAt={};
+          else if(e.type==='cooldownReset'){if(e.skillName){const resetSkill=heroSkills(target.name).find(v=>v.name===e.skillName);if(resetSkill)target.readyAt[resetSkill.code]=s.elapsedMs;}else target.readyAt={};}
           else if(e.type==='cooldownDown')for(const key of Object.keys(target.readyAt))target.readyAt[key]=Math.max(0,target.readyAt[key]-e.value*1000);
           else if(e.type==='extendBuff')extendBuffDurations(target,e.value);
           else if(e.type==='delayedTan')grantDelayedBuff(target,e.duration);
