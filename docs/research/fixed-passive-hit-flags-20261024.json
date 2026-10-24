@@ -1,0 +1,8 @@
+{
+  "replays": 12,
+  "positive1485PassiveDamageRows": 164,
+  "blockedRows": 0,
+  "criticalRows": 0,
+  "arisTargetRows": 3,
+  "limitation": "Only exact positive 1485 code-4 Rad rows; absorbed or nullified results are outside this count. No winners are read."
+}

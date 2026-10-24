@@ -70,3 +70,13 @@ test('Aris rage and hit gauge increase once across the main attack and its follo
  assert.equal(u.arisStacks,1);assert.equal(u.awakenGauge,3);
  afterHitPassive(u,[u],[],{attackToken:11});assert.equal(u.arisStacks,2);assert.equal(u.awakenGauge,6);
 });
+
+test('fixed passive damage cannot invent a blocked hit or an Aris block response',()=>{
+ const b=fixture();b.phase=1;b.queue=[3];b.units[1].name='라드그리드';b.units[1].alliedHits=4;
+ b.units[3].awakenGauge=75;b.units[3].block=100;b.units[3].weakPoint=100;
+ const n=advanceBattle(b);
+ assert.ok(n.reactions.some(r=>r.kind==='rad_passive'));
+ const hits=n.impacts.filter(i=>i.source===1&&i.target===3&&i.kind==='rad_fixed');
+ assert.ok(hits.length);assert.ok(hits.every(i=>!i.blocked&&!i.critical));
+ assert.equal(n.reactions.filter(r=>r.name.includes('위태로운 공존')).length,0);
+});
