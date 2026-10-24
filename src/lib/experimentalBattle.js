@@ -1,3 +1,4 @@
+import {applyAssistSupportEffects} from './assistEffects.js';
 import {beginConfusionAttack} from './confusionEffects.js';
 import {queuePassiveAttacks} from './passiveAttacks.js';
 import {setTimedDebuff,setTimedBuff,setTimedDecrease} from './timedEffects.js';
@@ -502,6 +503,8 @@ export function advanceBattle(previous){
     s.elapsedMs=start+timing.medianMs;if(timing.estimated)s.timingEstimates++;else s.timingObserved++;
     const entry={source:source.id,name:reaction.spec?reaction.spec.name:reaction.kind==='rad_passive'?'라드 패시브 · 아군 피격 5회':reaction.kind==='counter'?source.name+' 반격':source.name==='쥬리'?'쥬리 협공':'하연 엄호 · '+source.name+' 협공',kind:reaction.kind,startMs:start,endMs:s.elapsedMs,estimated:timing.estimated,targets:[]};
     const spec=combatSkill(source,1),basicAssist=reaction.kind==='assist',reactionConfusion=beginConfusionAttack(source);
+    const friendlyEffects=before=>{if(basicAssist)applyAssistSupportEffects(source,spec,s.units,{before,rng:()=>random(s),onHeal:(target,amount)=>{s.impacts.push({target:target.id,source:source.id,heal:amount,kind:'assist_heal'});events.push(source.name+' · 엄호 평타 회복 '+amount);},onCleanse:drainControlBursts});};
+    friendlyEffects(true);
     const confusionWeak=reactionConfusion.active?random(s)<Math.max(0,Math.min(1,(source.weakPoint+(basicAssist?spec?.weakBonus||0:0))/100)):false;
     for(const target of targets)for(let hitIndex=0;hitIndex<(reaction.spec?.hits||(basicAssist?spec?.hits:1)||1)&&target.hp>0;hitIndex++){
       const fixed=reaction.kind==='rad_passive'||Boolean(reaction.spec?.fixed);if(!fixed)reactionConfusion.hit(hitIndex);
@@ -547,6 +550,7 @@ export function advanceBattle(previous){
         if(passive.magicVulnerability&&rollEffect(casterEffect(source,target,100),()=>random(s)))setTimedDebuff(target,'magicVulnerability',passive.magicVulnerability,2);
       }
     }
+    friendlyEffects(false);
     if(entry.targets.length&&reaction.kind!=='rad_passive'&&!reaction.spec?.fixed)afterOwnHit(source);
     if(reaction.kind!=='hero_passive'){source.lastAttackBasic=reaction.kind==='assist';onAttackStacks(source,s.units,events);queuePassiveAttacks('attack',source,s.units,reactions);}
     if(reaction.kind==='counter'&&source.name==='제이브')for(const target of targets)if(target.hp>0&&rollEffect(casterEffect(source,target,40,'용염'),()=>random(s)))addDot(target,{name:'용염',source:source.id,attack:source.attack,remaining:2,value:1.2,scale:'attack',cap:null,pierce:false});

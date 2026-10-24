@@ -9,7 +9,7 @@ export function HeroPortrait({name,className=''}){
   const [failed,setFailed]=useState(false),profile=heroProfile(name);
   return profile?.portrait&&!failed?<img className={className} src={profile.portrait} alt="" loading="lazy" referrerPolicy="no-referrer" onError={()=>setFailed(true)}/>:<span className={`battle-portrait-fallback ${className}`} aria-hidden="true">{name.slice(0,1)}</span>;
 }
-function badges(u){return [u.transformed&&'변신',u.dellonsStacks>0&&'치피 중첩 '+u.dellonsStacks,u.nullify>0&&`무효 ${u.nullify}`,u.barrier>0&&`보호막 ${number(u.barrier)}`,u.immortal>0&&`불사 ${u.immortal}`,u.sleep>0&&`수면 ${u.sleep}`,u.control>0&&`${u.controlName||'행동 제어'} ${u.control}`,u.silence>0&&`침묵 ${u.silence}`,u.blind>0&&`실명 ${u.blind}`,u.confusionHits>0&&`혼란 ${u.confusionHits}타`,u.immunity>0&&`면역 ${u.immunity}`,u.defDown>0&&`방어↓ ${Math.round(u.defDown*100)}%`].filter(Boolean);}
+function badges(u){return [u.transformed&&'변신',u.dellonsStacks>0&&'치피 중첩 '+u.dellonsStacks,u.nullify>0&&`무효 ${u.nullify}`,u.barrier>0&&`보호막 ${number(u.barrier)}`,u.immortal>0&&`불사 ${u.immortal}`,u.sleep>0&&`수면 ${u.sleep}`,u.control>0&&`${u.controlName||'행동 제어'} ${u.control}`,u.silence>0&&`침묵 ${u.silence}`,u.blind>0&&`실명 ${u.blind}`,u.confusionHits>0&&`혼란 ${u.confusionHits}타`,u.markHits>0&&`반점 ${u.markHits}타`,u.immunity>0&&`면역 ${u.immunity}`,u.defDown>0&&`방어↓ ${Math.round(u.defDown*100)}%`].filter(Boolean);}
 
 export default function BattleArena({draft,battle,running}){
   const units=battle?.units||draft,action=battle?.action;
