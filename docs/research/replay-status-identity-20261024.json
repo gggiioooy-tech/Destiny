@@ -1,0 +1,15 @@
+{
+  "replays": 160,
+  "effectRows": 70839,
+  "withSequenceId": 70839,
+  "withDurationType": 70839,
+  "sameModuleDistinctSequencesInOneResult": 4090,
+  "durationTypeCounts": {
+    "1": 38845,
+    "3": 6857,
+    "5": 5753,
+    "4": 17638,
+    "2": 1746
+  },
+  "limitation": "Protocol values are preserved without assigning turn semantics; counts are diagnostic, not prediction validation."
+}

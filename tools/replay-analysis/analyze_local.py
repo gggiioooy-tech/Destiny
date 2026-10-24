@@ -7,6 +7,19 @@ import sys
 from types import SimpleNamespace
 
 
+def status_snapshot(effect):
+    """Preserve effect identity and duration encoding without inventing defaults.
+
+    SeqID separates concurrent instances of the same module. DurationType is a
+    protocol value, not a documented conversion to personal or global turns.
+    """
+    row = {'moduleId': effect.ModuleId, 'turns': effect.RemainTurn,
+           'stacks': effect.StackCount, 'state': effect.State}
+    for field, key in [('SeqID', 'sequenceId'), ('DurationType', 'durationType')]:
+        row[key] = getattr(effect, field) if effect.HasField(field) else None
+    return row
+
+
 def recorded_actions(name, event):
     """Keep packet/container order; standalone HP updates are not skill casts."""
     def rows(field):
@@ -147,8 +160,7 @@ def analyze(pool, raw, record, history):
                     entry['hpDelta'] = after['hp']-before['hp']
                 results.append(entry)
             statuses = [{'target': row.ObjectId, 'effects': [
-                {'moduleId': effect.ModuleId, 'turns': effect.RemainTurn,
-                 'stacks': effect.StackCount, 'state': effect.State}
+                status_snapshot(effect)
                 for effect in row.StatusEffects]} for row in action.StatusEffectResults]
             timeline.append({'index': len(timeline)+1, 'packet': packet_order,
                              'actionKind': getattr(action, 'actionKind', 'skill_action'),

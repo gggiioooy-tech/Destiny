@@ -1,0 +1,9 @@
+# Replay effect identity preservation
+
+The offline timeline previously discarded `MStatusEffect.SeqID` and `DurationType`. A local audit of the existing 160 development replays finds 70,839 effect rows, all with both fields populated. In 4,090 result/module groups, one target's status result contains multiple distinct sequence IDs for the same module. Matching only by module ID therefore loses observed instance identity and can conflate overlapping applications, removals, or refreshes.
+
+`tools/replay-analysis/analyze_local.py` now preserves these fields as `sequenceId` and `durationType`. Absent optional fields remain null; an explicit zero remains zero. Existing module, duration, stack and state fields retain their previous format. This is additive forensic reporting, not a change to combat rules or prediction inputs. Existing private timeline files are not automatically overwritten.
+
+The aggregate is in `replay-status-identity-20261024.json`. Duration values 1–5 are observed, but this audit does not establish their personal-turn, global-turn, or hit-count semantics. Future effect-lifetime comparisons must use the target, module and sequence together and independently establish duration semantics before changing the engine. No player identifiers, raw status sequences, keys or replay content are published.
+
+Validation: two synthetic protobuf tests verify concurrent same-module instances, separate duration values, and absent-versus-zero presence. An actual-schema local audit exercised the parser on all 70,839 observed rows. No server downloads were needed. The production engine remains `2026-10-24.2`; its development score remains 97/150 decided, with four abstentions among 154 eligible records. This reporting fix supplies no new independent accuracy measurement and does not establish the 90% goal.
