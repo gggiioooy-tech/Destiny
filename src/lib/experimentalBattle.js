@@ -272,7 +272,7 @@ export function advanceBattle(previous){
     }
     return {missed};
   }
-  const effect=(target,chance,status)=>rollEffect(casterEffect(actor,{...target,resist:target.control>0&&target.controlName==='공포'?0:target.resist},chance,status),()=>random(s));
+  const effect=(target,chance,status)=>rollEffect(casterEffect(actor,target,chance,status),()=>random(s));
   if(actor.sleep>0||actor.control>0){events.push(`${actor.name} · ${actor.sleep?'수면':actor.controlName||'행동 제어'}으로 행동 불가`);}
   else {
     const damageBefore=actor.damageDealt;

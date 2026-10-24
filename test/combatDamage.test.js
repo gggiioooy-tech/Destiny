@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {criticalMultiplier,hitProbabilities,defenseDenominator,calculateHit,effectProbability,rollEffect,HERO_GROWTH} from '../src/lib/combatDamage.js';
+import {criticalMultiplier,hitProbabilities,defenseDenominator,calculateHit,effectProbability,rollEffect,casterEffect,HERO_GROWTH} from '../src/lib/combatDamage.js';
 test('all hero effects use fixed 6-transcendence +5 full-skills baseline',()=>{
   assert.equal(HERO_GROWTH.transcendence,6);assert.equal(HERO_GROWTH.enhancement,5);assert.equal(HERO_GROWTH.skills,'full');assert.ok(Object.isFrozen(HERO_GROWTH));
 });
@@ -16,6 +16,14 @@ test('separate resistance and skill rolls are both respected',()=>{
   let rolls=[.5,.1];assert.equal(rollEffect(config,()=>rolls.shift()),false);
   rolls=[.9,.7];assert.equal(rollEffect(config,()=>rolls.shift()),false);
   rolls=[.9,.2];assert.equal(rollEffect(config,()=>rolls.shift()),true);
+});
+
+test('fear fixes resistance at zero for shared effect checks without altering the stored stat',()=>{
+ const target={resist:200,control:2,controlName:'공포'},source={accuracy:0};
+ assert.equal(casterEffect(source,target,100).resistance,0);
+ assert.equal(rollEffect(casterEffect(source,target,100),()=>.5),true);
+ assert.equal(target.resist,200);
+ for(const inactive of [{...target,control:0},{...target,controlName:'기절'}])assert.equal(casterEffect(source,inactive,100).resistance,200);
 });
 test('elasticity subtracts percentage points from critical damage, with 100% floor',()=>{
   for(const [crit,elasticity,result] of [[200,50,1.5],[150,0,1.5],[150,39,1.11],[150,60,1],[200,999,1]])assert.equal(criticalMultiplier(crit,elasticity),result);

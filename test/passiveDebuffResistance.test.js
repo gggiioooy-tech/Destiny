@@ -37,3 +37,12 @@ test('poison immunity blocks the ailment but not the other independently applica
   assert.equal(u.dots.length,0);assert.equal(u.healingReduction,20);assert.equal(u.magicVulnerability,20);
  }
 });
+
+test('active fear suppresses resistance to Dongyoung passive effects as it does ordinary skills',()=>{
+ const b=fixture(200);for(const u of b.units.slice(3)){u.control=2;u.controlName='공포';}
+ const n=advanceBattle(b);
+ for(const u of n.units.slice(3)){
+  assert.equal(u.dots.length,1);assert.equal(u.healingReduction,20);assert.equal(u.magicVulnerability,20);
+  assert.equal(u.resist,200);
+ }
+});
