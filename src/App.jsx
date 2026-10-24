@@ -12,6 +12,7 @@ import { sortByRecommendation } from "./lib/recommendationSort.js";
 import React, { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { supabase } from "./lib/supabase.js";
 import { SecureAuth, PasswordChange } from "./components/SecureAuth.jsx";
+import NicknameChangeButton from './components/NicknameChange.jsx';
 import {
   Download,
   XCircle,
@@ -139,6 +140,7 @@ function Sidebar({ active, setActive, isOpen, setIsOpen, currentUser, logout, se
             </div>
             {currentUser.role === "admin" && <WeeklyCounterSummary currentUser={currentUser} />}
           </div>
+          <NicknameChangeButton user={currentUser} className="mt-3 w-full"/>
           <Button onClick={logout} variant="secondary" className="mt-3 w-full"><LogOut size={16} /> 로그아웃</Button>
           <TransparencyControl className="mt-3" />
           <ThemeToggle className="mt-3 w-full" />
@@ -931,6 +933,7 @@ function WeeklyCounterSummary({ currentUser }) {
 }
 
 export default function App() {
+  const [nicknameRevision,setNicknameRevision]=useState(0);
   const [users, setUsers] = useState([]);
   const [guildTabs, setGuildTabs] = useState([]);
   const [settings, setSettings] = useState(FALLBACK_SETTINGS);
@@ -1016,6 +1019,11 @@ export default function App() {
   }, [authReady, authUserId]);
 
   useEffect(() => { loadData(); }, [loadData]);
+  useEffect(()=>{
+    const changed=()=>{setNicknameRevision(v=>v+1);loadData();};
+    window.addEventListener('member-nickname-changed',changed);
+    return()=>window.removeEventListener('member-nickname-changed',changed);
+  },[loadData]);
   const navigation = currentUser ? guildNavigation(guildTabs, currentUser).filter(item => item.visibleTo.includes(currentUser.role) && (!item.ownerOnly || currentUser.isOwner)) : [];
   const safeActive = navigation.some(item => item.id === active) ? active : (currentUser?.role === 'guest' ? navigation[0]?.id || 'noGuild' : 'attack');
   useEffect(() => {
@@ -1091,7 +1099,7 @@ export default function App() {
           settings={settings}
         />
 
-        <Suspense fallback={<div role="status" className="p-6 text-sm text-zinc-500">화면 불러오는 중…</div>}>
+        <Suspense key={nicknameRevision} fallback={<div role="status" className="p-6 text-sm text-zinc-500">화면 불러오는 중…</div>}>
         {!pageReady ? <div role="status" className="p-6 text-sm text-zinc-500">
           {pageRequest.key === pageKey && pageRequest.error ? <><p role="alert">{pageRequest.error}</p><button type="button" className="mt-3 underline" onClick={() => setPageRetry(value => value + 1)}>다시 시도</button></> : '화면 데이터 불러오는 중…'}
         </div> : <>

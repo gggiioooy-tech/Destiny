@@ -1,8 +1,9 @@
 import {supabase} from './supabase.js';
 import catalog from './gameCatalog.json';
 import {matchesHeroSearch,searchTokens} from './heroSearch.js';
+import {historySearchCache as cache} from './historySearchCache.js';
+export {clearHistorySearchCache} from './historySearchCache.js';
 const names=[...new Set(Object.values(catalog.heroes))];
-const cache=new Map();
 export function historyCriteria(query,defenseHeroes,guild=''){
   const scope=guild?{p_guild:guild}:{};
   if(Array.isArray(defenseHeroes))return {...scope,p_tokens:[],p_defense:defenseHeroes,p_sort:'rate'};

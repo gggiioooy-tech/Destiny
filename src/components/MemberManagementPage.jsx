@@ -1,4 +1,5 @@
 import MemberInfoPreview from "./MemberInfoPreview.jsx";
+import NicknameChangeButton from './NicknameChange.jsx';
 import { useMemberBattleStats, MemberBattleStats, ResetMemberBattleStats } from "./MemberBattleStats.jsx";
 import { matchesMemberSearch } from "../lib/memberSearch.js";
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
@@ -301,7 +302,7 @@ function MemberRow({ user: u, pending, updateUser, deleteUser, currentUser, week
 
   return (
     <tr className="border-b border-zinc-100 align-top">
-      <td data-label="게임 닉네임" className="px-2 py-2 font-semibold text-zinc-950">{u.gameNickname}</td>
+      <td data-label="게임 닉네임" className="px-2 py-2 font-semibold text-zinc-950"><p>{u.gameNickname}</p><NicknameChangeButton user={u} admin className="mt-2"/></td>
       <td data-label="아이디" className="px-2 py-2 text-zinc-600">{u.id}</td>
       <td data-label="상태" className="px-2 py-2"><StatusBadge status={u.status} /></td>
       <td data-label="등급" className="px-2 py-2"><RoleBadge role={u.role} isOwner={u.isOwner} /></td>

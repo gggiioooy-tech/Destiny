@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase, requestAuth, rememberId, readRememberedId } from '../lib/supabase.js';
+import { supabase, requestAuth, rememberId, readRememberedId,authStorage } from '../lib/supabase.js';
 
 const inputClass = 'mt-2 w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-white outline-none focus:ring-2 focus:ring-white/50';
 function Field({ label, ...props }) {
@@ -13,6 +13,7 @@ export function SecureAuth({ settings }) {
   const [confirm, setConfirm] = useState('');
   const [nickname, setNickname] = useState('');
   const [remember, setRemember] = useState(() => Boolean(readRememberedId()));
+  const [keepLogin,setKeepLogin]=useState(()=>authStorage.keeping());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -31,6 +32,7 @@ export function SecureAuth({ settings }) {
         setMessage('가입 신청이 완료되었습니다. 관리자 승인 후 이용할 수 있습니다.');
       } else {
         rememberId(remember ? userId.trim() : '');
+        authStorage.setKeeping(keepLogin);
         const { error: sessionError } = await supabase.auth.setSession({ access_token: result.accessToken, refresh_token: result.refreshToken });
         if (sessionError) throw sessionError;
         setPassword('');
@@ -61,6 +63,8 @@ export function SecureAuth({ settings }) {
           </div>
           {mode === 'signup' && <Field label="비밀번호 확인" type="password" value={confirm} onChange={e=>setConfirm(e.target.value)} minLength={8} maxLength={72} autoComplete="new-password" />}
           {mode === 'login' && <label className="flex items-center gap-2 text-sm text-zinc-400"><input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)} />아이디 기억하기</label>}
+          {mode === 'login' && <label className="flex items-center gap-2 text-sm text-zinc-400"><input type="checkbox" checked={keepLogin} onChange={e=>setKeepLogin(e.target.checked)} />로그인 유지</label>}
+          {mode === 'login' && keepLogin && <p className="text-xs text-zinc-400">개인 기기에서 사용해 주세요. 로그아웃하면 로그인 유지도 해제됩니다.</p>}
           {mode === 'signup' && <p className="text-xs text-zinc-400">비밀번호는 8글자 이상으로 입력해 주세요.</p>}
           <button disabled={busy} className="w-full rounded-xl bg-white px-4 py-3 font-semibold text-zinc-950 disabled:opacity-50">{busy ? '처리 중…' : mode === 'login' ? '로그인' : '가입 신청'}</button>
           {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
