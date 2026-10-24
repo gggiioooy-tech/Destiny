@@ -27,6 +27,7 @@ export function initializePassives(units){
     if(profiles.get(unit.name)?.role===2&&units.some(u=>u.side===unit.side&&u.name==='동영'&&u.battleRow===unit.battleRow))unit.immunity=Math.max(unit.immunity,1);
     if(text.includes('고통 감내'))unit.endurePain=true;
     if(units.some(u=>u.side===unit.side&&u.name==='루디'))unit.linkTurns=2;
+    if(units.some(u=>u.side===unit.side&&u.name==='아킬라'))unit.linkTurns=Math.max(unit.linkTurns||0,3);
     if(profiles.get(unit.name)?.role===1&&units.some(u=>u.side===unit.side&&u.name==='탄지로'))grantDelayedBuff(unit,2);
     for(const {text:line,group} of passiveSections(unit.name)){
       const immunity=line.match(/^- (기절|마비|빙결|석화|감전|수면|침묵|화상|중독) 면역\s*\[(\d+)턴/);if(!immunity)continue;
