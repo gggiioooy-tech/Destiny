@@ -1,3 +1,4 @@
+import {matchesGuildWarSearch} from '../lib/guildWarSearch.js';
 import React,{useEffect,useState} from 'react';
 import {canViewHeroStats} from '../lib/heroBattleStats.js';
 import {loadDefenseStartSkills,defenseSkillLabel} from '../lib/defenseStartSkills.js';
@@ -21,8 +22,7 @@ export default function DefenseSkillView({snapshot,currentUser,castle,search}){
  if(error)return <p role="alert" className="text-sm text-red-600">{error}</p>;
  if(!result||result.key!==key)return <p role="status" className="text-sm">상대 시작 스킬 불러오는 중…</p>;
  const byIndex=new Map(result.rows.map(row=>[row.index,row.skills]));
- const keyword=String(search||'').replace(/\s/g,'').toLowerCase();
- const rows=(snapshot?.payload?.defenses||[]).map((row,index)=>({...resolveGameSide(row),index,skills:byIndex.get(index)||[]})).filter(row=>(!castle||row.castle===castle)&&(!keyword||[row.nickname,...(row.heroes||[]),row.pet].join(' ').replace(/\s/g,'').toLowerCase().includes(keyword))).sort((a,b)=>a.castle.localeCompare(b.castle,'ko',{numeric:true})||a.nickname.localeCompare(b.nickname,'ko'));
+ const rows=(snapshot?.payload?.defenses||[]).map((row,index)=>({...resolveGameSide(row),index,skills:byIndex.get(index)||[]})).filter(row=>(!castle||row.castle===castle)&&matchesGuildWarSearch([row.nickname,...(row.heroes||[]),row.pet],search)).sort((a,b)=>a.castle.localeCompare(b.castle,'ko',{numeric:true})||a.nickname.localeCompare(b.nickname,'ko'));
  const locations=['외성1','외성2','외성3','외성4','외성5','내성1','내성2','내성3','본성'];
  return <div className="space-y-4">
   <p className="text-xs text-zinc-500">상대 시작 예약 스킬 · 15초마다 자동 갱신 · 같은 조합도 상대마다 순서가 다를 수 있습니다.</p>

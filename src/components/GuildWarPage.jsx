@@ -1,3 +1,4 @@
+import {matchesGuildWarSearch} from '../lib/guildWarSearch.js';
 import DefenseSkillView from './DefenseSkillView.jsx';
 import HeroBattleStats from './HeroBattleStats.jsx';
 import {canViewHeroStats} from '../lib/heroBattleStats.js';
@@ -104,8 +105,7 @@ export function DefenseGroups({ snapshot, counterTeams, castle, search, currentU
     catch{setCopyStatus('자동 복사가 차단됐습니다. 아래 내용을 선택해 복사해 주세요.');setManualCopy(copyText);}
   }
 
-  const keyword=search.replace(/\s/g,'').toLowerCase();
-  const groups=groupDefenses(snapshot?.payload?.defenses).filter(g=>(!castle||g.castle===castle)&&(!keyword||[...g.heroes,g.pet,...g.members].join(' ').replace(/\s/g,'').toLowerCase().includes(keyword)));
+  const groups=groupDefenses(snapshot?.payload?.defenses).filter(g=>(!castle||g.castle===castle)&&matchesGuildWarSearch([...g.heroes,g.pet,...g.members],search));
   return <div className="space-y-3">
     <div className="flex flex-wrap gap-2">{[[false,'상세보기'],[true,'몰아보기']].map(([value,label])=><button type="button" key={label} aria-pressed={!skillsVisible&&overview===value} className={`${button} ${!skillsVisible&&overview===value?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>{setShowSkills(false);setOverview(value);}}>{label}</button>)}{canViewHeroStats(currentUser)&&<button type="button" disabled={!snapshot} aria-pressed={skillsVisible} className={`${button} ${skillsVisible?'ring-2 ring-blue-500 font-bold':''}`} onClick={()=>setShowSkills(value=>!value)}>스킬보기</button>}<button type="button" className={button} disabled={!copyText} onClick={copyDefenses}>상대 방어팀 복사하기</button></div>
     {copyStatus&&<p role="status" className="text-sm">{copyStatus}</p>}
@@ -188,7 +188,7 @@ export default function GuildWarPage({ guild, counterTeams, currentUser }) {
         <div className="flex gap-2 overflow-x-auto pb-1" aria-label="기록 종류">{[['teams',defenseTitle],['attack','공격 기록'],['defense','방어 기록']].map(([value,label])=><button key={value} type="button" aria-pressed={section===value} className={`${button} whitespace-nowrap ${section===value?'font-bold':''}`} onClick={()=>chooseSection(value)}>{label}</button>)}</div>
         <div className="grid grid-cols-[minmax(100px,0.6fr)_minmax(0,1.4fr)] gap-2">
           <label className="text-xs text-zinc-500">성 위치<select aria-label="성별 분류" className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-950" value={castle} onChange={event=>{setBattleOffset(0);setCastle(event.target.value);}}><option value="">전체</option>{castles.map(value=><option key={value} value={value}>{value}{section==='attack'?' 공격':section==='defense'?' 방어':''}</option>)}</select></label>
-          <label className="text-xs text-zinc-500">검색<input aria-label="길드전 기록 검색" className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-950" value={search} onChange={event=>setSearch(event.target.value)} placeholder="닉네임 · 영웅 · 펫" /></label>
+          <label className="text-xs text-zinc-500">검색<input aria-label="길드전 기록 검색" className="mt-1 w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-950" value={search} onChange={event=>setSearch(event.target.value)} placeholder="영웅 여러 명은 띄어쓰기로 구분 · 닉네임 · 펫" /></label>
         </div>
       </>}
     </div>
