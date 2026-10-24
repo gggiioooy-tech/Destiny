@@ -8,7 +8,7 @@ export function effectProbability({baseChance,accuracy=0,resistance=0,chanceBonu
   const skillChance=clamp(baseChance*Math.max(0,1+chanceBonus/100),0,100)/100;
   return {remainingResistance,skillChance,applied:skillChance*(1-remainingResistance)};
 }
-export function casterEffect(source,target,baseChance,status){return {baseChance,accuracy:source.accuracy||0,resistance:target.control>0&&target.controlName==='공포'?0:target.resist||0,chanceBonus:(source.effectChanceBonus||0)+(status==='감전'?source.shockChanceBonus||0:0)};}
+export function casterEffect(source,target,baseChance,status){return {baseChance,accuracy:source.accuracy||0,resistance:target.control>0&&target.controlName==='공포'?0:target.resist||0,chanceBonus:(source.effectChanceBonus||0)+(status==='감전'?source.shockChanceBonus||0:0)+(status==='즉사'?source.instantDeathChanceBonus||0:0)};}
 export function rollEffect(settings,random){
   const {remainingResistance,skillChance}=effectProbability(settings);
   if(random()<remainingResistance)return false;

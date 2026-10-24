@@ -61,7 +61,7 @@ function petReference(team){
   return {pet,raw:{text,definitions,upgrades},overrides};
 }
 const names=[['물리 공격력','attack','physical'],['마법 공격력','attack','magic'],['모든 공격력','attack','all'],['방어력','defense','all'],['최대 생명력','maxHp','all'],['생명력','maxHp','all'],['치명타 확률','crit','all'],['치명타 피해','critDamage','all'],['약점 공격 확률','weakPoint','all'],['막기 확률','block','all'],['효과 적중','accuracy','all'],['효과 저항','resist','all'],['피해량','damageIncrease','all'],['마법 피해량','damageIncrease','magic'],['물리 피해량','damageIncrease','physical'],['받는 피해량','damageReduction','all'],['받는 피해','damageReduction','all'],['피해 증폭','amplification','all']];
-const namedStats=[['물리 취약','physicalVulnerability'],['마법 취약','magicVulnerability'],['물리 감쇄','physicalReduction'],['마법 감쇄','magicReduction'],['감쇄','damageReduction'],['감전 효과 적용 확률 증가','shockChanceBonus'],['효과 적용 확률 증가','effectChanceBonus'],['효과 적용 확률 감소','effectChanceBonus'],['받는 회복량 감소','healingReduction'],['받는 회복량 증가','healingIncrease']];
+const namedStats=[['물리 취약','physicalVulnerability'],['마법 취약','magicVulnerability'],['물리 감쇄','physicalReduction'],['마법 감쇄','magicReduction'],['감쇄','damageReduction'],['감전 효과 적용 확률 증가','shockChanceBonus'],['즉사 효과 적용 확률 증가','instantDeathChanceBonus'],['효과 적용 확률 증가','effectChanceBonus'],['효과 적용 확률 감소','effectChanceBonus'],['받는 회복량 감소','healingReduction'],['받는 회복량 증가','healingIncrease']];
 function parseAuras(raw,source,isPet=false){
   const lines=[raw.text,raw.enhanced,raw.upgrades].filter(Boolean).join('\n').split('\n').map(l=>l.trim());
   let group=isPet?'team':'self',role=null,row=null,affiliation=null;const effects=[],warnings=[];
@@ -114,7 +114,7 @@ export function calculatePrebattle(draft,settings,{basis='panel',observedPetSkil
   if(basis==='battle'){
     // Numeric start stats already include attack/HP/critical/gear passives.
     // Damage families and recovery/status modifiers aren't in that stat packet.
-    const hidden=['damageIncrease','vulnerability','weakBonus','missChance','physicalVulnerability','magicVulnerability','physicalReduction','magicReduction','healingIncrease','healingReduction','effectChanceBonus','shockChanceBonus','refluxDamageIncrease'];
+    const hidden=['damageIncrease','vulnerability','weakBonus','missChance','physicalVulnerability','magicVulnerability','physicalReduction','magicReduction','healingIncrease','healingReduction','effectChanceBonus','shockChanceBonus','instantDeathChanceBonus','refluxDamageIncrease'];
     const extras=calculatePrebattle(draft,settings,{basis:'panel',observedPetSkillLevels});
     const heroes=structuredClone(draft).map((h,i)=>{
       const unit=settings?.[h.side]?.seats?{...h,battleSeat:settings[h.side].seats[h.id%3],battleRow:settings[h.side].positions?.[h.id%3]}:h;
