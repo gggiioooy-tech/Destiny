@@ -1,0 +1,18 @@
+import {test}from 'node:test';import assert from 'node:assert/strict';
+import {addHealingReductionStack}from '../src/lib/healingReductionStacks.js';
+import {cleanseDebuffs,resetRevivalDebuffs,extendDebuffs}from '../src/lib/statusEffects.js';
+import {setTimedDebuff}from '../src/lib/timedEffects.js';
+import {tickPersonalTurn}from '../src/lib/battleSurvival.js';
+import {debuffCount}from '../src/lib/skillRules.js';
+import {restoreHp}from '../src/lib/passiveRules.js';
+const unit=()=>({hp:100,maxHp:1000,healingReduction:0,panelTimedBuffs:[]});
+test('Dongyoung healing reduction caps at three stacks and is one cleansable debuff',()=>{const u=unit();for(let i=0;i<4;i++)addHealingReductionStack(u);assert.equal(u.healingReduction,60);assert.equal(debuffCount(u),1);assert.equal(u.panelTimedBuffs[0].stacks,3);assert.equal(cleanseDebuffs(u,1),1);assert.equal(u.healingReduction,0);assert.equal(debuffCount(u),0);});
+test('cleansing resets stack progression so the next application starts at one',()=>{const u=unit();addHealingReductionStack(u);addHealingReductionStack(u);cleanseDebuffs(u);addHealingReductionStack(u);assert.equal(u.healingReduction,20);assert.equal(u.panelTimedBuffs[0].stacks,1);});
+test('revival removes stacked healing reduction and preserves permanent prebattle reduction',()=>{const u=unit();u.healingReduction=12;addHealingReductionStack(u);addHealingReductionStack(u);resetRevivalDebuffs(u);assert.equal(u.healingReduction,12);assert.equal(u.panelTimedBuffs.length,0);});
+test('stacked reduction has no invented personal-turn expiry or extension',()=>{let u=unit();addHealingReductionStack(u);for(let i=0;i<4;i++)u=tickPersonalTurn(u,structuredClone(u)).target;extendDebuffs(u,3);assert.equal(u.healingReduction,20);assert.equal(u.panelTimedBuffs[0].stacks,1);});
+test('model strongest-family rule restores a weaker stack when stronger ordinary reduction is cleansed',()=>{const u=unit();setTimedDebuff(u,'healingReduction',48,3);addHealingReductionStack(u);assert.equal(u.healingReduction,48);cleanseDebuffs(u,1);assert.equal(u.healingReduction,20);});
+test('removing the stack source restores an independent ordinary debuff',()=>{const u=unit();addHealingReductionStack(u);addHealingReductionStack(u);setTimedDebuff(u,'healingReduction',30,3);assert.equal(u.healingReduction,40);cleanseDebuffs(u,1);assert.equal(u.healingReduction,30);});
+test('ordinary debuff expiry restores the still-active stack value',()=>{const u=unit();setTimedDebuff(u,'healingReduction',48,1);addHealingReductionStack(u);const n=tickPersonalTurn(u,structuredClone(u)).target;assert.equal(n.healingReduction,20);assert.equal(n.panelTimedBuffs.length,1);});
+test('a stronger ordinary refresh neither multiplies stacks nor invents a permanent penalty',()=>{const u=unit();addHealingReductionStack(u);setTimedDebuff(u,'healingReduction',48,2);setTimedDebuff(u,'healingReduction',55,3);assert.equal(u.healingReduction,55);cleanseDebuffs(u,Infinity);assert.equal(u.healingReduction,0);});
+test('control-only cleansing leaves the non-control reduction in place',()=>{const u=unit();addHealingReductionStack(u);assert.equal(cleanseDebuffs(u,Infinity,{controlOnly:true}),0);assert.equal(u.healingReduction,20);});
+test('stack removal actually restores recovery rather than just hiding the status',()=>{const u=unit();addHealingReductionStack(u);assert.equal(restoreHp(u,100),80);cleanseDebuffs(u);assert.equal(restoreHp(u,100),100);});

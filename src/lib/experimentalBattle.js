@@ -1,3 +1,4 @@
+import {addHealingReductionStack} from './healingReductionStacks.js';
 import {applyAssistSupportEffects} from './assistEffects.js';
 import {beginConfusionAttack} from './confusionEffects.js';
 import {queuePassiveAttacks} from './passiveAttacks.js';
@@ -553,7 +554,7 @@ export function advanceBattle(previous){
         if(passive.dispel){const result=dispelBuffs(target,passive.dispel);if(result.died)onDeathRules(target,s.units,events);}
         if(passive.reduceBuff&&rollEffect(casterEffect(source,target,100),()=>random(s))){if(reduceBuffDurations(target,passive.reduceBuff).died)onDeathRules(target,s.units,events);}
         if(passive.poison&&rollEffect(casterEffect(source,target,100,'중독'),()=>random(s)))addDot(target,{name:'중독',source:source.id,attack:source.attack,remaining:2,value:.3,scale:'targetHp',cap:1.5,pierce:false});
-        if(passive.healingReduction&&rollEffect(casterEffect(source,target,100),()=>random(s))){target.healingReduction=Math.min(60,(target.healingReduction||0)+passive.healingReduction);}
+        if(passive.healingReduction&&rollEffect(casterEffect(source,target,100),()=>random(s))){addHealingReductionStack(target,passive.healingReduction,3);syncDebuffs(target);}
         if(passive.magicVulnerability&&rollEffect(casterEffect(source,target,100),()=>random(s)))setTimedDebuff(target,'magicVulnerability',passive.magicVulnerability,2);
       }
     }

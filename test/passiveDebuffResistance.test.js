@@ -53,3 +53,9 @@ test('blind does not turn Dongyoung passive spell damage into a missed basic att
  assert.equal(hits.length,3);assert.ok(hits.every(i=>!i.missed&&i.damage>0));
  for(const u of n.units.slice(3)){assert.equal(u.dots.length,1);assert.equal(u.healingReduction,20);}
 });
+import {cleanseDebuffs} from '../src/lib/statusEffects.js';
+test('passive healing-reduction stacks participate in real combat cleansing and restart from one',()=>{
+ let n=advanceBattle(fixture(0));for(const u of n.units.slice(3)){assert.ok(u.panelTimedBuffs.some(e=>e.stacks===1&&e.stat==='healingReduction'));cleanseDebuffs(u);assert.equal(u.healingReduction,0);}
+ n.phase=0;n.skillSide='attacker';n.plans.attacker=[{id:0,code:2}];n.units[0].readyAt={};n.units[1].partySkillCount=1;
+ n=advanceBattle(n);for(const u of n.units.slice(3)){assert.equal(u.healingReduction,20);assert.equal(u.panelTimedBuffs.find(e=>e.stat==='healingReduction').stacks,1);}
+});

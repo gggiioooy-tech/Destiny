@@ -1,3 +1,4 @@
+import {reconcileHealingReduction} from './healingReductionStacks.js';
 import {releaseControl} from './controlEffects.js';
 const scalars=[['control',['controlName','shockSource','controlSource']],['sleep',[]],['silence',[]],['blind',[]],['confusionHits',[]],['healBlock',[]],['buffBlock',[]],['defTurns',['defDown']],['annihilation',[]],['instantDeathTurns',['instantDeathStacks']],['blockDownTurns',['blockDebuff']],['superiorityMissTurns',['superiorityMiss']]];
 export function rememberDebuff(unit,key,ref=null){
@@ -30,6 +31,7 @@ export function cleanseDebuffs(unit,count=Infinity,{controlOnly=false}={}){
     else {const key=entry.key,field=['reflux','crystals'].includes(key)?'id':'effectId',index=unit[key].findIndex(e=>e[field]===entry.ref),[effect]=unit[key].splice(index,1);if(key==='panelTimedBuffs')unit[effect.stat]-=effect.delta;}
     unit.debuffOrder=unit.debuffOrder.filter(e=>e!==entry);removed++;
   }
+  reconcileHealingReduction(unit);
   return removed;
 }
 export function clearDebuffs(unit){return cleanseDebuffs(unit,Infinity);}

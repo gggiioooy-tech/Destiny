@@ -1,0 +1,76 @@
+{
+  "engineVersion": "2026-10-24.23",
+  "scope": "reused correlated development data; diagnostic associations, not causal attribution or an independent holdout",
+  "evaluation": {
+    "records": 160,
+    "eligible": 154,
+    "decided": 150,
+    "correct": 96,
+    "excluded": 6,
+    "accuracy": 0.64,
+    "majorityBaseline": 0.6623376623376623
+  },
+  "groups": {
+    "correct": {
+      "records": 96,
+      "shieldMismatch": 59,
+      "earlyHpMismatch": 57,
+      "earlyHpMismatchWithObservedShields": 52,
+      "highModelFrequency": 47,
+      "actualAttackerWins": 75,
+      "predictedAttackerWins": 75
+    },
+    "wrong": {
+      "records": 54,
+      "shieldMismatch": 27,
+      "earlyHpMismatch": 33,
+      "earlyHpMismatchWithObservedShields": 29,
+      "highModelFrequency": 24,
+      "actualAttackerWins": 23,
+      "predictedAttackerWins": 31
+    },
+    "abstained": {
+      "records": 4,
+      "shieldMismatch": 4,
+      "earlyHpMismatch": 3,
+      "earlyHpMismatchWithObservedShields": 3,
+      "highModelFrequency": 0,
+      "actualAttackerWins": 4,
+      "predictedAttackerWins": 0
+    }
+  },
+  "firstAction": {
+    "engineVersion": "2026-10-24.23",
+    "diagnosticObservedStartBarriers": false,
+    "battles": 154,
+    "firstActionComparable": 154,
+    "firstActionMismatch": 0,
+    "initialBarrierMismatchBattles": 90,
+    "hpOutsideSampleEnvelope": 173,
+    "skipped": {
+      "초기 예약 스킬 확인 필요": 6
+    },
+    "boundary": "last action in initial active packet, including recorded reactions",
+    "note": "32 sampled paths are a diagnostic envelope, not an exhaustive probability bound. Replay packet boundaries and model action boundaries may differ."
+  },
+  "observedShieldDiagnostic": {
+    "engineVersion": "2026-10-24.23",
+    "diagnosticObservedStartBarriers": true,
+    "battles": 154,
+    "firstActionComparable": 154,
+    "firstActionMismatch": 0,
+    "initialBarrierMismatchBattles": 90,
+    "hpOutsideSampleEnvelope": 138,
+    "skipped": {
+      "초기 예약 스킬 확인 필요": 6
+    },
+    "boundary": "last action in initial active packet, including recorded reactions",
+    "note": "32 sampled paths are a diagnostic envelope, not an exhaustive probability bound. Replay packet boundaries and model action boundaries may differ."
+  },
+  "limitations": [
+    "Observed shields are comparison-only diagnostic inputs, never inferred rings or production prediction inputs.",
+    "A 32-path envelope is not a probability bound. First replay packet and model reaction boundaries can differ.",
+    "High model frequency is not calibrated real-game win probability. Wrong model assumptions can produce repeatable wrong forecasts.",
+    "Shield discrepancies also occur among correct forecasts; they do not establish equipment as the sole or dominant cause."
+  ]
+}

@@ -1,3 +1,4 @@
+import {reconcileHealingReduction} from './healingReductionStacks.js';
 import {applyShield} from './shieldEffects.js';
 import {grantNullification} from './nullificationEffects.js';
 import {resetRevivalDebuffs} from './statusEffects.js';
@@ -61,8 +62,9 @@ export function tickPersonalTurn(unit,before){
   // unrelated timed buff already existed at action start.
   if(unit.panelTimedBuffs){
     const previous=before.panelTimedBuffs||[];next.panelTimedBuffs=[];
-    for(const buff of unit.panelTimedBuffs){const old=previous.find(b=>b.source===buff.source&&b.stat===buff.stat&&b.delta===buff.delta);const extended=(buff.extensionTotal||0)-(old?.extensionTotal||0);const remaining=old&&(buff.refreshEpoch||0)===(old.refreshEpoch||0)&&buff.remaining-extended<=old.remaining?buff.remaining-1:buff.remaining;if(remaining>0)next.panelTimedBuffs.push({...buff,remaining});else next[buff.stat]-=buff.delta;}
+    for(const buff of unit.panelTimedBuffs){if(buff.permanent){next.panelTimedBuffs.push({...buff});continue;}const old=previous.find(b=>b.source===buff.source&&b.stat===buff.stat&&b.delta===buff.delta);const extended=(buff.extensionTotal||0)-(old?.extensionTotal||0);const remaining=old&&(buff.refreshEpoch||0)===(old.refreshEpoch||0)&&buff.remaining-extended<=old.remaining?buff.remaining-1:buff.remaining;if(remaining>0)next.panelTimedBuffs.push({...buff,remaining});else next[buff.stat]-=buff.delta;}
   }
+  reconcileHealingReduction(next);
   if(before.statusImmunities){next.statusImmunities={...next.statusImmunities};for(const [key,turns]of Object.entries(before.statusImmunities)){const extended=(next.statusImmunityExtensionTotals?.[key]||0)-(before.statusImmunityExtensionTotals?.[key]||0);if((next.statusImmunityEpochs?.[key]||0)===(before.statusImmunityEpochs?.[key]||0)&&next.statusImmunities[key]-extended<=turns)next.statusImmunities[key]=Math.max(0,next.statusImmunities[key]-1);}}
   if(before.fateThreadDurations?.length){next.fateThreadDurations=(next.fateThreadDurations||[]).map((v,i)=>i<before.fateThreadDurations.length?v-1:v).filter(v=>v>0);next.fateThreads=next.fateThreadDurations.length;}
   // Only durations that existed before this basic-attack turn are ticked.

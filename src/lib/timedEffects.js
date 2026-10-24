@@ -1,3 +1,4 @@
+import {reconcileHealingReduction} from './healingReductionStacks.js';
 // Same ordinary debuff family uses the strongest value, not an additive stack.
 // Mixed-source duration refresh is conservative until its overwrite order is verified.
 import {syncDebuffs} from './statusEffects.js';
@@ -10,6 +11,7 @@ export function setTimedDebuff(target,stat,value,remaining){
   target[stat]=desired;
   if(existing){existing.delta=desired-base;existing.value=Math.max(existing.value,value);existing.remaining=Math.max(existing.remaining,remaining);}
   else target.panelTimedBuffs.push({stat,delta:desired-base,value,remaining,source,debuff:true});
+  if(stat==='healingReduction')reconcileHealingReduction(target);
   syncDebuffs(target);
 }
 export function setTimedBuff(target,stat,value,remaining,{ratio=false,source:sourceName=null}={}){
