@@ -1,0 +1,17 @@
+{
+  "roundEndStageClock": {
+    "count": 160,
+    "minMs": 59157,
+    "medianMs": 125600.0,
+    "maxMs": 154600
+  },
+  "stageSkillMinusStageClock": {
+    "count": 6199,
+    "minMs": -938,
+    "medianMs": 2001,
+    "maxMs": 7536
+  },
+  "endsBetween149And155Seconds": 59,
+  "endsAbove210Seconds": 0,
+  "limitation": "Stage clock fields are not established as displayed or wall time. Do not infer the product limit or a battle winner from this aggregate."
+}
