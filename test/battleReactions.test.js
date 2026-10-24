@@ -33,3 +33,18 @@ test('Hayeon cover calls an ally basic attack and does not add another personal 
   assert.equal(result.units[reaction.source].side,'attacker');assert.equal(result.units[reaction.source].actions,0);
   assert.equal(result.turn,1);assert.ok(reaction.endMs>reaction.startMs);
 });
+
+test('Rudy counter damage still lands against stun immunity without applying stun',()=>{
+ function run(seed,immune){
+  let h=prepareHeroes();for(const [id,name]of [[0,'메이'],[1,'벨라'],[2,'아리엘'],[3,'루디'],[4,'메이'],[5,'벨라']])h=changeHero(h,id,name);
+  const b=createBattle(h,{seed,plans:{attacker:[],defender:[]}});
+  for(const u of b.units)Object.assign(u,{hp:1000000,maxHp:1000000,attack:10,defense:0,nullify:0,barrier:0,immunity:0,linkTurns:0,accuracy:100,resist:0,crit:0,weakPoint:100,control:0,sleep:0,controlImmune:0});
+  if(immune)b.units[0].statusImmunities={'기절':2};b.phase=1;b.queue=[0];return advanceBattle(b);
+ }
+ let selected;
+ for(let seed=1;seed<100&&!selected;seed++){const n=run(seed,false);if(n.units[0].controlName==='기절'&&n.units[0].control>0)selected={seed,n};}
+ assert.ok(selected,'fixture must actually exercise a successful counter stun');
+ const n=run(selected.seed,true);
+ assert.ok(n.impacts.some(i=>i.source===3&&i.target===0&&i.kind==='counter'&&i.damage>0));
+ assert.equal(n.units[0].control,0);
+});

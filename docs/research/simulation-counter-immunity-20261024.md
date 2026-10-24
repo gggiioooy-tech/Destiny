@@ -1,0 +1,9 @@
+# Rudy counter stun immunity — 2026-10-24.5
+
+Rudy's counter followed a dedicated stun application path that checked general control immunity but omitted status-specific stun immunity. Ordinary skill controls and other passive controls already check both. This allowed an explicitly stun-immune attacker to be stunned by a counter.
+
+The integration regression first finds a seed with a successful ordinary counter stun, then reruns the same encounter with only the attacker's stun immunity added. Before the fix the immune attacker still received one turn of stun. After the fix the counter still deals positive damage, consumes its existing reaction timing, and applies no stun. No coefficients, reaction probabilities or seed parameters were changed. This is an internal consistency correction; it does not claim an exhaustive validation of every control-immunity source or simultaneous status replacement.
+
+All 455 JavaScript tests pass. The Rudy-focused mixed-ring software-invariant audit covers 350 placements and 16,434 actions with zero failures. The SSR simulation verification retains the tier-four guard. These checks are not exhaustive six-hero validation or interactive browser QA. Production dependency audit has zero findings; six existing moderate development-tool findings remain. The production build succeeds with its existing large-chunk warning.
+
+Reusing the same 160 archived development battles with the unchanged 32-sample protocol yields 96/151 decided (63.58%), three abstentions, six exclusions for missing initial reservations, and 151/154 eligible coverage (98.05%). The decided Wilson 95% interval remains [55.65%, 70.83%], with majority baseline 102/154 (66.23%). This equals .4's development score; it is not a new holdout. The historical 47/60 result remains labeled with its frozen .10 engine. The 90% target is not demonstrated. No extra downloads, player details or outcome-derived equipment inputs were introduced.

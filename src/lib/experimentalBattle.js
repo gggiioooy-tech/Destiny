@@ -517,7 +517,7 @@ export function advanceBattle(previous){
       if(reaction.kind==='rad_passive'&&target.hp>0&&rollEffect(casterEffect(source,target,35,'화상'),()=>random(s))){
         addDot(target,{name:'화상',source:source.id,attack:source.attack,remaining:2,value:.8,scale:'attack',cap:null,pierce:false});
       }
-      if(reaction.kind==='counter'&&source.name==='루디'&&!missed&&target.hp>0&&!target.controlImmune&&rollEffect(casterEffect(source,target,35,'기절'),()=>random(s))){target.control=1;target.controlName='기절';afterControl(target,events,s.units);s.plans[target.side]=s.plans[target.side].filter(p=>p.id!==target.id);}
+      if(reaction.kind==='counter'&&source.name==='루디'&&!missed&&target.hp>0&&!target.controlImmune&&!target.statusImmunities?.['기절']&&rollEffect(casterEffect(source,target,35,'기절'),()=>random(s))){target.control=1;target.controlName='기절';afterControl(target,events,s.units);s.plans[target.side]=s.plans[target.side].filter(p=>p.id!==target.id);}
       if(!missed&&target.hp>0&&passive){
         if(passive.mark)applyLubuMark(source,target,()=>random(s),(t,n,id,k)=>secondaryDamage(t,calculateHit({base:n,defense:t.defense,defenseDecrease:t.defDown,damageIncrease:source.damageIncrease,...incomingModifiers(source,t)}),id,k),events);
         if(passive.control&&!target.controlImmune&&!target.statusImmunities?.[passive.control]&&rollEffect(casterEffect(source,target,passive.chance,passive.control),()=>random(s))){target.control=passive.turns;target.controlName=passive.control;target.controlSource={id:source.id,attack:source.attack};if(passive.control==='감전')target.shockSource={id:source.id,attack:source.attack};afterControl(target,events,s.units);drainControlBursts(target);s.plans[target.side]=s.plans[target.side].filter(p=>p.id!==target.id);}
