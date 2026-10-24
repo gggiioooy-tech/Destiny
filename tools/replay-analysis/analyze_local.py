@@ -20,6 +20,15 @@ def status_snapshot(effect):
     return row
 
 
+def result_metadata(result):
+    """Preserve attribution hints without declaring a direct/routed hit."""
+    return {
+        'appliedModuleIds': list(result.AppliedModuleIds),
+        'calcDamageScore': result.CalcDamageScore if result.HasField('CalcDamageScore') else None,
+        'totalBattleScore': result.TotalBattleScore if result.HasField('TotalBattleScore') else None,
+    }
+
+
 def recorded_actions(name, event):
     """Keep packet/container order; standalone HP updates are not skill casts."""
     def rows(field):
@@ -156,6 +165,7 @@ def analyze(pool, raw, record, history):
                          'block': result.IsBlock, 'slip': result.IsSlip,
                          'skillId': result.SkillId, 'moduleId': result.ModuleId,
                          'applyResult': result.ApplyResult}
+                entry.update(result_metadata(result))
                 if before['hp'] is not None and after['hp'] is not None:
                     entry['hpDelta'] = after['hp']-before['hp']
                 results.append(entry)

@@ -38,5 +38,32 @@ class StatusIdentityTest(unittest.TestCase):
         self.assertEqual(zero['durationType'], 0)
 
 
+class ResultAttributionTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        schema = descriptor_pb2.FileDescriptorProto(name='result_test.proto', syntax='proto2')
+        message = schema.message_type.add(name='Result')
+        message.field.add(name='AppliedModuleIds', number=1, type=3, label=3)
+        message.field.add(name='CalcDamageScore', number=2, type=3, label=1)
+        message.field.add(name='TotalBattleScore', number=3, type=3, label=1)
+        pool = descriptor_pool.DescriptorPool()
+        pool.Add(schema)
+        cls.result = message_factory.GetMessageClass(pool.FindMessageTypeByName('Result'))
+
+    def test_module_order_and_repeated_attribution_are_not_collapsed(self):
+        row = module.result_metadata(self.result(AppliedModuleIds=[11, 22, 11], CalcDamageScore=71))
+        self.assertEqual(row['appliedModuleIds'], [11, 22, 11])
+        self.assertEqual(row['calcDamageScore'], 71)
+        self.assertIsNone(row['totalBattleScore'])
+
+    def test_absent_scores_are_not_explicit_zero_scores(self):
+        absent = module.result_metadata(self.result())
+        zero = module.result_metadata(self.result(CalcDamageScore=0, TotalBattleScore=0))
+        self.assertIsNone(absent['calcDamageScore'])
+        self.assertIsNone(absent['totalBattleScore'])
+        self.assertEqual(zero['calcDamageScore'], 0)
+        self.assertEqual(zero['totalBattleScore'], 0)
+
+
 if __name__ == '__main__':
     unittest.main()

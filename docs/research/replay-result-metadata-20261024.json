@@ -1,0 +1,10 @@
+{
+  "replays": 160,
+  "resultRows": 91330,
+  "rowsWithAppliedModules": 19593,
+  "rowsWithRepeatedModuleIds": 0,
+  "calcScorePresent": 34553,
+  "totalScorePresent": 0,
+  "positiveDamageWithZeroCalcScore": 7852,
+  "limitation": "Module lists and scores are attribution hints only. They do not by themselves distinguish direct hits from link/guard routing, or certify score/clock semantics."
+}
