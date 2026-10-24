@@ -174,7 +174,7 @@ export function advanceBattle(previous){
   };
   const singleTarget=actor.name==='윤건'&&code!==7?code===1:actor.name==='연희'||actor.name==='쥬리'?false:combatSkill(actor,code)?.targets===1;
   const landed=new Set(),reactions=[],counterCandidates=new Set(),extraUsed=new Set();
-  let attackToken=s.step,directKillCount=0,confusionAttack=beginConfusionAttack(actor);
+  let attackToken=s.step,directKillCount=0,mainHitOccurred=false,confusionAttack=beginConfusionAttack(actor);
   let confusionHitCounts=new Map();
   function startConfusionCast(){confusionAttack=beginConfusionAttack(actor);confusionHitCounts=new Map();}
   function countRadHits(target){
@@ -236,6 +236,7 @@ export function advanceBattle(previous){
   function markPalanus(target){palanusMark(actor,target,code,s.units,()=>random(s),(t,n)=>{if(reduceBuffDurations(t,n).died)onDeathRules(t,s.units,events);});}
   function hit(target,base,{ignore=0,pierce=false,beforeDamage=null,components=[]}={}){
     if(target.hp<=0)return;
+    mainHitOccurred=true;
     const hitIndex=confusionHitCounts.get(target.id)||0;confusionHitCounts.set(target.id,hitIndex+1);confusionAttack.hit(hitIndex);
     const conditionTarget={...target};
     s.targets.push(target.id);
@@ -267,7 +268,6 @@ export function advanceBattle(previous){
     }
     if(target.sleep&&outcome.damage>=target.maxHp*(target.sleepBreak||.3))target.sleep=0;
     if(target.name==='연희'&&!target.triggered&&target.hp>0&&target.hp<=target.maxHp*.7){const gained=grantNullification(target,4);target.triggered=true;events.push(gained?'연희 · 피해 무효화 4회':'연희 · 체력 조건 발동 · 무효화 추가 없음');}
-    if(!missed)afterOwnHit(actor);
     if(!missed&&target.hp>0)for(const extra of combatSkill(actor,code)?.extraDamage||[]){
       const key=target.id+'|'+extra.key;if(!extra.each&&extraUsed.has(key)||!extraCondition(extra.condition,actor,conditionTarget,{critical,weak:hitWeak}))continue;
       extraUsed.add(key);const base=actor.attack*extra.coefficient;
@@ -470,6 +470,7 @@ export function advanceBattle(previous){
     }
     if(actor.name==='손오공'&&code===3&&!actor.cloneTurns)actor.cloneTurns=5;
     afterOwnSkill(actor,code,s.units,events);
+    if(mainHitOccurred)afterOwnHit(actor);
     actor.lastAttackBasic=kind==='basic';if(kind==='basic'||combatSkill(actor,code)?.hits>0){onAttackStacks(actor,s.units,events);queuePassiveAttacks('attack',actor,s.units,reactions);}
     if(actor.name==='멜키르'&&actor.passiveAttackCount>0&&actor.passiveAttackCount%3===0&&roleCount(s.units,actor.side,2)>=3)for(const target of enemies)addReflux(actor,target,1,100,()=>random(s));
     if(kind==='skill'){afterSkillPassive(actor,events);onSkillRules(actor,s.units,events,()=>random(s),{includeBefore:false});queuePassiveAttacks('partySkill',actor,s.units,reactions);}
@@ -511,7 +512,6 @@ export function advanceBattle(previous){
       const amount=fixed?(passive?.fixed||1485):calculateHit({base:passiveBase,ignore:Math.min(1,awakeningIgnore(source,passive?.ignore||(basicAssist?spec?.ignore:0)||0)+(source.defenseIgnore||0)),defense:target.defense,defenseDecrease:target.defDown,critDamage:source.critDamage,elasticity:target.elasticity,critical,blocked,blockReduction:target.blockReduction,weak,weakBonus:source.weakBonus,damageIncrease:source.damageIncrease,amplification:source.amplification,...incomingModifiers(source,target),missed});
       const outcome=applyDamage(target,superiority&&!fixed?amount*.8:amount,{pierce:reaction.kind==='rad_passive'||(passive?Boolean(passive.pierce):spec?.pierce)||source.name==='탄지로',fixed,landed:!missed,creditId:source.id});Object.assign(target,outcome.target);
       if(superiority&&!fixed&&rollEffect(casterEffect(target,source,100),()=>random(s))){source.defDown=Math.max(source.defDown,.36);source.defTurns=Math.max(source.defTurns,2);source.superiorityMiss=60;source.superiorityMissTurns=2;}
-      if(!missed)afterOwnHit(source);
       if(blocked&&!missed&&outcome.kind==='damage'&&!outcome.primaryLethal)queueAwakeningBlock(target,reactions,s.step);
       source.damageDealt+=outcome.damage+outcome.absorbed;leechDamage(source,outcome);entry.targets.push(target.id);s.targets.push(target.id);
       s.impacts.push({target:target.id,damage:outcome.damage,absorbed:outcome.absorbed,kind:fixed?(reaction.kind==='rad_passive'?'rad_fixed':'passive_fixed'):reaction.kind,source:source.id,critical:!fixed&&critical,blocked:!fixed&&blocked,missed});
@@ -547,6 +547,7 @@ export function advanceBattle(previous){
         if(passive.magicVulnerability&&rollEffect(casterEffect(source,target,100),()=>random(s)))setTimedDebuff(target,'magicVulnerability',passive.magicVulnerability,2);
       }
     }
+    if(entry.targets.length&&reaction.kind!=='rad_passive'&&!reaction.spec?.fixed)afterOwnHit(source);
     if(reaction.kind!=='hero_passive'){source.lastAttackBasic=reaction.kind==='assist';onAttackStacks(source,s.units,events);queuePassiveAttacks('attack',source,s.units,reactions);}
     if(reaction.kind==='counter'&&source.name==='제이브')for(const target of targets)if(target.hp>0&&rollEffect(casterEffect(source,target,40,'용염'),()=>random(s)))addDot(target,{name:'용염',source:source.id,attack:source.attack,remaining:2,value:1.2,scale:'attack',cap:null,pierce:false});
     refreshPassiveAwakenings(s.units,events);s.reactions.push(entry);events.push(`${entry.name}${reaction.kind==='rad_passive'?' → 1,485 관통 고정 피해':''} · 추가 행동 ${(timing.medianMs/1000).toFixed(3)}초`);

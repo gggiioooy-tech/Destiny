@@ -1,0 +1,11 @@
+# Giyu mark attack scope — 2026-10-24
+
+Engine 2026-10-24.21 fixes mark consumption per recipient. The previous generic hit callback consumed Giyu's mark once for every target and removed the last-count defense/damage bonuses before later targets of the same action. Consumption now occurs once after the complete offensive action, including its damage components and friendly skill effects. Assist/counter actions have their own completion scope. The final count therefore remains effective throughout the current action and is absent from the next action.
+
+Local evidence: 46 cached development battles contain Giyu. Module 4020172701 and its mirrored stat module 4020172702 carry the ten-count mark. Repeated awakening containers show ten to nine even with multiple result recipients; basic attacks and either active skill likewise show single-count transitions, including containers with separate attack/defense damage results and routed recipients. No multi-count decrement was observed within one status update. Result recipients are not assumed to be independent direct-hit targets. Some recorded decreases have no positive damage result, so damage output is not a reliable counter-consumption gate. Spending a count on an entirely missed action remains an explicitly tested model behavior, not separately certified from ambiguous slip flags.
+
+Five new regressions cover multi-target/component scope, final-count uniform damage, awakening's own consumption, nullified attacks and missed-cast model behavior. 525 JavaScript tests pass. Focused mixed-ring/starting-shield sweep: 350 placements, 15,556 actions, zero invariant failures. Production build and tier-four SSR pass. Production dependencies are clean; the existing six moderate development-tool audit findings and large-chunk warning remain.
+
+Reused-development outcome evaluation remains 96/150 decided (64.00%), four abstentions, six missing-reservation exclusions from 160 records; coverage 150/154 (97.40%), Wilson 95% 56.06–71.24%, majority baseline 66.23%. There is no measured aggregate gain and no fresh holdout claim. The 90% goal remains unmet. No unknown gear was inferred from results and no replay was downloaded.
+
+Published rule reference: https://namu.moe/w/토미오카%20기유(세븐나이츠%20리버스)/각성 . Raw traces remain private.
