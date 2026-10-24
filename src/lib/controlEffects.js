@@ -1,3 +1,6 @@
+const blindActions=new Set(['basic','counter','assist','juri_assist','ballista_assist']);
+export const blindForcesMiss=(unit,kind)=>unit.blind>0&&blindActions.has(kind);
+
 export function controlBurst(target,status,source){
   if(!source)return null;
   if(status==='빙결')return {base:Math.min(target.maxHp*.4,source.attack*3),ignore:.4,source:source.id,name:status};

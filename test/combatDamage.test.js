@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {criticalMultiplier,hitProbabilities,defenseDenominator,calculateHit,effectProbability,rollEffect,casterEffect,HERO_GROWTH} from '../src/lib/combatDamage.js';
+import {criticalMultiplier,hitProbabilities,hitProbabilitiesFor,defenseDenominator,calculateHit,effectProbability,rollEffect,casterEffect,HERO_GROWTH} from '../src/lib/combatDamage.js';
 test('all hero effects use fixed 6-transcendence +5 full-skills baseline',()=>{
   assert.equal(HERO_GROWTH.transcendence,6);assert.equal(HERO_GROWTH.enhancement,5);assert.equal(HERO_GROWTH.skills,'full');assert.ok(Object.isFrozen(HERO_GROWTH));
 });
@@ -44,6 +44,14 @@ test('probability outcomes stay mutually exclusive and within bounds',()=>{
     assert.ok(Math.abs(p.critical+p.blocked+p.normal-1)<1e-10);
   }
   assert.equal(hitProbabilities({crit:20,block:80}).blocked,.6);
+});
+
+test('active paralysis suppresses both block sources and expires without changing stored stats',()=>{
+ const source={crit:35,shred:10},target={block:80,blockBuff:40,blockDebuff:5,awakeningBlockDebuff:23,control:2,controlName:'마비'};
+ assert.deepEqual(hitProbabilitiesFor(source,target,{critBonus:15}),hitProbabilities({crit:50,block:0,blockBuff:0,blockDebuff:23,shred:10}));
+ target.control=0;
+ assert.deepEqual(hitProbabilitiesFor(source,target,{critBonus:15}),hitProbabilities({crit:50,block:80,blockBuff:40,blockDebuff:23,shred:10}));
+ assert.equal(target.block,80);assert.equal(target.blockBuff,40);
 });
 test('published community defense and damage example reproduce arithmetic',()=>{
   const divisor=defenseDenominator(1044,{decrease:.6,ignore:.4});

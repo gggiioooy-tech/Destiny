@@ -1,0 +1,12 @@
+# Shared control rules for additional actions — 2026-10-24.7
+
+Two additional-action inconsistencies were reproduced before correction:
+
+* Paralysis suppressed base/buffed block on ordinary hits, but assists and passive attacks still used the target's stored block. An assist against paralyzed, awakened Aris could therefore invent a blocked hit and a defense-scaled block response. Both action paths now use the same target-aware probability helper. Expired paralysis restores ordinary block calculations without modifying the stored stat.
+* Blind forced every nonfixed queued reaction to miss, including Dongyoung's passive spell. Its specified action scope is basic attacks, counters and assists. A shared action-scope predicate now applies that scope to both primary and reaction paths; spell-like passive attacks are not classified as basic attacks merely because they are queued. The regression keeps counter misses intact and verifies passive damage/debuff application.
+
+References rechecked on 2026-10-24: [paralysis definition](https://www.namu.moe/w/용의%20유적지(세븐나이츠%20리버스)), [blind definition](https://www.namu.moe/w/세븐나이츠%20리버스/시스템). Individual passive attacks that the game specially classifies as basic attacks would require separate evidence; exact same-frame server ordering remains unverified.
+
+Validation: 461 JavaScript tests pass, including failing-before integration cases and an active/expired paralysis probability check. A full distinct-hero-pair sweep with mixed rings covers 30,800 same/opposing-team placements and 1,265,666 actions with zero clock, number or termination invariant failures. This is not exhaustive six-hero/ring state validation or replay equivalence. The simulation SSR check preserves the tier-four guard; no browser QA is claimed. Production build succeeds with the existing large-chunk warning. Production dependencies have no audit findings; six existing moderate development-tool findings remain.
+
+The unchanged 160-record, 32-sample retrospective development evaluation remains 96/151 decided (63.58%), three abstentions, six missing-reservation exclusions and 98.05% coverage of 154 eligible records. Wilson 95% interval among decided: [55.65%, 70.83%]; majority baseline: 102/154 (66.23%). No new holdout was consumed. The frozen .10 archive result remains separately labeled 47/60. The 90% goal remains unproven. Unknown equipment and later replay state were not used as prediction inputs.

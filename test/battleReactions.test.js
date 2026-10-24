@@ -48,3 +48,12 @@ test('Rudy counter damage still lands against stun immunity without applying stu
  assert.ok(n.impacts.some(i=>i.source===3&&i.target===0&&i.kind==='counter'&&i.damage>0));
  assert.equal(n.units[0].control,0);
 });
+
+test('blind continues to force counter attacks to miss',()=>{
+ let next;
+ for(let seed=1;seed<100&&!next;seed++){
+  const b=fixture('루디',3,seed);b.units[3].blind=2;
+  const n=advanceBattle(b);if(n.impacts.some(i=>i.source===3&&i.kind==='counter'))next=n;
+ }
+ assert.ok(next);assert.ok(next.impacts.filter(i=>i.source===3&&i.kind==='counter').every(i=>i.missed&&!i.critical&&!i.blocked));
+});

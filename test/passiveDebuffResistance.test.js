@@ -46,3 +46,10 @@ test('active fear suppresses resistance to Dongyoung passive effects as it does 
   assert.equal(u.resist,200);
  }
 });
+
+test('blind does not turn Dongyoung passive spell damage into a missed basic attack',()=>{
+ const b=fixture(0);b.units[1].blind=2;const n=advanceBattle(b);
+ const hits=n.impacts.filter(i=>i.source===1&&i.kind==='hero_passive');
+ assert.equal(hits.length,3);assert.ok(hits.every(i=>!i.missed&&i.damage>0));
+ for(const u of n.units.slice(3)){assert.equal(u.dots.length,1);assert.equal(u.healingReduction,20);}
+});

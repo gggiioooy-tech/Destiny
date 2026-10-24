@@ -25,6 +25,13 @@ export function hitProbabilities({crit,block=0,blockBuff=0,blockDebuff=0,shred=0
   const blocked=clamp(effectiveBlock-crit,0,100)/100;
   return {cappedBlock,effectiveBlock,critical,blocked,normal:1-critical-blocked};
 }
+// Ordinary hits and separate reactions must apply the same target control
+// rules before computing mutually exclusive critical/block/normal outcomes.
+export function hitProbabilitiesFor(source,target,{critBonus=0}={}){
+  const paralyzed=target.control>0&&target.controlName==='마비';
+  return hitProbabilities({crit:(source.crit||0)+critBonus,block:paralyzed?0:target.block,blockBuff:paralyzed?0:target.blockBuff,
+    blockDebuff:Math.max(target.blockDebuff||0,target.awakeningBlockDebuff||0),shred:source.shred});
+}
 export function defenseDenominator(defense,{increase=0,decrease=0,ignore=0}={}){
   return 1+Math.max(0,defense*(1+increase-decrease))*(1-clamp(ignore,0,1))*DEFENSE_COEFFICIENT;
 }

@@ -3,7 +3,7 @@ import {setTimedDebuff,setTimedBuff,setTimedDecrease} from './timedEffects.js';
 import {conditionalDamage,afterOwnSkill,beforeOwnSkill,afterOwnHit,extraCondition,palanusMark,buffCount} from './skillRules.js';
 import {syncDebuffs,cleanseDebuffs,extendDebuffs} from './statusEffects.js';
 import {resetRevivalDebuffs} from './statusEffects.js';
-import {releaseControl} from './controlEffects.js';
+import {releaseControl,blindForcesMiss} from './controlEffects.js';
 import {applyEquipment} from './equipmentEffects.js';
 import {addDot,dotBase} from './damageOverTime.js';
 import {chooseAutoSkill,AUTO_HEAL_THRESHOLD} from './autoSkill.js';
@@ -14,7 +14,7 @@ import {onHealthThreshold,onAttackStacks,onSkillRules,beforeSkillRules,onRevival
 import {afterControl,afterSkillPassive,afterHitPassive,afterHpChange} from './conditionalPassives.js';
 import {combatSkill,transformDellons,addDellonsStacks} from './heroTransformations.js';
 import {hasPassiveAwakening,awakeningIgnore,refreshPassiveAwakenings,consumePassiveAwakeningTurn,queueAwakeningBlock} from './passiveAwakening.js';
-import {hitProbabilities,calculateHit,rollEffect,calculateShield,convertedHealth,HERO_GROWTH,casterEffect} from './combatDamage.js';
+import {hitProbabilitiesFor,calculateHit,rollEffect,calculateShield,convertedHealth,HERO_GROWTH,casterEffect} from './combatDamage.js';
 import {receiveDamage,tickPersonalTurn,damageImmune} from './battleSurvival.js';
 import {SIM_ROSTER,canonicalHero,heroSkills,skillFor,DETAILED_HEROES,heroProfile} from './simulationSkills.js';
 import {actionTiming,followupTiming,skillCooldownMs,BATTLE_LIMIT_MS,TIMING_CATALOG,resolveTimeout} from './battleTiming.js';
@@ -234,11 +234,10 @@ export function advanceBattle(previous){
     if(target.hp<=0)return;
     const conditionTarget={...target};
     s.targets.push(target.id);
-    const paralysis=target.control>0&&target.controlName==='마비';
-    const chances=hitProbabilities({crit:actor.crit+(combatSkill(actor,code)?.critBonus||0),block:paralysis?0:target.block,blockBuff:paralysis?0:target.blockBuff,blockDebuff:Math.max(target.blockDebuff||0,target.awakeningBlockDebuff||0),shred:actor.shred});
+    const chances=hitProbabilitiesFor(actor,target,{critBonus:combatSkill(actor,code)?.critBonus||0});
     const hitWeak=singleTarget?weak:random(s)<Math.min(1,(actor.weakPoint+(combatSkill(actor,code)?.weakBonus||0))/100);
     const superiority=target.superiority>0&&target.attack>actor.attack;
-    const missed=target.stealth>0||superiority||(kind==='basic'&&actor.blind>0)||(!hitWeak&&random(s)<Math.min(1,(actor.missChance+(actor.superiorityMiss||0))/100)),roll=random(s),critical=!missed&&(target.sleep>0||roll<chances.critical),isBlock=!missed&&!critical&&roll<chances.critical+chances.blocked;
+    const missed=target.stealth>0||superiority||blindForcesMiss(actor,kind)||(!hitWeak&&random(s)<Math.min(1,(actor.missChance+(actor.superiorityMiss||0))/100)),roll=random(s),critical=!missed&&(target.sleep>0||roll<chances.critical),isBlock=!missed&&!critical&&roll<chances.critical+chances.blocked;
     if(!missed)beforeDamage?.();
     const damage=calculateHit({base,defense:target.defense,defenseDecrease:target.defDown,ignore:Math.min(1,awakeningIgnore(actor,actor.judgment>0?Math.max(.4,ignore):ignore)+(actor.defenseIgnore||0)),critDamage:actor.critDamage,elasticity:target.elasticity,critical,blocked:isBlock,blockReduction:target.blockReduction,weak:hitWeak,weakBonus:actor.weakBonus,damageIncrease:actor.damageIncrease+(actor.name==='연희'&&actor.damageBuffTurns>0&&!actor.panelComputed?35:0),amplification:actor.amplification,...incomingModifiers(actor,target),missed});
     const previousRevived=target.revived,previousRevivalCount=target.revivalCount||0;
@@ -487,8 +486,8 @@ export function advanceBattle(previous){
     const entry={source:source.id,name:reaction.spec?reaction.spec.name:reaction.kind==='rad_passive'?'라드 패시브 · 아군 피격 5회':reaction.kind==='counter'?source.name+' 반격':source.name==='쥬리'?'쥬리 협공':'하연 엄호 · '+source.name+' 협공',kind:reaction.kind,startMs:start,endMs:s.elapsedMs,estimated:timing.estimated,targets:[]};
     const spec=combatSkill(source,1),basicAssist=reaction.kind==='assist';
     for(const target of targets)for(let hitIndex=0;hitIndex<(reaction.spec?.hits||(basicAssist?spec?.hits:1)||1)&&target.hp>0;hitIndex++){
-      const fixed=reaction.kind==='rad_passive'||Boolean(reaction.spec?.fixed),weak=random(s)<Math.max(0,Math.min(1,(source.weakPoint+(basicAssist?spec?.weakBonus||0:0))/100)),superiority=target.superiority>0&&target.attack>source.attack,missed=!fixed&&(target.stealth>0||superiority||source.blind>0||!weak&&random(s)<((source.missChance||0)+(source.superiorityMiss||0))/100);
-      const chances=hitProbabilities({crit:source.crit+(basicAssist?spec?.critBonus||0:0),block:target.block,blockBuff:target.blockBuff,blockDebuff:Math.max(target.blockDebuff||0,target.awakeningBlockDebuff||0),shred:source.shred}),roll=random(s),critical=!fixed&&!missed&&(target.sleep>0||roll<chances.critical),blocked=!fixed&&!missed&&!critical&&roll<chances.critical+chances.blocked;
+      const fixed=reaction.kind==='rad_passive'||Boolean(reaction.spec?.fixed),weak=random(s)<Math.max(0,Math.min(1,(source.weakPoint+(basicAssist?spec?.weakBonus||0:0))/100)),superiority=target.superiority>0&&target.attack>source.attack,missed=!fixed&&(target.stealth>0||superiority||blindForcesMiss(source,reaction.kind)||!weak&&random(s)<((source.missChance||0)+(source.superiorityMiss||0))/100);
+      const chances=hitProbabilitiesFor(source,target,{critBonus:basicAssist?spec?.critBonus||0:0}),roll=random(s),critical=!fixed&&!missed&&(target.sleep>0||roll<chances.critical),blocked=!fixed&&!missed&&!critical&&roll<chances.critical+chances.blocked;
       const base=reaction.kind==='counter'?source.attack*.5+(source.name==='루디'?source.defense*.6:0):reaction.kind==='juri_assist'?(source.attack*.5+Math.min(target.maxHp*.1,source.attack*3))*(1+.5*target.hp/target.maxHp):source[spec?.scale||'attack']*((spec?.coefficient||0)+(spec?.missingTargetCoefficient||0)*Math.max(0,(spec?.targets||1)-targets.length))+source.defense*(spec?.defenseCoefficient||0)+source.maxHp*(spec?.selfHpCoefficient||0)+(spec?.hpRatio?Math.min(target.maxHp*spec.hpRatio,source.attack*(spec.hpCap||Infinity)):0);
       const passive=reaction.spec;const passiveBase=passive?source.attack*(passive.attack||0)+source.defense*(passive.defense||0)+target.defense*(passive.targetDefense||0)+(passive.hp?Math.min(target.maxHp*passive.hp,source.attack*passive.cap):0):base;
       const amount=fixed?(passive?.fixed||1485):calculateHit({base:passiveBase,ignore:Math.min(1,awakeningIgnore(source,passive?.ignore||(basicAssist?spec?.ignore:0)||0)+(source.defenseIgnore||0)),defense:target.defense,defenseDecrease:target.defDown,critDamage:source.critDamage,elasticity:target.elasticity,critical,blocked,blockReduction:target.blockReduction,weak,weakBonus:source.weakBonus,damageIncrease:source.damageIncrease,amplification:source.amplification,...incomingModifiers(source,target),missed});

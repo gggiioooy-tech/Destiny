@@ -80,3 +80,15 @@ test('fixed passive damage cannot invent a blocked hit or an Aris block response
  assert.ok(hits.length);assert.ok(hits.every(i=>!i.blocked&&!i.critical));
  assert.equal(n.reactions.filter(r=>r.name.includes('위태로운 공존')).length,0);
 });
+
+test('paralyzed Aris cannot block an assist or trigger a block response from it',()=>{
+ let next;
+ for(let seed=1;seed<100&&!next;seed++){
+  const b=fixture();b.seed=seed;b.phase=1;b.queue=[0];b.units[1].name='쥬리';
+  Object.assign(b.units[3],{block:100,awakenGauge:50,awakenUsed:true,passiveAwakenActive:true,control:2,controlName:'마비'});
+  const n=advanceBattle(b);if(n.impacts.some(i=>i.kind==='juri_assist'&&i.target===3))next=n;
+ }
+ assert.ok(next,'fixture must exercise an assist against the paralyzed target');
+ assert.ok(next.impacts.filter(i=>i.kind==='juri_assist'&&i.target===3).every(i=>!i.blocked));
+ assert.equal(next.reactions.filter(r=>r.name.includes('위태로운 공존')).length,0);
+});
