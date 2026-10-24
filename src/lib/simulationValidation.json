@@ -1,5 +1,5 @@
 {
-  "engineVersion": "2026-10-24.3",
+  "engineVersion": "2026-10-24.4",
   "checkedAt": "2026-10-24",
   "mode": "retrospective_baseline_not_independent_holdout",
   "downloadedRecords": 160,
@@ -9,8 +9,8 @@
   "samplesPerBattle": 32,
   "independentHoldout": false,
   "target90Validated": false,
-  "decidedRecords": 150,
-  "abstainedRecords": 4,
+  "decidedRecords": 151,
+  "abstainedRecords": 3,
   "sourceArchivedRecords": 599,
   "totalCachedRecords": 220,
   "newArchiveHoldout": {
