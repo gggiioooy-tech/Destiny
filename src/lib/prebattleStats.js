@@ -109,16 +109,17 @@ function specialAuras(hero,draft){
   if(hero.name==='아일린')return [own('attack',25,{group:'team',family:'physical',bucket:'hero'}),own('shockChanceBonus',30,{group:'team',bucket:'hero'})];
   return [];
 }
-export function calculatePrebattle(draft,settings,{basis='panel'}={}){
+export function calculatePrebattle(draft,settings,{basis='panel',observedPetSkillLevels={}}={}){
   if(basis==='battle'){
     // Numeric start stats already include attack/HP/critical/gear passives.
     // Damage families and recovery/status modifiers aren't in that stat packet.
     const hidden=['damageIncrease','vulnerability','weakBonus','missChance','physicalVulnerability','magicVulnerability','physicalReduction','magicReduction','healingIncrease','healingReduction','effectChanceBonus','shockChanceBonus','refluxDamageIncrease'];
-    const extras=calculatePrebattle(draft,settings,{basis:'panel'});
+    const extras=calculatePrebattle(draft,settings,{basis:'panel',observedPetSkillLevels});
     const heroes=structuredClone(draft).map((h,i)=>{
       const unit=settings?.[h.side]?.seats?{...h,battleSeat:settings[h.side].seats[h.id%3],battleRow:settings[h.side].positions?.[h.id%3]}:h;
       if(h.panelComputed||h.battleModifiersComputed)return unit;
       for(const stat of hidden)unit[stat]=extras.heroes[i][stat]||0;
+      if(extras.heroes[i].nativeShieldAttackFactor)unit.nativeShieldAttack=h.attack*extras.heroes[i].nativeShieldAttackFactor;
       unit.panelTimedBuffs=[...(h.panelTimedBuffs||[]),...extras.heroes[i].panelTimedBuffs.filter(b=>hidden.includes(b.stat))];unit.auraBuffs=extras.heroes[i].auraBuffs;unit.battleModifiersComputed=true;
       return unit;
     });
@@ -126,6 +127,12 @@ export function calculatePrebattle(draft,settings,{basis='panel'}={}){
   }
   if(basis!=='panel')throw Error('입력 기준을 확인해 주세요.');
   const teams=normalizePrebattleSettings(settings),warnings=[],auras=[];
+  // Historical replay spawn metadata only. Manual setup remains +5/full skills.
+  for(const side of ['attacker','defender'])if(observedPetSkillLevels[side]!==undefined){
+    const level=observedPetSkillLevels[side];
+    if(!Number.isInteger(level)||level<0||level>3)throw Error('관측된 펫 스킬 강화 단계를 확인해 주세요.');
+    teams[side].petSkillLevel=level;
+  }
   for(const hero of draft)for(const stat of [...primary,'speed','crit','critDamage','weakPoint','block','accuracy','resist','damageIncrease','damageReduction','amplification','vulnerability'])if(!Number.isFinite(hero[stat])||Math.abs(hero[stat])>1000000||(hero[stat]<0&&!['crit','weakPoint','block','resist'].includes(stat))||(stat==='maxHp'&&hero[stat]<1))throw Error('영웅 정보창 수치를 유효한 숫자로 입력해 주세요.');
   for(const hero of draft){
     const raw=heroSkills(hero.name).find(s=>s.code===4)?.raw||{};
@@ -170,6 +177,13 @@ export function calculatePrebattle(draft,settings,{basis='panel'}={}){
       output.panelStackBase[stat]=subtotal;
       const bonus=selected.reduce((n,e)=>n+e.value,0);
       output[stat]=primary.includes(stat)?Math.max(stat==='maxHp'?1:0,Math.round(subtotal*(1+bonus/100))):(h[stat]||0)+bonus;
+      // Spawn order verified on all 12 archived attacker Yoon/Zen cases facing
+      // Hayeon; 120 other native-shield cases are negative controls. The enemy
+      // attack reduction arrives after the attacker's native starting shield.
+      if(stat==='attack'&&h.side==='attacker'&&['윤건','젠이츠'].includes(h.name)){
+        const late=selected.filter(e=>e.group==='enemy'&&e.source==='하연'&&e.value<0).reduce((n,e)=>n+e.value,0);
+        if(late&&1+bonus/100>0){output.nativeShieldAttackFactor=(1+(bonus-late)/100)/(1+bonus/100);output.nativeShieldAttack=subtotal*(1+(bonus-late)/100);}
+      }
       if(['crit','weakPoint','block'].includes(stat))output[stat]=Math.min(100,h[stat]+selected.filter(e=>e.value>0).reduce((n,e)=>n+e.value,0))+selected.filter(e=>e.value<0).reduce((n,e)=>n+e.value,0);
       for(const e of selected.filter(e=>e.turns))output.panelTimedBuffs.push({stat,remaining:e.turns,delta:primary.includes(stat)?subtotal*e.value/100:e.value,source:e.source});
       if(addition||selected.length)rows.push({stat,panel:h[stat],growth:Math.round(growth),potential,formation,base:base?.[stat]||0,subtotal,bonuses:selected.map(e=>({source:e.source,value:e.value,turns:e.turns||0})),final:output[stat]});

@@ -13,7 +13,7 @@ export function initializePassives(units){
     const text=passiveText(unit.name);
     // Reset the legacy regex result: a conditional guts shield is never initial.
     unit.barrier=0;unit.barrierTurns=0;unit.barrierProtected=false;
-    for(const rule of startingShieldRules(unit.name))grantShield(unit,unit[rule.scale]*rule.value,rule.turns);
+    for(const rule of startingShieldRules(unit.name))grantShield(unit,(rule.scale==='attack'&&Number.isFinite(unit.nativeShieldAttack)?unit.nativeShieldAttack:unit[rule.scale])*rule.value,rule.turns);
     for(const rule of passiveShieldRules(unit.name).filter(r=>r.trigger==='guts'&&r.group==='self'&&r.scale==='attack'&&!r.conditional))unit.gutsShieldPercent=Math.max(unit.gutsShieldPercent||0,rule.value*100);
     const stealth=passiveSections(unit.name).find(r=>r.group==='self'&&r.text.includes('위장')&&!/부활|발동|경우/.test(r.text));if(stealth)unit.stealth=Number(stealth.text.match(/(\d+)턴/)?.[1]||2);
     if(unit.name==='여포')unit.blessing=roleCount(units,unit.side,1)>=3?25:0;

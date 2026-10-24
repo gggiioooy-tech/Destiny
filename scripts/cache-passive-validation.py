@@ -54,7 +54,10 @@ def initial_context(raw,record):
             side={1:'attacker',2:'defender'}.get(hero.Team)
             if not side or hero.TemplateId not in record['payload'][side]['heroIds']:continue
             result[side]['heroes'].append({'heroId':hero.TemplateId,'seat':hero.Position,'formationGroup':hero.Formation.FormationGroup,'transcendence':hero.TranscendCount,'enhancement':hero.ReinforceLevel})
-            if event.HasField('Pet'):result[side]['petId']=event.Pet.PetTID
+            if event.HasField('Pet'):
+                result[side]['petId']=event.Pet.PetTID
+                if event.Pet.HasField('SkillLevel'):result[side]['petSkillLevel']=event.Pet.SkillLevel
+                if event.Pet.HasField('ReinforceLevel'):result[side]['petEnhancement']=event.Pet.ReinforceLevel
     return result
 records=[]
 for index,(key,(direction,row,record)) in enumerate(selected):

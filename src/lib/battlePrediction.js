@@ -2,7 +2,7 @@ import {createBattle,advanceBattle,prepareHeroes} from './experimentalBattle.js'
 import {canonicalHero} from './simulationSkills.js';
 import {calculatePrebattle,defaultPrebattleSettings,PETS,FORMATIONS} from './prebattleStats.js';
 
-export const ENGINE_VERSION='2026-10-24.8';
+export const ENGINE_VERSION='2026-10-24.9';
 // Frequencies describe this model, not its accuracy against the game.
 export function summarizePrediction(counts){
   const {attacker=0,defender=0,unresolved=0}=counts,total=attacker+defender+unresolved;
@@ -55,7 +55,8 @@ export function setupFromRecord(record){
       settings[side].formation=formation.id;settings[side].seats=initial.map(h=>h.seat);settings[side].positions=initial.map(h=>h.seat<=formation.front?'front':'back');
     }
   }
-  const draft=calculatePrebattle(raw,settings,{basis:'battle'}).heroes;createBattle(draft,{plans});return {draft,plans};
+  const observedPetSkillLevels=Object.fromEntries(['attacker','defender'].filter(side=>p.initialContext?.[side]?.petSkillLevel!==undefined).map(side=>[side,p.initialContext[side].petSkillLevel]));
+  const draft=calculatePrebattle(raw,settings,{basis:'battle',observedPetSkillLevels}).heroes;createBattle(draft,{plans});return {draft,plans};
 }
 
 export function wilsonInterval(success,total){
