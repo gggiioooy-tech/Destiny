@@ -1,8 +1,8 @@
 import {createBattle,advanceBattle,prepareHeroes} from './experimentalBattle.js';
 import {canonicalHero} from './simulationSkills.js';
-import {calculatePrebattle,defaultPrebattleSettings,PETS,FORMATIONS} from './prebattleStats.js';
+import {calculatePrebattle,defaultPrebattleSettings,PETS,FORMATIONS,canonicalPet} from './prebattleStats.js';
 
-export const ENGINE_VERSION='2026-10-24.11';
+export const ENGINE_VERSION='2026-10-24.12';
 // Frequencies describe this model, not its accuracy against the game.
 export function summarizePrediction(counts){
   const {attacker=0,defender=0,unresolved=0}=counts,total=attacker+defender+unresolved;
@@ -48,7 +48,8 @@ export function setupFromRecord(record){
   const raw=prepareHeroes({heroes}),settings=defaultPrebattleSettings();
   for(const side of ['attacker','defender']){
     const context=p.initialContext?.[side],team=p[side];
-    if(PETS.some(v=>v.name===team.pet))settings[side].pet=team.pet;
+    const pet=canonicalPet(team.pet);
+    if(PETS.some(v=>v.name===pet))settings[side].pet=pet;
     const initial=team.heroIds.map(id=>context?.heroes?.find(h=>h.heroId===id));
     const formationMap={13200:'basic',12300:'balance',14100:'attack',11400:'protection'},formation=FORMATIONS.find(f=>f.id===formationMap[initial[0]?.formationGroup]);
     if(formation&&initial.every(h=>Number.isInteger(h?.seat)&&h.seat>=1&&h.seat<=5)&&new Set(initial.map(h=>h.seat)).size===3){

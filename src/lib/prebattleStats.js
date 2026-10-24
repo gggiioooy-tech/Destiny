@@ -4,6 +4,7 @@ import {heroProfile,heroSkills} from './simulationSkills.js';
 
 const PET_REFERENCES=[['루','루'],['이린','이린'],['리첼','리첼'],['크리','크리'],['파이크','파이크'],['델로','델로'],['윈디','윈디'],['제브','제브'],['유','유'],['요랑','요랑'],['연지','연지'],['카람','카람'],['제오','제오'],['멜페로','멜패로'],['네즈코','카마도 네즈코']];
 const petAliases={'멜패로':'멜페로','카마도 네즈코':'네즈코'};
+export const canonicalPet=name=>petAliases[name]||name;
 export const PETS=PET_REFERENCES.map(([name,reference])=>({...catalog.pets.find(p=>p.name===reference),name}));
 export const BASE_STATS=catalog.bases;
 export const FORMATIONS=[
@@ -33,7 +34,7 @@ export function normalizePrebattleSettings(value){
   const output={};
   for(const side of ['attacker','defender']){
     const v=value?.[side]||defaultTeamSettings(),d=defaultTeamSettings();
-    const petName=petAliases[v.pet]||v.pet;
+    const petName=canonicalPet(v.pet);
     if(!['없음',...PETS.map(p=>p.name)].includes(petName))throw Error('지원하는 펫 15종 중에서 선택해 주세요.');
     const pet=PETS.find(p=>p.name===petName);
     const formation=FORMATIONS.find(f=>f.id===v.formation)||FORMATIONS.find(f=>f.attack===v.formationAttack&&f.defense===v.formationDefense)||FORMATIONS[0];
