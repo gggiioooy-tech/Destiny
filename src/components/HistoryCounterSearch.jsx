@@ -1,7 +1,7 @@
 import {canViewHeroStats} from '../lib/heroBattleStats.js';
 import DetailDialog from "./DetailDialog.jsx";
 import React,{useEffect,useState} from 'react';
-import {historyCriteria,historyPage} from '../lib/historySearchApi.js';
+import {historyCriteria,historyPage,historyGuilds} from '../lib/historySearchApi.js';
 import {loadBattleHeroSpeeds} from '../lib/battleHeroSpeeds.js';
 import {BattleSide} from './GuildWarPage.jsx';
 const button='site-button rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm disabled:opacity-50';
@@ -48,8 +48,14 @@ export default function HistoryCounterSearch({currentUser,defenseHeroes}){
   const embedded=Array.isArray(defenseHeroes),anonymous=currentUser.role==='member';
   const [input,setInput]=useState(''),[query,setQuery]=useState(''),[offset,setOffset]=useState(0),[revision,setRevision]=useState(0);
   const [state,setState]=useState({key:'',groups:[],totalGroups:0,totalRecords:0,hasMore:false}),[loading,setLoading]=useState(false),[error,setError]=useState('');
+  const [guild,setGuild]=useState(''),[guilds,setGuilds]=useState([]),[guildError,setGuildError]=useState(''),[guildRetry,setGuildRetry]=useState(0);
+  useEffect(()=>{
+    const controller=new AbortController();setGuildError('');
+    historyGuilds(controller.signal).then(names=>{if(!controller.signal.aborted)setGuilds(names);}).catch(e=>{if(!controller.signal.aborted)setGuildError(e.message||'길드 목록을 불러오지 못했습니다.');});
+    return()=>controller.abort();
+  },[currentUser.id,currentUser.role,guildRetry]);
   useEffect(()=>{const timer=setTimeout(()=>{setQuery(input.trim());setOffset(0);},300);return()=>clearTimeout(timer);},[input]);
-  const criteriaKey=JSON.stringify(historyCriteria(query,defenseHeroes));
+  const criteriaKey=JSON.stringify(historyCriteria(query,defenseHeroes,guild));
   const key=JSON.stringify([criteriaKey,currentUser.id,currentUser.role,currentUser.isOwner,revision]);
   useEffect(()=>{
     if(!embedded&&!query){setLoading(false);return;}
@@ -63,6 +69,7 @@ export default function HistoryCounterSearch({currentUser,defenseHeroes}){
   const visible=state.key===key?state:null;
   const criteria=React.useMemo(()=>JSON.parse(criteriaKey),[criteriaKey]);
   return <section className={embedded?'min-w-0 space-y-3':'site-page mx-auto max-w-7xl space-y-5 p-4 sm:p-8'}>
+    <div className="space-y-2"><div className="flex flex-wrap gap-2" role="group" aria-label="검색할 길드">{['',...guilds].map(name=><button key={name||'all'} type="button" aria-pressed={guild===name} className={`${button} ${guild===name?'site-button-primary font-bold ring-2 ring-blue-500':''}`} onClick={()=>{setGuild(name);setOffset(0);}}>{name||'모두'}</button>)}</div><p className="text-xs text-zinc-500">{guild?`${guild}에서 수집한 길드전 매칭만 검색합니다.`:'모든 등록 길드의 길드전 매칭을 검색합니다.'}</p>{guildError&&<p role="alert" className="text-sm text-red-600">{guildError} <button type="button" className="underline" onClick={()=>setGuildRetry(v=>v+1)}>다시 시도</button></p>}</div>
     {!embedded&&<><header className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-2xl font-bold">공격팀 (길드전 이력으로 검색)</h1><button type="button" className={button} disabled={loading} onClick={()=>{setOffset(0);setRevision(v=>v+1);}}>새로고침</button></header>
       <div className="rounded-2xl border border-zinc-200 bg-white p-4"><label htmlFor="history-counter-query" className="font-semibold">상대 방어 영웅 검색</label><input id="history-counter-query" value={input} onChange={e=>setInput(e.target.value)} placeholder="예: 아일린 젠이츠 델론즈 또는 ㅇㅇㄹ, ㅈㅇㅊ, ㄷㄹㅈ" className="mt-2 w-full rounded-xl border border-zinc-200 bg-white p-3"/><p className="mt-2 text-sm text-zinc-500">영웅명·초성을 띄어쓰기나 쉼표로 구분하세요. 순서와 관계없이 입력한 영웅을 모두 포함한 방어팀을 검색합니다.</p><p className="mt-1 text-sm text-zinc-500">{anonymous?'전체 길드 익명 공격 이력':'우리·상대 길드의 실제 공격 이력'} · 공격 영웅 조합 사용 횟수순 · 펫과 스킬은 상세보기에서 확인하세요.</p></div></>}
     {embedded&&<p className="text-xs text-zinc-500">같은 방어 영웅 3명 기준 · 승률순 (동률이면 공격 횟수순) · 결과 미확인은 승률에서 제외</p>}

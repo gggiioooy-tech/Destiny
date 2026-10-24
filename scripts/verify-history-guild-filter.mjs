@@ -1,0 +1,42 @@
+import assert from 'node:assert/strict';
+import React from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+import {createServer} from 'vite';
+globalThis.sessionStorage={getItem:()=>null,setItem:()=>{},removeItem:()=>{}};
+globalThis.localStorage=globalThis.sessionStorage;
+const vite=await createServer({optimizeDeps:{noDiscovery:true,include:[]},server:{middlewareMode:true,hmr:false},appType:'custom'});
+try{
+  const api=await vite.ssrLoadModule('/src/lib/historySearchApi.js');
+  const {supabase}=await vite.ssrLoadModule('/src/lib/supabase.js');
+  const calls=[];
+  supabase.rpc=(name,args)=>{
+    calls.push({name,args});
+    const response={data:name==='battle_history_guilds'?['노을','철폐','노을']:{records:[],groups:[],totalRecords:0},error:null};
+    return Object.assign(Promise.resolve(response),{abortSignal:()=>Promise.resolve(response)});
+  };
+  assert.deepEqual(await api.historyGuilds(),['노을','철폐']);
+  const user={id:'guild-filter-test',role:'admin',isOwner:false};
+  const all=api.historyCriteria('루디',undefined);
+  const noel=api.historyCriteria('루디',undefined,'노을');
+  const iron=api.historyCriteria('루디',undefined,'철폐');
+  await api.historyPage(all,user);
+  await api.historyPage(noel,user);
+  await api.historyPage(iron,user);
+  assert.equal(calls[1].name,'search_battle_history');
+  assert.equal(calls[2].name,'search_battle_history_by_guild');
+  assert.equal(calls[2].args.p_guild,'노을');
+  assert.equal(calls[3].args.p_guild,'철폐');
+  await api.historyPage(noel,user,{attack:['루디','하연','기유'],offset:20});
+  assert.equal(calls[4].args.p_guild,'노을');
+  assert.equal(calls[4].args.p_offset,20);
+  await api.historyPage(all,user);
+  assert.equal(calls.length,5,'returning to all can only reuse the all-guild cache');
+  const exact=api.historyCriteria('', ['루디','하연','기유'],'노을');
+  assert.equal(exact.p_sort,'rate');assert.equal(exact.p_guild,'노을');
+  const {default:Search}=await vite.ssrLoadModule('/src/components/HistoryCounterSearch.jsx');
+  const html=renderToStaticMarkup(React.createElement(Search,{currentUser:user}));
+  assert.ok(html.includes('aria-label="검색할 길드"'));
+  assert.ok(html.includes('aria-pressed="true"'));
+  assert.ok(html.includes('모두'));
+  console.log('PASS guild criteria, RPC routing, independent caches, details pagination and search filter markup');
+}finally{await vite.close();}
